@@ -121,6 +121,8 @@ mom_suffix_to_hi_lo (const char *buf, uint16_t *phi, uint64_t *plo)
 }
 
 
+
+
 static std::map<std::string,MomRADIXdata*> mom_radix_dict;
 static std::mutex mom_radix_mtx;
 
@@ -302,7 +304,7 @@ static void cleanup_item_mom (void *itmad, void *clad)
   auto lid = itm->itm_lid;
   auto ptr = ptr_radix_id_mom(rad,hid,lid);
   assert (ptr != nullptr);
-  *ptr = MOM_EMPTY_SLOT;
+  *ptr = (MomITEM*)MOM_EMPTY_SLOT;
   if (hid != 0 || lid != 0)
     {
       rad->rad_counthash--;
@@ -419,3 +421,68 @@ MomITEM* mom_clone_item_from_radix(MomRADIXdata*rad)
   while(MOM_UNLIKELY(newitm==nullptr));
   return newitm;
 } // end of mom_clone_item_from_radix
+
+
+const char*
+mom_radix_id_cstr(MomRADIXdata*rad, uint16_t hid, uint64_t lid)
+{
+  if (!rad || rad==MOM_EMPTY_SLOT || rad->vtype != MomItypeEn::RADIXdata)
+    return nullptr;
+  auto nam = rad->rad_name;
+  assert (nam != nullptr && nam->vtype == MomItypeEn::STRING);
+  if (lid==0 && hid==0)
+    return nam->cstr;
+  auto nsz = nam->usize;
+  assert (nam->cstr[nsz] == (char)0);
+  char smallbuf[64];
+  memset (smallbuf, 0, sizeof(smallbuf));
+  if (MOM_LIKELY(nsz+MOM_HI_LO_SUFFIX_LEN+4 < sizeof(smallbuf)))
+    {
+      memcpy(smallbuf,nam->cstr,nsz);
+      smallbuf[nsz] = '_';
+      (void)mom_hi_lo_suffix(smallbuf+nsz+1,hid,lid);
+      return GC_STRDUP(smallbuf);
+    }
+  else
+    {
+      char*buf = (char*)mom_gc_alloc_scalar(nsz+MOM_HI_LO_SUFFIX_LEN+2);
+      memcpy(smallbuf,nam->cstr,nsz);
+      smallbuf[nsz] = '_';
+      (void)mom_hi_lo_suffix(smallbuf+nsz+1,hid,lid);
+      return buf;
+    }
+} // end mom_radix_id_cstr
+
+
+const std::string
+mom_radix_id_string(MomRADIXdata*rad, uint16_t hid, uint64_t lid)
+{
+  if (!rad || rad==MOM_EMPTY_SLOT || rad->vtype != MomItypeEn::RADIXdata)
+    return nullptr;
+  auto nam = rad->rad_name;
+  assert (nam != nullptr && nam->vtype == MomItypeEn::STRING);
+  if (lid==0 && hid==0)
+    return nam->cstr;
+  auto nsz = nam->usize;
+  assert (nam->cstr[nsz] == (char)0);
+  char smallbuf[64];
+  memset (smallbuf, 0, sizeof(smallbuf));
+  if (MOM_LIKELY(nsz+MOM_HI_LO_SUFFIX_LEN+4 < sizeof(smallbuf)))
+    {
+      memcpy(smallbuf,nam->cstr,nsz);
+      smallbuf[nsz] = '_';
+      (void)mom_hi_lo_suffix(smallbuf+nsz+1,hid,lid);
+      return smallbuf;
+    }
+  else
+    {
+      std::string str {nam->cstr};
+      str += '_';
+      char idbuf[MOM_HI_LO_SUFFIX_LEN+4];
+      memset(idbuf, 0, sizeof(idbuf));
+      idbuf[0] = '_';
+      mom_hi_lo_suffix(idbuf+1,hid,lid);
+      str += idbuf;
+      return str;
+    }
+} // end mom_radix_id_string

@@ -480,6 +480,8 @@ public:
 
 #include "_mom_aggr.h"
 
+typedef MomITEM MomPredefinedITEM;
+
 static inline const char *mom_item_hi_lo_suffix (char  buf[MOM_HI_LO_SUFFIX_LEN],
     MomITEM*itm)
 {
@@ -506,6 +508,17 @@ static inline MomSTRING* mom_make_string(const std::string&str)
   return mom_make_string(str.c_str(), str.size());
 }
 
+static inline const char*
+mom_radix_cstring(const MomRADIXdata*radix)
+{
+  if (radix==nullptr || radix==MOM_EMPTY_SLOT
+      || radix->vtype != MomItypeEn::RADIXdata)
+    return nullptr;
+  auto nam = radix->rad_name;
+  assert (nam != nullptr && nam->vtype == MomItypeEn::STRING);
+  return nam->cstr;
+} // end mom_radix_cstring
+
 MomRADIXdata* mom_register_radix_str(const std::string&str);
 
 MomRADIXdata* mom_find_radix_str(const std::string&str);
@@ -519,6 +532,20 @@ MomITEM* mom_find_item_from_radix_id(MomRADIXdata*rad, uint16_t hid=0, uint64_t 
 // make an item (if not found) from its radix & hid&lid
 MomITEM* mom_make_item_from_radix_id(MomRADIXdata*rad, uint16_t hid=0, uint64_t lid=0);
 
+const char*mom_radix_id_cstr(MomRADIXdata*rad, uint16_t hid=0, uint64_t lid=0);
 
+const std::string mom_radix_id_string(MomRADIXdata*rad, uint16_t hid=0, uint64_t lid=0);
+
+static inline const char*mom_item_cstr(const MomITEM*itm)
+{
+  if (itm==nullptr || itm==MOM_EMPTY_SLOT||itm->vtype != MomItypeEn::ITEM) return nullptr;
+  return mom_radix_id_cstr(itm->itm_radix,itm->itm_hid,itm->itm_lid);
+}
+
+static inline const std::string mom_item_string(const MomITEM*itm)
+{
+  if (itm==nullptr || itm==MOM_EMPTY_SLOT||itm->vtype != MomItypeEn::ITEM) return nullptr;
+  return mom_radix_id_string(itm->itm_radix,itm->itm_hid,itm->itm_lid);
+}
 
 #endif /*MONIMELT_INCLUDED_ */

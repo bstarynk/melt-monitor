@@ -23,6 +23,7 @@
 #define BASE_YEAR_MOM 2015
 
 static bool syslogging_mom;
+thread_local MomRandom MomRandom::_rand_thr_;
 
 unsigned mom_debugflags;
 mom_atomic_int mom_nb_warnings;
