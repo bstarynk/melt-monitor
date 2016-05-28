@@ -1,0 +1,14 @@
+# file .gitignore
+*%
+*.orig
+*.bak
+*~
+*.o
+*.so
+*.gch
+
+## executables
+monimelt
+
+## generated
+_timestamp.*
