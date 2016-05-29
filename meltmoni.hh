@@ -69,6 +69,7 @@
 #endif
 
 #include <gc/gc.h>
+#include <gc/gc_allocator.h>
 
 // libonion from http://www.coralbits.com/libonion/ &
 // https://github.com/davidmoreno/onion
@@ -704,7 +705,53 @@ public:
 
 class MomLoader
 {
+  static constexpr unsigned MAGIC =  0x1f3fd30f     /*524276495 */;
   std::vector<MomStatElem> _ld_stack;
+  unsigned _ld_magic;
+  FILE *_ld_file;
+  std::string _ld_path;
+  struct loader_compare_st
+  {
+    bool operator () (MomVal*l,MomVal*r)
+    {
+      if (l==r) return false;
+      if (l==nullptr || l==MOM_EMPTY_SLOT) return true;
+      if (r==nullptr || r==MOM_EMPTY_SLOT) return false;
+      const MomSTRING*lname = nullptr;
+      const MomSTRING*rname = nullptr;
+      uint16_t lefthid = 0, righthid=0;
+      uint64_t leftlid = 0, rightlid=0;
+      if (l->vtype == MomItypeEn::STRING)
+        lname = static_cast<MomSTRING*>(l);
+      else if (l->vtype == MomItypeEn::ITEM)
+        {
+          MomITEM*litm = static_cast<MomITEM*>(l);
+          lname = litm->itm_radix->rad_name;
+          lefthid = litm->itm_hid;
+          leftlid = litm->itm_lid;
+        };
+      if (r->vtype == MomItypeEn::STRING)
+        rname = static_cast<MomSTRING*>(r);
+      else if (r->vtype == MomItypeEn::ITEM)
+        {
+          MomITEM*ritm = static_cast<MomITEM*>(r);
+          lname = ritm->itm_radix->rad_name;
+          righthid = ritm->itm_hid;
+          rightlid = ritm->itm_lid;
+        };
+      if (lname == rname)
+        {
+          if (lefthid < righthid) return true;
+          if (lefthid > righthid) return false;
+          return leftlid <= rightlid;
+        };
+      if (lname == nullptr) return true;
+      if (rname == nullptr) return false;
+      return strcmp(lname->cstr, rname->cstr)<0;
+    }
+  };
+  // a set of items, but we may use a string name to test containership
+  std::set<MomVal*,loader_compare_st,traceable_allocator<MomVal*>> _ld_setitems;
 };				// end of class MomLoader
 
 #endif /*MONIMELT_INCLUDED_ */
