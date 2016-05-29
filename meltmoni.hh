@@ -548,4 +548,163 @@ static inline const std::string mom_item_string(const MomITEM*itm)
   return mom_radix_id_string(itm->itm_radix,itm->itm_hid,itm->itm_lid);
 }
 
+
+enum class MomStateTypeEn : uint8_t
+{
+  EMPTY,
+  MARK,
+  INT,
+  DOUBLE,
+  STRING,
+  VAL
+};
+
+class MomStatElem
+{
+public:
+protected:
+  struct MomMarkSt {};
+  MomStateTypeEn _st_type;
+  union
+  {
+    const void* _st_nptr;		// null when MomStateTypeEn::EMPTY
+    int _st_mark; // when MomStateTypeEn::MARK
+    long _st_int; // when MomStateTypeEn::INT
+    double _st_dbl; // when MomStateTypeEn::DOUBLE
+    std::string _st_str;		// when MomStateTypeEn::STRING
+    const MomVal* _st_val;		// when MomStateTypeEn::VAL;
+  };
+  explicit MomStatElem(std::nullptr_t)
+    : _st_type(MomStateTypeEn::EMPTY), _st_nptr(nullptr) {};
+  explicit MomStatElem() : MomStatElem(nullptr) {};
+  explicit MomStatElem(MomMarkSt, int m)
+    : _st_type(MomStateTypeEn::MARK), _st_mark(m) {};
+  explicit MomStatElem(long l)
+    : _st_type(MomStateTypeEn::INT), _st_int(l) {};
+  explicit MomStatElem(double d)
+    : _st_type(MomStateTypeEn::DOUBLE), _st_dbl(d) {};
+  explicit MomStatElem(const std::string&s)
+    : _st_type(MomStateTypeEn::STRING), _st_str(s) {};
+  explicit MomStatElem(const MomVal*v)
+    : _st_type(MomStateTypeEn::VAL), _st_val(v) {};
+  MomStatElem(const MomStatElem&e)
+    :_st_type(e._st_type), _st_nptr(nullptr)
+  {
+    switch (e._st_type)
+      {
+      case MomStateTypeEn::EMPTY:
+        break;
+      case MomStateTypeEn::MARK:
+        _st_mark = e._st_mark;
+        return;
+      case MomStateTypeEn::INT:
+        _st_int = e._st_int;
+        return;
+      case MomStateTypeEn::DOUBLE:
+        _st_dbl = e._st_dbl;
+        return;
+      case MomStateTypeEn::STRING:
+        _st_str = e._st_str;
+        return;
+      case MomStateTypeEn::VAL:
+        _st_val = e._st_val;
+        return;
+      }
+  }
+  MomStatElem(MomStatElem&&e) :
+    _st_type(e._st_type), _st_nptr(nullptr)
+  {
+    switch (e._st_type)
+      {
+      case MomStateTypeEn::EMPTY:
+        break;
+      case MomStateTypeEn::MARK:
+        _st_mark = e._st_mark;
+        break;
+      case MomStateTypeEn::INT:
+        _st_int = e._st_int;
+        break;
+      case MomStateTypeEn::DOUBLE:
+        _st_dbl = e._st_dbl;
+        break;
+      case MomStateTypeEn::STRING:
+        _st_str = std::move(e._st_str);
+        break;
+      case MomStateTypeEn::VAL:
+        _st_val = e._st_val;
+        break;
+      }
+    e._st_type =  MomStateTypeEn::EMPTY;
+    e._st_nptr = nullptr;
+  }
+  ~MomStatElem()
+  {
+    typedef std::string str_t;
+    switch (_st_type)
+      {
+      case MomStateTypeEn::EMPTY:
+        break;
+      case MomStateTypeEn::MARK:
+        break;
+      case MomStateTypeEn::INT:
+        break;
+      case MomStateTypeEn::DOUBLE:
+        break;
+      case MomStateTypeEn::STRING:
+        _st_str.~str_t();
+        break;
+      case MomStateTypeEn::VAL:
+        break;
+      }
+    _st_nptr = nullptr;
+  };				// end ~MomStatElem
+};
+
+class MomStatEmpty : public MomStatElem
+{
+public:
+  explicit MomStatEmpty() : MomStatElem(nullptr) {};
+};
+
+class MomStatMark : public MomStatElem
+{
+public:
+  explicit MomStatMark(int m) :
+    MomStatElem(MomStatElem::MomMarkSt(), m) {};
+};
+
+class MomStatInt : public MomStatElem
+{
+public:
+  explicit MomStatInt(long l) :
+    MomStatElem(l) {}
+};
+
+class MomStatDouble : public MomStatElem
+{
+public:
+  explicit MomStatDouble(double d) :
+    MomStatElem(d) {}
+};
+
+class MomStatString : public MomStatElem
+{
+public:
+  explicit MomStatString(const std::string&s) :
+    MomStatElem(s) {}
+};
+
+class MomStatVal : public MomStatElem
+{
+public:
+  explicit MomStatVal(const MomVal*v=nullptr) :
+    MomStatElem(v) {}
+};
+
+
+class MomLoader
+{
+  std::vector<MomStatElem> _ld_stack;
+};				// end of class MomLoader
+
 #endif /*MONIMELT_INCLUDED_ */
