@@ -104,6 +104,8 @@
 #include <random>
 #include <mutex>
 #include <thread>
+#include <functional>
+#include <algorithm>
 #include <new>
 
 #define MOM_FLEXIBLE_DIM 1
@@ -691,6 +693,7 @@ public:
         break;
       }
     _st_type = e._st_type;
+    return *this;
   }
   ~MomStatElem()
   {

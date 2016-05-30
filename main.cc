@@ -23,12 +23,18 @@
 #define BASE_YEAR_MOM 2015
 
 static bool syslogging_mom;
+static bool should_dump_mom;
+static const char*load_state_mom;
 thread_local MomRandom MomRandom::_rand_thr_;
+
+static std::vector<std::function<void(void)>> todo_after_load_mom;
+
 
 unsigned mom_debugflags;
 mom_atomic_int mom_nb_warnings;
 
 static char hostname_mom[80];
+
 void *mom_prog_dlhandle;
 
 const char *
@@ -903,6 +909,194 @@ mom_gc_calloc (size_t nmemb, size_t size)
   return mom_gc_alloc (totsz);
 }
 
+extern "C" const char *const mom_debug_names[momdbg__last] =
+{
+#ifdef __clang__
+#define DEFINE_DBG_NAME_MOM(Dbg) [momdbg_##Dbg]= #Dbg,
+  MOM_DEBUG_LIST_OPTIONS (DEFINE_DBG_NAME_MOM)
+#else
+#define   DEFINE_DBG_NAME_MOM(Dbg) #Dbg,
+  nullptr,
+  MOM_DEBUG_LIST_OPTIONS (DEFINE_DBG_NAME_MOM)
+#endif
+};
+
+#undef DEFINE_DBG_NAME_MOM
+
+
+/* Option specification for getopt_long.  */
+enum extraopt_en
+{
+  xtraopt__none = 0,
+  xtraopt_chdir_first = 1024,
+  xtraopt_chdir_after_load,
+  xtraopt_addpredef,
+  xtraopt_commentpredef,
+};
+
+static const struct option mom_long_options[] =
+{
+  {"help", no_argument, NULL, 'h'},
+  {"version", no_argument, NULL, 'V'},
+  {"debug", required_argument, NULL, 'D'},
+  {"dump", no_argument, NULL, 'd'},
+  {"load", required_argument, NULL, 'L'},
+  {"chdir-first", required_argument, NULL, xtraopt_chdir_first},
+  {"chdir-after-load", required_argument, NULL, xtraopt_chdir_after_load},
+  {"add-predefined", required_argument, NULL, xtraopt_addpredef},
+  {"comment-predefined", required_argument, NULL, xtraopt_commentpredef},
+  /* Terminating NULL placeholder.  */
+  {NULL, no_argument, NULL, 0},
+};
+
+
+static void
+usage_mom (const char *argv0)
+{
+  printf ("Usage: %s\n", argv0);
+  printf ("\t -h | --help " " \t# Give this help.\n");
+  printf ("\t -V | --version " " \t# Give version information.\n");
+  printf ("\t -D | --debug <debug-features>"
+          " \t# Debugging comma separated features\n\t\t##");
+  for (unsigned ix = 1; ix < momdbg__last; ix++)
+    printf (" %s", mom_debug_names[ix]);
+  putchar ('\n');
+  printf ("\t -d | --dump " " \t# Dump the state.\n");
+  printf ("\t --chdir-first dirpath" " \t#Change directory at first \n");
+  printf ("\t --chdir-after-load dirpath"
+          " \t#Change directory after load\n");
+  printf ("\t --add-predefined predefname" " \t#Add a predefined\n");
+  printf ("\t --comment-predefined comment"
+          " \t#Set comment of next predefined\n");
+}
+
+
+static void
+print_version_mom (const char *argv0)
+{
+  printf ("%s built on %s gitcommit %s\n", argv0,
+          monimelt_timestamp, monimelt_lastgitcommit);
+}
+
+void
+mom_set_debugging (const char *dbgopt)
+{
+  char dbuf[256];
+  if (!dbgopt)
+    return;
+  memset (dbuf, 0, sizeof (dbuf));
+  if (strlen (dbgopt) >= sizeof (dbuf) - 1)
+    MOM_FATAPRINTF ("too long debug option %s", dbgopt);
+  strcpy (dbuf, dbgopt);
+  char *comma = NULL;
+  if (!strcmp (dbuf, ".") || !strcmp (dbuf, "_"))
+    {
+      mom_debugflags = ~0;
+      MOM_INFORMPRINTF ("set all debugging");
+    }
+  else
+    for (char *pc = dbuf; pc != NULL; pc = comma ? comma + 1 : NULL)
+      {
+        comma = strchr (pc, ',');
+        if (comma)
+          *comma = (char) 0;
+#define MOM_TEST_DEBUG_OPTION(Nam)			\
+	if (!strcmp(pc,#Nam))		{		\
+	  mom_debugflags |=  (1<<momdbg_##Nam); } else	\
+	  if (!strcmp(pc,"!"#Nam))			\
+	    mom_debugflags &=  ~(1<<momdbg_##Nam); else
+        if (!pc)
+          break;
+        MOM_DEBUG_LIST_OPTIONS (MOM_TEST_DEBUG_OPTION) if (pc && *pc)
+          MOM_WARNPRINTF ("unrecognized debug flag %s", pc);
+      }
+  char alldebugflags[2 * sizeof (dbuf) + 120];
+  memset (alldebugflags, 0, sizeof (alldebugflags));
+  int nbdbg = 0;
+#define MOM_SHOW_DEBUG_OPTION(Nam) do {		\
+    if (mom_debugflags & (1<<momdbg_##Nam)) {	\
+     strcat(alldebugflags, " " #Nam);		\
+     assert (strlen(alldebugflags)		\
+	     <sizeof(alldebugflags)-3);		\
+     nbdbg++;					\
+    } } while(0);
+  MOM_DEBUG_LIST_OPTIONS (MOM_SHOW_DEBUG_OPTION);
+  if (nbdbg > 0)
+    MOM_INFORMPRINTF ("%d debug flags active:%s.", nbdbg, alldebugflags);
+  else
+    MOM_INFORMPRINTF ("no debug flags active.");
+}
+
+
+
+
+void
+parse_program_arguments_mom (int *pargc, char ***pargv)
+{
+  int argc = *pargc;
+  char **argv = *pargv;
+  int opt = -1;
+  char *commentstr = NULL;
+  char *testargstr = NULL;
+  char *suffix = NULL;
+  while ((opt = getopt_long (argc, argv, "hVdsD:L:",
+                             mom_long_options, NULL)) >= 0)
+    {
+      switch (opt)
+        {
+        case 'h':              /* --help */
+          usage_mom (argv[0]);
+          putchar ('\n');
+          fputs ("\nVersion info:::::\n", stdout);
+          print_version_mom (argv[0]);
+          exit (EXIT_FAILURE);
+          return;
+        case 'V':              /* --version */
+          print_version_mom (argv[0]);
+          exit (EXIT_SUCCESS);
+          return;
+        case 'd':              /* --dump */
+          should_dump_mom = true;
+          break;
+        case 'D':              /* --debug debugopt */
+          mom_set_debugging (optarg);
+          break;
+        case 'L': /* --load filepath */
+          if (!optarg || access (optarg, R_OK))
+            MOM_FATAPRINTF ("bad load state %s : %m", optarg);
+          load_state_mom = optarg;
+          break;
+        case xtraopt_commentpredef: /* --comment-predefined comment */
+          if (optarg)
+            commentstr=optarg;
+          break;
+        case xtraopt_addpredef: /* --add-predefined name */
+          if (optarg)
+            {
+#warning incomplete, should test validity of name and add a todo
+            }
+          break;
+        case xtraopt_chdir_first: /* --chdir-first dirname */
+          if (optarg)
+            {
+              if (chdir(optarg))
+                MOM_FATAPRINTF("failed to --chdir-first %s (%m)", optarg);
+              else
+                {
+                  char*cwd = get_current_dir_name();
+                  MOM_INFORMPRINTF("changed directory at first to %s",
+                                   cwd?cwd:".");
+                  free (cwd);
+                }
+            };
+          break;
+        default:
+          MOM_FATAPRINTF ("bad option (%c) at %d", isalpha (opt) ? opt : '?',
+                          optind);
+          return;
+        }
+    }
+} // end of parse_program_arguments_mom
 
 
 int
@@ -917,4 +1111,5 @@ main (int argc_main, char **argv_main)
   mom_prog_dlhandle = dlopen (NULL, RTLD_NOW);
   if (!mom_prog_dlhandle)
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
+  parse_program_arguments_mom(&argc, &argv);
 } // end of main

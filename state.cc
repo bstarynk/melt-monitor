@@ -65,6 +65,11 @@ MomLoader::first_pass()
           const char*pc = _ld_linbuf+1;
           while (isalnum(*pc) || *pc=='_') pc++;
           std::string nam {_ld_linbuf+1, (unsigned long)(pc-(_ld_linbuf+1))};
+          MomITEM*itm = mom_make_item_from_string(nam);
+          if (MOM_UNLIKELY(itm==nullptr))
+            MOM_FATAPRINTF("failed to make item %s from state file %s line %d",
+                           nam.c_str(), _ld_path.c_str(), _ld_lineno);
+          _ld_setitems.insert(itm);
         }
     }
   while(!feof(_ld_file));
