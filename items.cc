@@ -486,3 +486,51 @@ mom_radix_id_string(MomRADIXdata*rad, uint16_t hid, uint64_t lid)
       return str;
     }
 } // end mom_radix_id_string
+
+
+// find some existing item from string
+MomITEM*mom_find_item_from_string(const std::string&s)
+{
+  if (s.empty() || !isalpha(s[0])) return nullptr;
+  auto b = s.begin();
+  auto e = s.end();
+  auto p = b;
+  for(p=b; p<e; p++)
+    {
+      if (isalnum(*p)) continue;
+      if (*p=='_' && p<s.end() && *(p+1)!='_')continue;
+      else break;
+    }
+  auto radnam = std::string {b,p};
+  auto rad = mom_find_radix_str(radnam);
+  if (rad == nullptr) return nullptr;
+  uint16_t hid=0;
+  uint64_t lid=0;
+  if (p<e || !mom_suffix_to_hi_lo (s.c_str()+((p+1)-b),&hid,&lid))
+    return nullptr;
+  return mom_find_item_from_radix_id(rad,hid,lid);
+} // end mom_find_item_from_string
+
+
+// make (or find) an item from string
+MomITEM*mom_make_item_from_string(const std::string&s)
+{
+  if (s.empty() || !isalpha(s[0])) return nullptr;
+  auto b = s.begin();
+  auto e = s.end();
+  auto p = b;
+  for(p=b; p<e; p++)
+    {
+      if (isalnum(*p)) continue;
+      if (*p=='_' && p<s.end() && *(p+1)!='_')continue;
+      else break;
+    }
+  auto radnam = std::string {b,p};
+  auto rad = mom_find_radix_str(radnam);
+  if (rad == nullptr) return nullptr;
+  uint16_t hid=0;
+  uint64_t lid=0;
+  if (p<e || !mom_suffix_to_hi_lo (s.c_str()+((p+1)-b),&hid,&lid))
+    return nullptr;
+  return mom_make_item_from_radix_id(rad,hid,lid);
+} // end mom_make_item_from_string

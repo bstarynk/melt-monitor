@@ -549,6 +549,11 @@ static inline const std::string mom_item_string(const MomITEM*itm)
   return mom_radix_id_string(itm->itm_radix,itm->itm_hid,itm->itm_lid);
 }
 
+// find some existing item from string
+MomITEM*mom_find_item_from_string(const std::string&s);
+
+// make (or find) an item from string
+MomITEM*mom_make_item_from_string(const std::string&s);
 
 enum class MomStateTypeEn : uint8_t
 {
@@ -575,6 +580,7 @@ protected:
     std::string _st_str;		// when MomStateTypeEn::STRING
     const MomVal* _st_val;		// when MomStateTypeEn::VAL;
   };
+public:
   explicit MomStatElem(std::nullptr_t)
     : _st_type(MomStateTypeEn::EMPTY), _st_nptr(nullptr) {};
   explicit MomStatElem() : MomStatElem(nullptr) {};
@@ -638,7 +644,7 @@ protected:
     e._st_type =  MomStateTypeEn::EMPTY;
     e._st_nptr = nullptr;
   }
-  ~MomStatElem()
+  void clear()
   {
     typedef std::string str_t;
     switch (_st_type)
@@ -658,6 +664,37 @@ protected:
         break;
       }
     _st_nptr = nullptr;
+    _st_type =  MomStateTypeEn::EMPTY;
+  }
+  MomStatElem& operator = (const MomStatElem&e)
+  {
+    if (_st_type != e._st_type)
+      clear();
+    switch (e._st_type)
+      {
+      case MomStateTypeEn::EMPTY:
+        break;
+      case MomStateTypeEn::MARK:
+        _st_mark = e._st_mark;
+        break;
+      case MomStateTypeEn::INT:
+        _st_int = e._st_int;
+        break;
+      case MomStateTypeEn::DOUBLE:
+        _st_dbl = e._st_dbl;
+        break;
+      case MomStateTypeEn::STRING:
+        _st_str = e._st_str;
+        break;
+      case MomStateTypeEn::VAL:
+        _st_val = e._st_val;
+        break;
+      }
+    _st_type = e._st_type;
+  }
+  ~MomStatElem()
+  {
+    clear();
   };				// end ~MomStatElem
 };
 
@@ -710,6 +747,10 @@ class MomLoader
   unsigned _ld_magic;
   FILE *_ld_file;
   std::string _ld_path;
+  char*_ld_linbuf;
+  size_t _ld_linsiz;
+  ssize_t _ld_linlen;
+  int _ld_lineno;
   struct loader_compare_st
   {
     bool operator () (MomVal*l,MomVal*r)
@@ -752,6 +793,70 @@ class MomLoader
   };
   // a set of items, but we may use a string name to test containership
   std::set<MomVal*,loader_compare_st,traceable_allocator<MomVal*>> _ld_setitems;
+public:
+  MomLoader (const char*path);
+  ~MomLoader();
+  void first_pass(void);
+  void second_pass(void);
+  void push(const MomStatElem& el)
+  {
+    if (MOM_UNLIKELY(_ld_magic != MAGIC))
+      MOM_FATAPRINTF("corrupted loader");
+    _ld_stack.push_back(el);
+  };
+  void pop(unsigned nb=1)
+  {
+    if (nb>0)
+      {
+        if (_ld_stack.size()<nb)
+          MOM_FATAPRINTF("too big loader pop %d (has %d)",
+                         nb, (int)(_ld_stack.size()));
+        if (nb==1) _ld_stack.pop_back();
+        else
+          _ld_stack.erase(_ld_stack.end()-nb, _ld_stack.end());
+      }
+  }
+  void push_mark(int m)
+  {
+    push(MomStatMark {m});
+  };
+  void push_empty(void)
+  {
+    push(MomStatEmpty {});
+  };
+  void push_int(long l)
+  {
+    push(MomStatInt {l});
+  };
+  void push_double(double d)
+  {
+    push(MomStatDouble {d});
+  };
+  void push_string(const std::string&s)
+  {
+    push(MomStatString {s});
+  };
+  void push_val(const MomVal*v=nullptr)
+  {
+    push(MomStatVal {v});
+  };
+  void rewind(void)
+  {
+    if (_ld_file==nullptr) return;
+    ::rewind(_ld_file);
+    _ld_lineno = 0;
+  };
+  void getline(void)
+  {
+    if (_ld_file==nullptr) return;
+    if (_ld_magic != MAGIC)
+      MOM_FATAPRINTF("corrupted loader @%p", (void*)this);
+    if (_ld_linbuf != nullptr)
+      _ld_linbuf[0] = '\0';
+    _ld_linlen = ::getline(&_ld_linbuf, &_ld_linsiz, _ld_file);
+    if (_ld_linlen>=0)
+      _ld_lineno++;
+  }
 };				// end of class MomLoader
 
 #endif /*MONIMELT_INCLUDED_ */
