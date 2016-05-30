@@ -27,7 +27,8 @@ static bool should_dump_mom;
 static const char*load_state_mom;
 thread_local MomRandom MomRandom::_rand_thr_;
 
-static std::vector<std::function<void(void)>> todo_after_load_mom;
+typedef std::function<void(void)> todo_t;
+static std::vector<todo_t,traceable_allocator<todo_t>> todo_after_load_mom;
 
 
 unsigned mom_debugflags;
@@ -1028,6 +1029,12 @@ mom_set_debugging (const char *dbgopt)
 }
 
 
+static void create_predefined_mom(std::string nam, std::string comment)
+{
+#warning unimplemented create_predefined_mom
+  MOM_FATAPRINTF("unimplemented create_predefined_mom nam:%s comment:%s",
+		 nam.c_str(), comment.c_str());
+} // end of create_predefined_mom
 
 
 void
@@ -1073,8 +1080,18 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
         case xtraopt_addpredef: /* --add-predefined name */
           if (optarg)
             {
-#warning incomplete, should test validity of name and add a todo
+              if (!mom_valid_name_radix_len(optarg,strlen(optarg)))
+                MOM_FATAPRINTF ("invalid predefined name %s", optarg);
+              std::string namestr {optarg};
+              std::string commstr {commentstr};
+              todo_after_load_mom.push_back([=](void)
+              {
+                create_predefined_mom(namestr,commstr);
+              });
+              commentstr=nullptr;
             }
+          else
+            MOM_FATAPRINTF("--add-predefined option requires a valid item name");
           break;
         case xtraopt_chdir_first: /* --chdir-first dirname */
           if (optarg)
@@ -1088,7 +1105,32 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                                    cwd?cwd:".");
                   free (cwd);
                 }
-            };
+            }
+          else
+            MOM_FATAPRINTF("missing argument to --chdir-first");
+          break;
+        case xtraopt_chdir_after_load:
+          if (optarg != nullptr)
+            {
+              if (access(optarg,F_OK))
+                MOM_WARNPRINTF("cannot access %s for --chdir-after-load (%m)",
+                               optarg);
+              std::string dirstr {optarg};
+              todo_after_load_mom.push_back([=](void)
+              {
+                if (chdir(dirstr.c_str()))
+                  MOM_FATAPRINTF("failed to --chdir-after-load %s (%m)", dirstr.c_str());
+                else
+                  {
+                    char*cwd = get_current_dir_name();
+                    MOM_INFORMPRINTF("changed directory after load to %s",
+                                     cwd?cwd:".");
+                    free (cwd);
+                  }
+              });
+            }
+          else
+            MOM_FATAPRINTF("missing argument to --chdir-after-load");
           break;
         default:
           MOM_FATAPRINTF ("bad option (%c) at %d", isalpha (opt) ? opt : '?',
@@ -1112,4 +1154,5 @@ main (int argc_main, char **argv_main)
   if (!mom_prog_dlhandle)
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
   parse_program_arguments_mom(&argc, &argv);
+#warning incomplete main, should run to todo_after_load_mom
 } // end of main
