@@ -80,3 +80,4 @@ mom_make_string(const char*cstr, int len)
   memcpy(s->cstr, cstr, len);
   return s;
 }
+

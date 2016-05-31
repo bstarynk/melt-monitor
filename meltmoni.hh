@@ -483,6 +483,8 @@ public:
 
 #include "_mom_aggr.h"
 
+extern "C" const MomINT* mom_make_integer(int64_t i);
+
 typedef MomITEM MomPredefinedITEM;
 
 static inline const char *mom_item_hi_lo_suffix (char  buf[MOM_HI_LO_SUFFIX_LEN],
@@ -743,6 +745,8 @@ public:
 };
 
 
+#define MOM_GLOBAL_STATE "global.mom"
+
 class MomLoader
 {
   static constexpr unsigned MAGIC =  0x1f3fd30f     /*524276495 */;
@@ -845,6 +849,8 @@ public:
   };
   void rewind(void)
   {
+    if (_ld_magic != MAGIC)
+      MOM_FATAPRINTF("corrupted loader @%p", (void*)this);
     if (_ld_file==nullptr) return;
     ::rewind(_ld_file);
     _ld_lineno = 0;

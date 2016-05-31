@@ -1089,6 +1089,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                 create_predefined_mom(namestr,commstr);
               });
               commentstr=nullptr;
+	      should_dump_mom = true;
             }
           else
             MOM_FATAPRINTF("--add-predefined option requires a valid item name");
@@ -1154,5 +1155,20 @@ main (int argc_main, char **argv_main)
   if (!mom_prog_dlhandle)
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
   parse_program_arguments_mom(&argc, &argv);
-#warning incomplete main, should run to todo_after_load_mom
+  if (!load_state_mom && !access(MOM_GLOBAL_STATE, R_OK))
+    load_state_mom = MOM_GLOBAL_STATE;
+  else
+    MOM_WARNPRINTF("no load state given, default %s is inaccessible (%m)",
+		   MOM_GLOBAL_STATE);
+  if (load_state_mom) {
+    MomLoader ld{load_state_mom};
+    ld.first_pass();
+    ld.rewind();
+    ld.second_pass();
+  }
+  else
+    MOM_FATAPRINTF("no state loaded, default is %s", MOM_GLOBAL_STATE);
+  for (auto f : todo_after_load_mom) {
+    f();
+  }
 } // end of main

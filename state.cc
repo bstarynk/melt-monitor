@@ -52,10 +52,11 @@ MomLoader::~MomLoader()
 }
 
 void
-MomLoader::first_pass()
+MomLoader::first_pass(void)
 {
   if (_ld_magic != MAGIC)
     MOM_FATAPRINTF("corrupted loader @%p", (void*)this);
+  long nbitems = 0;
   do
     {
       getline();
@@ -70,7 +71,52 @@ MomLoader::first_pass()
             MOM_FATAPRINTF("failed to make item %s from state file %s line %d",
                            nam.c_str(), _ld_path.c_str(), _ld_lineno);
           _ld_setitems.insert(itm);
+	  nbitems++;
         }
     }
   while(!feof(_ld_file));
-}
+  MOM_INFORMPRINTF("first pass load of %s made %ld items",
+		   _ld_path.c_str(), nbitems);
+} // end MomLoader::first_pass
+
+
+void MomLoader::second_pass(void)
+{
+  if (_ld_magic != MAGIC)
+    MOM_FATAPRINTF("corrupted loader @%p", (void*)this);
+  _ld_stack.clear();
+  do
+    {
+      getline();
+      assert (_ld_linbuf != nullptr);
+      if (_ld_linbuf[0] == '#' || _ld_linbuf[0] == '\n')
+	continue;
+      char *eol = strchr (_ld_linbuf, '\n');
+      if (eol)
+        *eol = (char) 0;
+      /// 123 is pushing a raw integer
+      /// -234_ is pushing a boxed integer
+      /// 12.0 is pushing a raw double
+      /// -12.3e-5_ is pushing a boxed double
+      if (isdigit (_ld_linbuf[0])
+          || ((_ld_linbuf[0] == '+' || _ld_linbuf[0] == '-')
+	      && isdigit (_ld_linbuf[1])))
+        {
+          char *end = NULL;
+          if (strchr (_ld_linbuf, '.'))
+            {
+              double x = strtod (_ld_linbuf, &end);
+              bool boxed = end && (*end == '_');
+	    }
+          else
+            {
+              long long ll = strtoll (_ld_linbuf, &end, 0);
+              bool boxed = end && (*end == '_');
+	    }
+	}
+	  
+    }
+  while(!feof(_ld_file));
+      
+#warning MomLoader::second_pass unimplemented
+} // end MomLoader::second_pass
