@@ -20,6 +20,9 @@
 
 #include "meltmoni.hh"
 
+// libbacktrace from GCC 6, i.e. libgcc-6-dev package
+#include <backtrace.h>
+#include <cxxabi.h>
 #define BASE_YEAR_MOM 2015
 
 static bool syslogging_mom;
@@ -28,7 +31,7 @@ static const char*load_state_mom;
 thread_local MomRandom MomRandom::_rand_thr_;
 
 typedef std::function<void(void)> todo_t;
-static std::vector<todo_t,traceable_allocator<todo_t>> todo_after_load_mom;
+static std::vector<todo_t> todo_after_load_mom;
 
 
 unsigned mom_debugflags;
@@ -108,7 +111,142 @@ mom_output_gplv3_notice (FILE *out, const char *prefix, const char *suffix,
 
 
 
+struct MomBacktraceData
+{
+  static constexpr const unsigned _bt_magic = 0x1211fe35 /*303169077*/;
+  static constexpr const unsigned _bt_maxdepth = 80;
+  unsigned bt_magicnum;
+  std::ostringstream bt_outs;
+  int bt_count;
+  const char*bt_fil;
+  int bt_lin;
+  MomBacktraceData (const char*fil, int lin) :
+    bt_magicnum(_bt_magic), bt_outs(), bt_count(0), bt_fil(fil), bt_lin(lin) {};
+  ~MomBacktraceData() = default;
+  static int bt_callback(void*data, uintptr_t pc, const char*filnam, int lineno, const char*funcname);
+  static void bt_err_callback(void *data, const char *msg, int errnum);
+};
 
+
+/* A callback function passed to the backtrace_full function.  */
+int
+MomBacktraceData::bt_callback(void*data, uintptr_t pc, const char*filenam, int lineno, const char*funcnam)
+{
+  auto bt = (MomBacktraceData*)data;
+  assert (bt != nullptr && bt->bt_magicnum == _bt_magic);
+  /* If we don't have any useful information, don't print
+     anything.  */
+  if (filenam == nullptr && funcnam == nullptr)
+    return 0;
+  if (bt->bt_count >= (int)_bt_maxdepth)
+    {
+      bt->bt_outs << "...etc..." << std::endl;
+      return 1;
+    }
+  bt->bt_count++;
+  int demstatus = -1;
+  char* demfun = nullptr;
+  if (funcnam)
+    {
+      demfun = abi::__cxa_demangle(funcnam, nullptr, nullptr, &demstatus);
+      if (demstatus != 0)
+        {
+          if (demfun)
+            free(demfun);
+          demfun = nullptr;
+        };
+    }
+  char pcbuf[32];
+  memset(pcbuf, 0, sizeof(pcbuf));
+  bt->bt_outs << "MoniMELT["
+              << snprintf(pcbuf, sizeof(pcbuf), "%#08lx",
+                          (unsigned long)pc)
+              << "]/" << bt->bt_count << ' ';
+  if (demfun)
+    bt->bt_outs << demfun;
+  else if (funcnam != nullptr)
+    bt->bt_outs << ' ' << funcnam;
+  else
+    bt->bt_outs << "???";
+  if (filenam != nullptr && lineno > 0)
+    bt->bt_outs << '\t' << filenam << ':' << lineno;
+  bt->bt_outs << std::endl;
+  if (demfun)
+    {
+      free (demfun);
+      demfun = nullptr;
+    }
+  return 0;
+} // end MomBacktraceData::bt_callback
+
+
+/* An error callback function passed to the backtrace_full function.  This is
+   called if backtrace_full has an error.  */
+void
+MomBacktraceData::bt_err_callback(void *data, const char *msg, int errnum)
+{
+  if (errnum < 0)
+    {
+      /* This means that no debug info was available.  Just quietly
+         skip printing backtrace info.  */
+      return;
+    }
+  auto bt = (MomBacktraceData*)data;
+  assert (bt != nullptr && bt->bt_magicnum == _bt_magic);
+  bt->bt_outs << "BACKTRACE ERRORED:" << msg;
+  if (errnum > 0)
+    {
+      bt->bt_outs << " (" << errnum << ":" << strerror(errnum) << ")";
+    };
+  bt->bt_outs << std::endl;
+} // end MomBacktraceData::bt_err_callback
+
+
+void mom_failure_backtrace_at(const char*fil, int lin, const std::string& str)
+{
+  MomBacktraceData backdata(fil,lin);
+  backdata.bt_outs << " !!! " << str << std::endl;
+  struct backtrace_state *btstate =
+    backtrace_create_state (NULL, 0, MomBacktraceData::bt_err_callback, NULL);
+  if (btstate != NULL)
+    {
+      backtrace_full (btstate, 1,
+                      MomBacktraceData::bt_callback,
+                      MomBacktraceData::bt_err_callback,
+                      (void *) &backdata);
+      free (btstate);
+      btstate = nullptr;
+    }
+  backdata.bt_outs << std::endl;
+  mom_warnprintf_at (fil, lin, "FAILURE %s", backdata.bt_outs.str().c_str());
+} // end mom_failure_backtrace_at
+
+
+void mom_backtracestr_at (const char*fil, int lin, const std::string&str)
+{
+  MomBacktraceData backdata(fil,lin);
+  backdata.bt_outs << " !!! " << str << std::endl;
+  struct backtrace_state *btstate =
+    backtrace_create_state (NULL, 0, MomBacktraceData::bt_err_callback, NULL);
+  if (btstate != NULL)
+    {
+      backtrace_full (btstate, 1,
+                      MomBacktraceData::bt_callback,
+                      MomBacktraceData::bt_err_callback,
+                      (void *) &backdata);
+      free (btstate);
+      btstate = nullptr;
+    }
+  backdata.bt_outs << std::endl;
+  mom_informprintf_at (fil, lin, "BACKTRACE %s", backdata.bt_outs.str().c_str());
+} // end mom_backtracestr_at
+
+
+void mom_abort(void)
+{
+  fflush(NULL);
+  abort();
+} // end of mom_abort
 static struct timespec start_realtime_ts_mom;
 
 double
@@ -118,7 +256,7 @@ mom_elapsed_real_time (void)
   clock_gettime (CLOCK_REALTIME, &curts);
   return 1.0 * (curts.tv_sec - start_realtime_ts_mom.tv_sec)
          + 1.0e-9 * (curts.tv_nsec - start_realtime_ts_mom.tv_nsec);
-}
+} // end mom_elapsed_real_time
 
 double
 mom_process_cpu_time (void)
@@ -126,7 +264,7 @@ mom_process_cpu_time (void)
   struct timespec curts = { 0, 0 };
   clock_gettime (CLOCK_PROCESS_CPUTIME_ID, &curts);
   return 1.0 * (curts.tv_sec) + 1.0e-9 * (curts.tv_nsec);
-}
+} // end mom_process_cpu_time
 
 double
 mom_thread_cpu_time (void)
@@ -134,12 +272,12 @@ mom_thread_cpu_time (void)
   struct timespec curts = { 0, 0 };
   clock_gettime (CLOCK_THREAD_CPUTIME_ID, &curts);
   return 1.0 * (curts.tv_sec) + 1.0e-9 * (curts.tv_nsec);
-}
+} // end mom_thread_cpu_time
 
 
 
 
-static const char *
+static std::string
 dbg_level_mom (enum mom_debug_en dbg)
 {
 #define LEVDBG(Dbg) case momdbg_##Dbg: return #Dbg;
@@ -151,7 +289,7 @@ dbg_level_mom (enum mom_debug_en dbg)
       char dbglev[16];
       memset (dbglev, 0, sizeof(dbglev));
       snprintf (dbglev, sizeof (dbglev), "?DBG?%d", (int) dbg);
-      return GC_STRDUP (dbglev);
+      return std::string(dbglev);
     }
     }
 #undef LEVDBG
@@ -166,14 +304,14 @@ mom_output_utf8_escaped (FILE *f, const char *str, int len,
     return;
   if (!str)
     return;
-  assert (rout != NULL);
+  assert (rout != nullptr);
   if (len < 0)
     len = strlen (str);
   const char *end = str + len;
   gunichar uc = 0;
   const char *s = str;
-  assert (s && g_utf8_validate (s, len, NULL));
-  assert (s && g_utf8_validate (s, len, NULL));
+  assert (s && g_utf8_validate (s, len, nullptr));
+  assert (s && g_utf8_validate (s, len, nullptr));
   for (const char *pc = s; pc < end; pc = g_utf8_next_char (pc), uc = 0)
     {
       uc = g_utf8_get_char (pc);
@@ -316,7 +454,7 @@ mom_cstring_hash_len (const char *str, int len)
         }
     }
   return h;
-}                               /* end mom_cstring_hash_len */
+}                               // end mom_cstring_hash_len
 
 
 
@@ -331,7 +469,7 @@ mom_output_utf8_encoded (FILE *f, const char *str, int len)
   const char *end = str + len;
   gunichar uc = 0;
   const char *s = str;
-  assert (s && g_utf8_validate (s, len, NULL));
+  assert (s && g_utf8_validate (s, len, nullptr));
   for (const char *pc = s; pc < end; pc = g_utf8_next_char (pc), uc = 0)
     {
       /// notice that the single quote should not be escaped, e.g. for JSON
@@ -401,7 +539,7 @@ mom_output_utf8_html (FILE *f, const char *str, int len, bool nlisbr)
   const char *end = str + len;
   gunichar uc = 0;
   const char *s = str;
-  assert (s && g_utf8_validate (s, len, NULL));
+  assert (s && g_utf8_validate (s, len, nullptr));
   for (const char *pc = s; pc < end; pc = g_utf8_next_char (pc), uc = 0)
     {
       uc = g_utf8_get_char (pc);
@@ -465,7 +603,7 @@ mom_hexdump_data (char *buf, unsigned buflen, const unsigned char *data,
                   unsigned datalen)
 {
   if (!buf || !data)
-    return NULL;
+    return nullptr;
   if (2 * datalen + 3 < buflen)
     {
       for (unsigned ix = 0; ix < datalen; ix++)
@@ -486,52 +624,48 @@ mom_hexdump_data (char *buf, unsigned buflen, const unsigned char *data,
 
 
 
-struct mom_string_and_size_st
-mom_input_quoted_utf8 (FILE *f)
+std::string
+mom_input_quoted_utf8_string(std::istream&ins)
 {
-  struct mom_string_and_size_st ss = { NULL, 0 };
-  if (!f)
-    return ss;
-  char bufarr[64];
-  int bufsiz = sizeof (bufarr);
-  char *bufzon = bufarr;
-  int bufoff = 0;
-  long off = ftell (f);
+  if (!ins)
+    return std::string{nullptr};
+  std::string restr;
+  auto inipos = ins.tellg();
+  constexpr const int roundsizelog = 5;
+  constexpr const int roundsize = 1 << roundsizelog;
+  int cnt = 0;
   do
     {
-      if (MOM_UNLIKELY (bufoff > INT32_MAX / 3))
+      bool failed = false;
+      char bufzon[8];
+      memset(bufzon, 0, sizeof(bufzon));
+      if (MOM_UNLIKELY(cnt % roundsize == 0))
         {
-          fseek (f, off, SEEK_SET);
-          MOM_FATAPRINTF ("too long (%d) input quoted UTF-8 string %.50s...",
-                          bufoff, bufzon);
+          restr.reserve(((9 * restr.size() / 8) | (roundsize - 1))+1);
         }
-      if (MOM_UNLIKELY (bufoff + 9 >= bufsiz))
+      if (MOM_UNLIKELY (restr.size() > INT32_MAX / 3))
         {
-          int newsiz = ((6 * bufsiz / 5 + 30) | 0x1f) + 1;
-          char *newbuf = static_cast<char*>(mom_gc_alloc_scalar (newsiz));
-          memcpy (newbuf, bufzon, bufoff);
-          if (bufzon != bufarr)
-            GC_FREE (bufzon);
-          bufzon = newbuf;
-          bufsiz = newsiz;
-        };
-      int c = fgetc (f);
-      if (c == EOF)
+          ins.seekg(inipos);
+          MOM_FAILURE("too long string " << restr.size());
+        }
+      if (ins.eof())
         break;
+      int c = ins.get();
       if (iscntrl (c) || c == '\'' || c == '"')
         {
-          ungetc (c, f);
+          ins.unget();
           break;
         }
       else if (c == '\\')
         {
+          char inpzon[16];
+          memset (inpzon, 0, sizeof(inpzon));
           int pos = -1;
           unsigned b = 0;
-          int nc = fgetc (f);
-          if (nc == EOF || iscntrl (nc))
+          int nc = ins.get ();
+          if (ins.eof() || iscntrl (nc))
             {
-              if (nc != EOF)
-                ungetc (nc, f);
+              ins.unget();
               break;
             }
           switch (nc)
@@ -539,81 +673,97 @@ mom_input_quoted_utf8 (FILE *f)
             case '\'':
             case '\"':
             case '\\':
-              bufzon[bufoff++] = nc;
+              bufzon[0] = nc;
               break;
             case 'a':
-              bufzon[bufoff++] = '\a';
+              bufzon[0] = '\a';
               break;
             case 'b':
-              bufzon[bufoff++] = '\b';
+              bufzon[0] = '\b';
               break;
             case 'f':
-              bufzon[bufoff++] = '\f';
+              bufzon[0] = '\f';
               break;
             case 'n':
-              bufzon[bufoff++] = '\n';
+              bufzon[0] = '\n';
               break;
             case 'r':
-              bufzon[bufoff++] = '\r';
+              bufzon[0] = '\r';
               break;
             case 't':
-              bufzon[bufoff++] = '\t';
+              bufzon[0] = '\t';
               break;
             case 'v':
-              bufzon[bufoff++] = '\v';
+              bufzon[0] = '\v';
               break;
             case 'e':
-              bufzon[bufoff++] = '\033' /* ESCAPE */ ;
+              bufzon[0] = '\033' /* ESCAPE */ ;
               break;
             case 'x':
-              if (fscanf (f, "%02x%n", &b, &pos) > 0 && pos > 0)
-                bufzon[bufoff++] = b;
-              break;
+            {
+              ins.read(inpzon, 2);
+              if (ins.eof())
+                failed = true;
+              else if (sscanf (inpzon, "%02x%n", &b, &pos) > 0 && pos > 0)
+                bufzon[0] = b;
+              else failed = true;
+            }
+            break;
             case 'u':
-              if (fscanf (f, "%04x%n", &b, &pos) > 0 && pos > 0)
+            {
+              ins.read(inpzon, 4);
+              if (ins.eof())
+                failed = true;
+              else if (sscanf (inpzon, "%04x%n", &b, &pos) > 0 && pos > 0)
                 {
                   char ebuf[8];
                   memset (ebuf, 0, sizeof (ebuf));
                   g_unichar_to_utf8 ((gunichar) b, ebuf);
-                  strcpy (bufzon + bufoff, ebuf);
-                  bufoff += strlen (ebuf);
-                };
-              break;
+                  strcpy (bufzon, ebuf);
+                }
+              else failed = true;
+            }
+            break;
             case 'U':
-              if (fscanf (f, "%08x%n", &b, &pos) > 0 && pos > 0)
+            {
+              ins.read(inpzon, 8);
+              if (ins.eof())
+                failed = true;
+              else if (sscanf (inpzon, "%08x%n", &b, &pos) > 0 && pos > 0)
                 {
                   char ebuf[8];
                   memset (ebuf, 0, sizeof (ebuf));
                   g_unichar_to_utf8 ((gunichar) b, ebuf);
-                  strcpy (bufzon + bufoff, ebuf);
-                  bufoff += strlen (ebuf);
+                  strcpy (bufzon, ebuf);
                 };
-              break;
+            }
+            break;
             default:
-              bufzon[bufoff++] = nc;
+              bufzon[0] = nc;
               break;
             }
           continue;
         }
-      else
+      else // ordinary character
         {
-          bufzon[bufoff++] = c;
+          bufzon[0] = c;
           continue;
         }
+      if (failed)
+        {
+          {
+            ins.seekg(inipos);
+            MOM_FAILURE("bad string");
+          }
+        }
+      else restr.append(bufzon);
     }
-  while (!feof (f));
-  char *res = static_cast<char*>(mom_gc_alloc_scalar (bufoff + 1));
-  memcpy (res, bufzon, bufoff);
-  if (bufzon != bufarr)
-    GC_FREE (bufzon);
-  ss.ss_str = res;
-  ss.ss_len = bufoff;
-  return ss;
+  while (!ins.eof());
+  return restr;
 }                               /* end of mom_input_quoted_utf8 */
 
 
 static pthread_mutex_t dbgmtx_mom = PTHREAD_MUTEX_INITIALIZER;
-static const char *dbg_level_mom (enum mom_debug_en dbg);
 void
 mom_debugprintf_at (const char *fil, int lin, enum mom_debug_en dbg,
                     const char *fmt, ...)
@@ -623,13 +773,13 @@ mom_debugprintf_at (const char *fil, int lin, enum mom_debug_en dbg,
   char buf[160];
   char timbuf[64];
   int len = 0;
-  char *msg = NULL;
-  char *bigbuf = NULL;
+  char *msg = nullptr;
+  char *bigbuf = nullptr;
   memset (thrname, 0, sizeof (thrname));
   memset (buf, 0, sizeof (buf));
   memset (timbuf, 0, sizeof (timbuf));
   pthread_getname_np (pthread_self (), thrname, sizeof (thrname) - 1);
-  fflush (NULL);
+  fflush (nullptr);
   mom_now_strftime_bufcenti (timbuf, "%H:%M:%S.__ ");
   va_list alist;
   va_start (alist, fmt);
@@ -661,7 +811,7 @@ mom_debugprintf_at (const char *fil, int lin, enum mom_debug_en dbg,
     if (syslogging_mom)
       {
         syslog (LOG_DEBUG, "MONIMELT DEBUG %7s <%s> @%s:%d %s %s",
-                dbg_level_mom (dbg), thrname, fil, lin, timbuf, msg);
+                dbg_level_mom (dbg).c_str(), thrname, fil, lin, timbuf, msg);
         if (nbdbg % DEBUG_DATE_PERIOD_MOM == 0)
           syslog (LOG_DEBUG, "MONIMELT DEBUG#%04ld ~ %s *^*^*", nbdbg,
                   datebuf);
@@ -669,12 +819,12 @@ mom_debugprintf_at (const char *fil, int lin, enum mom_debug_en dbg,
     else
       {
         fprintf (stderr, "MONIMELT DEBUG %7s <%s> @%s:%d %s %s\n",
-                 dbg_level_mom (dbg), thrname, fil, lin, timbuf, msg);
+                 dbg_level_mom (dbg).c_str(), thrname, fil, lin, timbuf, msg);
         fflush (stderr);
         if (nbdbg % DEBUG_DATE_PERIOD_MOM == 0)
           fprintf (stderr, "MONIMELT DEBUG#%04ld ~ %s *^*^*\n", nbdbg,
                    datebuf);
-        fflush (NULL);
+        fflush (nullptr);
       }
     pthread_mutex_unlock (&dbgmtx_mom);
   }
@@ -692,13 +842,13 @@ mom_informprintf_at (const char *fil, int lin, const char *fmt, ...)
   char thrname[24];
   char buf[160];
   char timbuf[64];
-  char *bigbuf = NULL;
-  char *msg = NULL;
+  char *bigbuf = nullptr;
+  char *msg = nullptr;
   memset (buf, 0, sizeof (buf));
   memset (thrname, 0, sizeof (thrname));
   memset (timbuf, 0, sizeof (timbuf));
   pthread_getname_np (pthread_self (), thrname, sizeof (thrname) - 1);
-  fflush (NULL);
+  fflush (nullptr);
   mom_now_strftime_bufcenti (timbuf, "%Y-%b-%d %H:%M:%S.__ %Z");
   va_list alist;
   va_start (alist, fmt);
@@ -727,7 +877,7 @@ mom_informprintf_at (const char *fil, int lin, const char *fmt, ...)
     {
       fprintf (stderr, "MONIMELT INFORM @%s:%d <%s:%d> %s %s\n",
                fil, lin, thrname, (int) mom_gettid (), timbuf, msg);
-      fflush (NULL);
+      fflush (nullptr);
     }
   if (bigbuf)
     free (bigbuf);
@@ -742,15 +892,15 @@ mom_warnprintf_at (const char *fil, int lin, const char *fmt, ...)
   char thrname[24];
   char buf[160];
   char timbuf[64];
-  char *bigbuf = NULL;
-  char *msg = NULL;
+  char *bigbuf = nullptr;
+  char *msg = nullptr;
   int err = errno;
   int nbwarn = 1 + atomic_fetch_add (&mom_nb_warnings, 1);
   memset (buf, 0, sizeof (buf));
   memset (thrname, 0, sizeof (thrname));
   memset (timbuf, 0, sizeof (timbuf));
   pthread_getname_np (pthread_self (), thrname, sizeof (thrname) - 1);
-  fflush (NULL);
+  fflush (nullptr);
   mom_now_strftime_bufcenti (timbuf, "%Y-%b-%d %H:%M:%S.__ %Z");
   va_list alist;
   va_start (alist, fmt);
@@ -789,7 +939,7 @@ mom_warnprintf_at (const char *fil, int lin, const char *fmt, ...)
       else
         fprintf (stderr, "MONIMELT WARNING#%d @%s:%d <%s:%d> %s %s\n",
                  nbwarn, fil, lin, thrname, (int) mom_gettid (), timbuf, msg);
-      fflush (NULL);
+      fflush (nullptr);
     }
   if (bigbuf)
     free (bigbuf);
@@ -804,15 +954,15 @@ mom_fataprintf_at (const char *fil, int lin, const char *fmt, ...)
   char thrname[24];
   char buf[256];
   char timbuf[64];
-  char *bigbuf = NULL;
-  char *msg = NULL;
+  char *bigbuf = nullptr;
+  char *msg = nullptr;
   int err = errno;
   memset (buf, 0, sizeof (buf));
   memset (thrname, 0, sizeof (thrname));
   memset (timbuf, 0, sizeof (timbuf));
   pthread_getname_np (pthread_self (), thrname, sizeof (thrname) - 1);
   mom_now_strftime_bufcenti (timbuf, "%Y-%b-%d %H:%M:%S.__ %Z");
-  fflush (NULL);
+  fflush (nullptr);
   va_list alist;
   va_start (alist, fmt);
   len = vsnprintf (buf, sizeof (buf), fmt, alist);
@@ -861,7 +1011,7 @@ mom_fataprintf_at (const char *fil, int lin, const char *fmt, ...)
                  fil, lin, thrname, (int) mom_gettid (), timbuf, msg);
       for (int i = 0; i < blev; i++)
         fprintf (stderr, "MONIMELTB[%d]: %s\n", i, bsym[i]);
-      fflush (NULL);
+      fflush (nullptr);
     }
 #endif
   if (bigbuf)
@@ -880,7 +1030,7 @@ mom_strftime_centi (char *buf, size_t len, const char *fmt, double ti)
   time_t tim = (time_t) ti;
   memset (&tm, 0, sizeof (tm));
   if (!buf || !fmt || !len)
-    return NULL;
+    return nullptr;
   strftime (buf, len, fmt, localtime_r (&tim, &tm));
   char *dotundund = strstr (buf, ".__");
   if (dotundund)
@@ -896,19 +1046,6 @@ mom_strftime_centi (char *buf, size_t len, const char *fmt, double ti)
 }
 
 
-////////////////
-void *
-mom_gc_calloc (size_t nmemb, size_t size)
-{
-  if (nmemb == 0 || size == 0)
-    return NULL;
-  uint64_t totsz = 0;
-  if (nmemb > INT32_MAX / 3 || size > INT32_MAX / 3
-      || (totsz = nmemb * size) > INT32_MAX)
-    MOM_FATAPRINTF ("too big nmemb=%zd or size=%zd for mom_gc_calloc",
-                    nmemb, size);
-  return mom_gc_alloc (totsz);
-}
 
 extern "C" const char *const mom_debug_names[momdbg__last] =
 {
@@ -937,17 +1074,17 @@ enum extraopt_en
 
 static const struct option mom_long_options[] =
 {
-  {"help", no_argument, NULL, 'h'},
-  {"version", no_argument, NULL, 'V'},
-  {"debug", required_argument, NULL, 'D'},
-  {"dump", no_argument, NULL, 'd'},
-  {"load", required_argument, NULL, 'L'},
-  {"chdir-first", required_argument, NULL, xtraopt_chdir_first},
-  {"chdir-after-load", required_argument, NULL, xtraopt_chdir_after_load},
-  {"add-predefined", required_argument, NULL, xtraopt_addpredef},
-  {"comment-predefined", required_argument, NULL, xtraopt_commentpredef},
-  /* Terminating NULL placeholder.  */
-  {NULL, no_argument, NULL, 0},
+  {"help", no_argument, nullptr, 'h'},
+  {"version", no_argument, nullptr, 'V'},
+  {"debug", required_argument, nullptr, 'D'},
+  {"dump", no_argument, nullptr, 'd'},
+  {"load", required_argument, nullptr, 'L'},
+  {"chdir-first", required_argument, nullptr, xtraopt_chdir_first},
+  {"chdir-after-load", required_argument, nullptr, xtraopt_chdir_after_load},
+  {"add-predefined", required_argument, nullptr, xtraopt_addpredef},
+  {"comment-predefined", required_argument, nullptr, xtraopt_commentpredef},
+  /* Terminating nullptr placeholder.  */
+  {nullptr, no_argument, nullptr, 0},
 };
 
 
@@ -989,14 +1126,14 @@ mom_set_debugging (const char *dbgopt)
   if (strlen (dbgopt) >= sizeof (dbuf) - 1)
     MOM_FATAPRINTF ("too long debug option %s", dbgopt);
   strcpy (dbuf, dbgopt);
-  char *comma = NULL;
+  char *comma = nullptr;
   if (!strcmp (dbuf, ".") || !strcmp (dbuf, "_"))
     {
       mom_debugflags = ~0;
       MOM_INFORMPRINTF ("set all debugging");
     }
   else
-    for (char *pc = dbuf; pc != NULL; pc = comma ? comma + 1 : NULL)
+    for (char *pc = dbuf; pc != nullptr; pc = comma ? comma + 1 : nullptr)
       {
         comma = strchr (pc, ',');
         if (comma)
@@ -1033,7 +1170,7 @@ static void create_predefined_mom(std::string nam, std::string comment)
 {
 #warning unimplemented create_predefined_mom
   MOM_FATAPRINTF("unimplemented create_predefined_mom nam:%s comment:%s",
-		 nam.c_str(), comment.c_str());
+                 nam.c_str(), comment.c_str());
 } // end of create_predefined_mom
 
 
@@ -1043,11 +1180,10 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   int argc = *pargc;
   char **argv = *pargv;
   int opt = -1;
-  char *commentstr = NULL;
-  char *testargstr = NULL;
-  char *suffix = NULL;
+  char *commentstr = nullptr;
+  char *suffix = nullptr;
   while ((opt = getopt_long (argc, argv, "hVdsD:L:",
-                             mom_long_options, NULL)) >= 0)
+                             mom_long_options, nullptr)) >= 0)
     {
       switch (opt)
         {
@@ -1089,7 +1225,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                 create_predefined_mom(namestr,commstr);
               });
               commentstr=nullptr;
-	      should_dump_mom = true;
+              should_dump_mom = true;
             }
           else
             MOM_FATAPRINTF("--add-predefined option requires a valid item name");
@@ -1142,33 +1278,122 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
 } // end of parse_program_arguments_mom
 
 
+const MomSerial63
+MomSerial63::make_random(void)
+{
+  uint64_t s = 0;
+  do
+    {
+      s = MomRandom::random_64u() & (((uint64_t)1<<63)-1);
+    }
+  while (s<=_minserial_ || s>=_maxserial_);
+  return MomSerial63{s};
+} // end MomSerial63::make_random
+
+
+const MomSerial63
+MomSerial63::make_random_of_bucket(unsigned bucknum)
+{
+  if (MOM_UNLIKELY(bucknum >= _maxbucket_))
+    {
+      MOM_FAILURE("MomSerial63::random_of_bucket too big bucknum="
+                  << bucknum);
+    }
+  uint64_t ds = MomRandom::random_64u() % (_deltaserial_ / _maxbucket_);
+  uint64_t s = (bucknum * (_deltaserial_ / _maxbucket_)) + ds + _minserial_;
+  MOM_ASSERT(s>=_minserial_ && s<=_maxserial_,
+             "good s=" << s << " between _minserial_=" << _minserial_
+             << " and _maxserial_=" << _maxserial_
+             << " with ds=" << ds << " and bucknum=" << bucknum
+             << " and _deltaserial_=" << _deltaserial_
+             << " and _maxbucket_=" << _maxbucket_);
+  return MomSerial63{s};
+} // end of MomSerial63::make_random_of_bucket
+
+//constexpr const char MomSerial63::_b62digits_[] = MOM_B62DIGITS;
+std::string MomSerial63::to_string(void) const
+{
+  static_assert(sizeof(MOM_B62DIGITS)==_base_+1, "bad MOM_B62DIGITS in MomSerial63");
+  char buf[24];
+  static_assert(sizeof(buf)>_nbdigits_, "too small buf");
+  memset (buf, 0, sizeof(buf));
+  buf[0] = '_';
+  memset (buf+1, '0', _nbdigits_);
+  uint64_t n = _serial;
+  char*pc = buf+_nbdigits_;
+  while (n != 0)
+    {
+      unsigned d = n % _base_;
+      n = n / _base_;
+      *pc = _b62digstr_[d];
+      pc--;
+    }
+  MOM_ASSERT(pc>=buf, "to_string bad pc - buffer underflow");
+  MOM_ASSERT(strlen(buf) == _nbdigits_ + 1, "to_string bad buf=" << buf);
+  return std::string{buf};
+} // end  MomSerial63::to_string
+
+
+const MomSerial63
+MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
+{
+  uint64_t n = 0;
+  if (!s)
+    goto failure;
+  if (s[0] != '_')
+    goto failure;
+  if (!isdigit(s[1]))
+    goto failure;
+  for (auto i=0U; i<_nbdigits_; i++)
+    {
+      if (!s[i+1])
+        goto failure;
+      auto p = strchr(_b62digstr_,s[i+1]);
+      if (!p)
+        goto failure;
+      n = n*_base_ + (p-_b62digstr_);
+    }
+  if (n!=0 && n<_minserial_)
+    goto failure;
+  if (n>_maxserial_)
+    goto failure;
+  end = s+_nbdigits_+1;
+  return MomSerial63{n};
+failure:
+  if (fail)
+    {
+      std::string str{s};
+      if (str.size() > _nbdigits_+2)
+        str.resize(_nbdigits_+2);
+      MOM_BACKTRACELOG("make_from_cstr failure str=" << str);
+      throw std::runtime_error("MomSerial63::make_from_cstr failure");
+    }
+  end = s;
+  return MomSerial63{nullptr};
+} // end MomSerial63::make_from_cstr
+
+
 int
 main (int argc_main, char **argv_main)
 {
   clock_gettime (CLOCK_REALTIME, &start_realtime_ts_mom);
   gethostname (hostname_mom, sizeof (hostname_mom) - 1);
-  GC_INIT ();
-  GC_set_handle_fork (1);
   char **argv = argv_main;
   int argc = argc_main;
-  mom_prog_dlhandle = dlopen (NULL, RTLD_NOW);
+  mom_prog_dlhandle = dlopen (nullptr, RTLD_NOW);
   if (!mom_prog_dlhandle)
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
   parse_program_arguments_mom(&argc, &argv);
-  if (!load_state_mom && !access(MOM_GLOBAL_STATE, R_OK))
-    load_state_mom = MOM_GLOBAL_STATE;
-  else
-    MOM_WARNPRINTF("no load state given, default %s is inaccessible (%m)",
-		   MOM_GLOBAL_STATE);
-  if (load_state_mom) {
-    MomLoader ld{load_state_mom};
-    ld.first_pass();
-    ld.rewind();
-    ld.second_pass();
-  }
-  else
-    MOM_FATAPRINTF("no state loaded, default is %s", MOM_GLOBAL_STATE);
-  for (auto f : todo_after_load_mom) {
-    f();
-  }
 } // end of main
+
+#warning TODO: should use systematic hash-consing
+
+#warning TODO: should code an explicit garbage collector
+
+#warning TODO: code a parser, usable from loader & elsewhere
+
+#warning TODO: code the loader using sqlite then several threads for parsing
+
+#warning TODO: code a printer, compatible with the parser
+
+#warning TODO: code the (multi-threaded) dumper using the printer & sqlite

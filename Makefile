@@ -1,6 +1,6 @@
 ##
 ## file Makefile
-##   Copyright (C)  2015 - 2016 Basile Starynkevitch (and FSF later)
+##   Copyright (C)  2015 - 2017 Basile Starynkevitch (and FSF later)
 ##  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
 ##  This file is part of GCC.
 ##
@@ -18,7 +18,6 @@
 ##  <http://www.gnu.org/licenses/>.
 ################################################################
 ## onion is not packaged, see https://github.com/davidmoreno/onion
-## Boehm GC is from http://www.hboehm.info/gc/
 CC=gcc
 CXX=g++
 WARNFLAGS= -Wall -Wextra -fdiagnostics-color=auto
@@ -35,15 +34,16 @@ PREPROFLAGS= -I. -I/usr/local/include $(shell $(PKGCONFIG) --cflags $(PACKAGES))
 OPTIMFLAGS= -Og -g3
 
 LIBES= -L/usr/local/lib -lgc $(shell $(PKGCONFIG) --libs $(PACKAGES)) \
-        -lhiredis -lgccjit -lonion -lpthread -lcrypt -lm -ldl
+	$(shell $(CXX) -print-file-name=libbacktrace.a) \
+        -lpthread -lcrypt -lm -ldl
 
 PLUGIN_SOURCES= $(sort $(wildcard momplug_*.c momplug_*.cc))
 PLUGINS=  $(patsubst %.c,%.so,$(PLUGIN_SOURCES))
 # modules are generated inside modules/
-MODULE_SOURCES= $(sort $(wildcard modules/momg_*.c))
+MODULE_SOURCES= $(sort $(wildcard modules/momg_*.cc))
 # generated headers
 GENERATED_HEADERS= $(sort $(wildcard _mom*.h))
-MODULES=  $(patsubst %.c,%.so,$(MODULE_SOURCES))
+MODULES=  $(patsubst %.cc,%.so,$(MODULE_SOURCES))
 CSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.c)))
 CXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.cc)))
 OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES)) 
@@ -61,7 +61,7 @@ clean:
 
 
 
-_timestamp.c: global.mom Makefile
+_timestamp.c: Makefile
 	@date +'const char monimelt_timestamp[]="%c";' > _timestamp.tmp
 	@(echo -n 'const char monimelt_lastgitcommit[]="' ; \
 	   git log --format=oneline --abbrev=12 --abbrev-commit -q  \
@@ -79,10 +79,10 @@ _timestamp.c: global.mom Makefile
 
 $(OBJECTS): meltmoni.hh.gch $(GENERATED_HEADERS)
 
-meltmoni.hh.gch: meltmoni.hh _mom_predef.h _mom_aggr.h
+meltmoni.hh.gch: meltmoni.hh _mom_predef.h 
 	$(COMPILE.cc) $(CXXFLAGS) -c $< -o $@
 
-monimelt: $(OBJECTS) global.mom
+monimelt: $(OBJECTS) 
 	@if [ -f $@ ]; then echo -n backup old executable: ' ' ; mv -v $@ $@~ ; fi
 	$(MAKE) _timestamp.c _timestamp.o
 	$(LINK.cc)  $(LINKFLAGS) -rdynamic $(OBJECTS) $(LIBES) -o $@  _timestamp.o
@@ -101,5 +101,6 @@ indent: .indent.pro
 	done
 
 
-modules/momg_%.so: modules/momg_%.c $(OBJECTS)
-	$(LINK.c) -fPIC -shared $< -o $@
+
+modules/momg_%.so: modules/momg_%.cc $(OBJECTS)
+	$(LINK.cc) -fPIC -shared $< -o $@

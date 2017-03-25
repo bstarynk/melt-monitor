@@ -1,6 +1,6 @@
 // file meltmoni.hh - common header file to be included everywhere.
 
-/**   Copyright (C)  2015 - 2016 Basile Starynkevitch, later FSF
+/**   Copyright (C)  2015 - 2017 Basile Starynkevitch, later FSF
       MONIMELT is a monitor for MELT - see http://gcc-melt.org/
       This file is part of GCC.
 
@@ -68,30 +68,7 @@
 #include <execinfo.h>
 #endif
 
-#include <gc/gc.h>
-#include <gc/gc_allocator.h>
 
-// libonion from http://www.coralbits.com/libonion/ &
-// https://github.com/davidmoreno/onion
-#include <onion/onion.h>
-#include <onion/version.h>
-#include <onion/low.h>
-#include <onion/codecs.h>
-#include <onion/request.h>
-#include <onion/response.h>
-#include <onion/block.h>
-#include <onion/handler.h>
-#include <onion/dict.h>
-#include <onion/log.h>
-#include <onion/shortcuts.h>
-#include <onion/exportlocal.h>
-#include <onion/internal_status.h>
-#include <onion/websocket.h>
-
-
-// jansson, a JSON library in C which is Boehm-GC friendly
-// see http://www.digip.org/jansson/
-#include <jansson.h>
 
 #include <glib.h>
 
@@ -178,37 +155,6 @@ static inline pid_t mom_gettid (void)
 void mom_output_gplv3_notice (FILE *out, const char *prefix,
                               const char *suffix, const char *filename);
 
-static inline void *mom_gc_alloc (size_t sz)
-{
-  void *p = GC_MALLOC (sz);
-  if (MOM_LIKELY (p != nullptr))
-    memset (p, 0, sz);
-  return p;
-}
-
-void *mom_gc_calloc (size_t nmemb, size_t size);
-
-static inline void *mom_gc_alloc_scalar (size_t sz)
-{
-  void *p = GC_MALLOC_ATOMIC (sz);
-  if (MOM_LIKELY (p != nullptr))
-    memset (p, 0, sz);
-  return p;
-}
-
-
-static inline void *mom_gc_alloc_uncollectable (size_t sz)
-{
-  void *p = GC_MALLOC_UNCOLLECTABLE (sz);
-  if (MOM_LIKELY (p != nullptr))
-    memset (p, 0, sz);
-  return p;
-}
-
-static inline char *mom_gc_strdup (const char *s)
-{
-  return GC_STRDUP (s);
-}
 
 void
 mom_fataprintf_at (const char *fil, int lin, const char *fmt, ...)
@@ -242,18 +188,80 @@ __attribute__ ((format (printf, 3, 4), noreturn));
   MOM_FATALOG_AT_BIS(__FILE__,__LINE__,Log)
 
 
+extern "C" void mom_backtracestr_at(const char *fil, int lin,
+                                    const std::string &msg);
+
+#define MOM_BACKTRACELOG_AT(Fil, Lin, Log)                     \
+  do {                                                         \
+    std::ostringstream _out_##Lin;                             \
+    _out_##Lin << Log << std::flush;                           \
+    mom_backtracestr_at((Fil), (Lin), _out_##Lin.str());       \
+  } while (0)
+#define MOM_BACKTRACELOG_AT_BIS(Fil, Lin, Log)   \
+  MOM_BACKTRACELOG_AT(Fil, Lin, Log)
+#define MOM_BACKTRACELOG(Log) MOM_BACKTRACELOG_AT_BIS(__FILE__, __LINE__, Log)
+
+extern "C" void mom_abort(void) __attribute__((noreturn));
+#ifndef NDEBUG
+#define MOM_ASSERT_AT(Fil, Lin, Prop, Log)                         \
+  do {                                                             \
+    if (MOM_UNLIKELY(!(Prop))) {                                   \
+      MOM_BACKTRACELOG_AT(Fil, Lin,                                \
+                          "**MOM_ASSERT FAILED** " #Prop ":"       \
+                          " @ "                                    \
+                          << __PRETTY_FUNCTION__                   \
+        << std::endl  << "::" << Log);           \
+      mom_abort();                                                 \
+    }                                                              \
+  } while (0)
+#else
+#define MOM_ASSERT_AT(Fil, Lin, Prop, Log)         \
+  do {                                             \
+    if (false && !(Prop))                          \
+      MOM_BACKTRACELOG_AT(Fil, Lin, Log);          \
+  } while (0)
+#endif // NDEBUG
+#define MOM_ASSERT_AT_BIS(Fil, Lin, Prop, Log)                                 \
+  MOM_ASSERT_AT(Fil, Lin, Prop, Log)
+#define MOM_ASSERT(Prop, Log) MOM_ASSERT_AT_BIS(__FILE__, __LINE__, Prop, Log)
+
+class Mom_runtime_failure : std::runtime_error
+{
+  const char* _rf_file;
+  const int _rf_line;
+public:
+  Mom_runtime_failure(const char*fil, int lin, const std::string& msg)
+    : std::runtime_error(std::string(fil) + ":" + std::to_string(lin) + "\t" + msg), _rf_file(fil), _rf_line(lin) {}
+  ~Mom_runtime_failure() = default;
+
+};				// end class Mom_runtime_failure
+
+extern "C" void mom_failure_backtrace_at(const char*fil, int lin, const std::string& str);
+#define MOM_FAILURE_AT(Fil,Lin,Log) do {		\
+    std::ostringstream _olog_##Lin;			\
+    _olog_##Lin << Log << std::flush;			\
+    mom_failure_backtrace_at(Fil, Lin,			\
+				_olog_##Lin.str());	\
+    throw Mom_runtime_failure(Fil, Lin,			\
+		      _olog_##Lin.str());		\
+} while(0)
+
+#define MOM_FAILURE_AT_BIS(Fil,Lin,Log)	\
+  MOM_FAILURE_AT(Fil,Lin,Log)
+
+#define MOM_FAILURE(Log)			\
+  MOM_FAILURE_AT_BIS(__FILE__,__LINE__,Log)
+
+
 // for debugging; the color level are user-definable:
 #define MOM_DEBUG_LIST_OPTIONS(Dbg)		\
   Dbg(cmd)					\
   Dbg(dump)					\
-  Dbg(gencod)					\
-  Dbg(item)					\
   Dbg(load)					\
   Dbg(blue)					\
   Dbg(green)					\
   Dbg(red)					\
-  Dbg(yellow)					\
-  Dbg(web)
+  Dbg(yellow)
 
 #define MOM_DEBUG_DEFINE_OPT(Nam) momdbg_##Nam,
 enum mom_debug_en
@@ -384,33 +392,15 @@ void mom_output_utf8_escaped (FILE *f, const char *str, int len,
 
 // compute the hash of a string (same as the hash of the MomSTRING value)
 momhash_t mom_cstring_hash_len (const char *str, int len);
-
 const char *mom_hexdump_data (char *buf, unsigned buflen,
                               const unsigned char *data, unsigned datalen);
 
 
 const char *mom_double_to_cstr (double x, char *buf, size_t buflen);
 
-// input and parse and GC-allocate such an UTF-8 quoted string; stop
-// en EOL, etc..
+std::string mom_input_quoted_utf8_string(std::istream& ins);
 
-struct mom_string_and_size_st
-{
-  const char *ss_str;
-  int ss_len;
-};
-struct mom_string_and_size_st mom_input_quoted_utf8 (FILE *f);
-
-
-#define MOM_HI_LO_SUFFIX_LEN 16
-// convert a hi+lo pair to a suffix and return it
-const char *mom_hi_lo_suffix (char buf[MOM_HI_LO_SUFFIX_LEN],
-                              uint16_t hi, uint64_t lo);
-
-// convert a suffix to a hi & lo pair, or return false
-bool mom_suffix_to_hi_lo (const char *buf, uint16_t *phi, uint64_t *plo);
-
-
+extern "C" bool mom_valid_name_radix_len (const char *str, int len);
 
 class MomRandom
 {
@@ -459,6 +449,110 @@ public:
 };				// end class MomRandom
 
 
+#define MOM_B62DIGITS                   \
+  "0123456789"                          \
+  "abcdefghijklmnopqrstuvwxyz"          \
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+class MomSerial63
+{
+  uint64_t _serial;
+
+public:
+  static constexpr const uint64_t _minserial_ = 62*62; /// 3884
+  static constexpr const uint64_t _maxserial_ = /// 8392993658683402240, about 8.392994e+18
+    (uint64_t)10 * 62 * (62 * 62 * 62) * (62 * 62 * 62) * (62 * 62 * 62);
+  static constexpr const uint64_t _deltaserial_ = _maxserial_ - _minserial_;
+  static constexpr const char *_b62digstr_ = MOM_B62DIGITS;
+  static constexpr unsigned _nbdigits_ = 11;
+  static constexpr unsigned _base_ = 62;
+  static_assert(_maxserial_ < ((uint64_t)1 << 63),
+                "corrupted _maxserial_ in MomSerial63");
+  static_assert(_deltaserial_ > ((uint64_t)1 << 62),
+                "corrupted _deltaserial_ in MomSerial63");
+  static constexpr const unsigned _maxbucket_ = 10 * 62;
+  inline MomSerial63(uint64_t n = 0, bool nocheck = false);
+  MomSerial63(std::nullptr_t) : _serial(0) {};
+  ~MomSerial63()
+  {
+    _serial = 0;
+  };
+  uint64_t serial() const
+  {
+    return _serial;
+  };
+  unsigned bucketnum() const
+  {
+    return _serial / (_deltaserial_ / _maxbucket_);
+  };
+  uint64_t buckoffset() const
+  {
+    return _serial % (_deltaserial_ / _maxbucket_);
+  };
+  std::string to_string(void) const;
+  static const MomSerial63 make_from_cstr(const char *s, const char *&end,
+                                          bool fail = false);
+  static const MomSerial63 make_from_cstr(const char *s, bool fail = false)
+  {
+    const char *end = nullptr;
+    return make_from_cstr(s, end, fail);
+  };
+  static const MomSerial63 make_random(void);
+  static const MomSerial63 make_random_of_bucket(unsigned bun);
+  MomSerial63(const MomSerial63 &s) : _serial(s._serial) {};
+  MomSerial63(MomSerial63 &&s) : _serial(std::move(s._serial)) {};
+  operator bool() const
+  {
+    return _serial != 0;
+  };
+  bool operator!() const
+  {
+    return _serial == 0;
+  };
+  bool equal(const MomSerial63 r) const
+  {
+    return _serial == r._serial;
+  };
+  bool less(const MomSerial63 r) const
+  {
+    return _serial < r._serial;
+  };
+  bool less_equal(const MomSerial63 r) const
+  {
+    return _serial <= r._serial;
+  };
+  bool operator==(const MomSerial63 r) const
+  {
+    return equal(r);
+  };
+  bool operator!=(const MomSerial63 r) const
+  {
+    return !equal(r);
+  };
+  bool operator<(const MomSerial63 r) const
+  {
+    return less(r);
+  };
+  bool operator<=(const MomSerial63 r) const
+  {
+    return less_equal(r);
+  };
+  bool operator>(const MomSerial63 r) const
+  {
+    return !less_equal(r);
+  };
+  bool operator>=(const MomSerial63 r) const
+  {
+    return !less(r);
+  };
+}; /* end class MomSerial63 */
+
+inline std::ostream &operator<<(std::ostream &os, const MomSerial63 s)
+{
+  os << s.to_string();
+  return os;
+} // end operator << MomSerial63
+
 class MomLoader;
 class MomDumper;
 
@@ -481,391 +575,16 @@ public:
   MomGuardPmutex() = delete;
 }; // end MomGuardPmutex
 
-#include "_mom_aggr.h"
-
-extern "C" const MomINT* mom_make_integer(int64_t i);
-
-typedef MomITEM MomPredefinedITEM;
-
-static inline const char *mom_item_hi_lo_suffix (char  buf[MOM_HI_LO_SUFFIX_LEN],
-    MomITEM*itm)
+MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
 {
-  memset (buf, 0, MOM_HI_LO_SUFFIX_LEN);
-  if (itm && (itm->itm_hid || itm->itm_lid))
-    mom_hi_lo_suffix (buf, itm->itm_hid, itm->itm_lid);
-  return buf;
-}
-
-static inline const char *mom_item_radix_str (const MomITEM*itm)
-{
-  if (itm && itm != MOM_EMPTY_SLOT && itm->vtype == MomItypeEn::ITEM)
-    return itm->itm_radix->rad_name->cstr;
-  else
-    return NULL;
-}
-
-extern "C" bool mom_valid_name_radix_len (const char *str, int len);
-
-extern "C" MomSTRING* mom_make_string(const char*cstr, int len= -1);
-
-static inline MomSTRING* mom_make_string(const std::string&str)
-{
-  return mom_make_string(str.c_str(), str.size());
-}
-
-static inline const char*
-mom_radix_cstring(const MomRADIXdata*radix)
-{
-  if (radix==nullptr || radix==MOM_EMPTY_SLOT
-      || radix->vtype != MomItypeEn::RADIXdata)
-    return nullptr;
-  auto nam = radix->rad_name;
-  assert (nam != nullptr && nam->vtype == MomItypeEn::STRING);
-  return nam->cstr;
-} // end mom_radix_cstring
-
-MomRADIXdata* mom_register_radix_str(const std::string&str);
-
-MomRADIXdata* mom_find_radix_str(const std::string&str);
-
-// compute the hash of an item of given radix and hid & lid
-momhash_t mom_hash_radix_id(MomRADIXdata*radix, uint16_t hid=0, uint64_t lid=0);
-
-// find an item from its radix and hid&lid
-MomITEM* mom_find_item_from_radix_id(MomRADIXdata*rad, uint16_t hid=0, uint64_t lid=0);
-
-// make an item (if not found) from its radix & hid&lid
-MomITEM* mom_make_item_from_radix_id(MomRADIXdata*rad, uint16_t hid=0, uint64_t lid=0);
-
-const char*mom_radix_id_cstr(MomRADIXdata*rad, uint16_t hid=0, uint64_t lid=0);
-
-const std::string mom_radix_id_string(MomRADIXdata*rad, uint16_t hid=0, uint64_t lid=0);
-
-static inline const char*mom_item_cstr(const MomITEM*itm)
-{
-  if (itm==nullptr || itm==MOM_EMPTY_SLOT||itm->vtype != MomItypeEn::ITEM) return nullptr;
-  return mom_radix_id_cstr(itm->itm_radix,itm->itm_hid,itm->itm_lid);
-}
-
-static inline const std::string mom_item_string(const MomITEM*itm)
-{
-  if (itm==nullptr || itm==MOM_EMPTY_SLOT||itm->vtype != MomItypeEn::ITEM) return nullptr;
-  return mom_radix_id_string(itm->itm_radix,itm->itm_hid,itm->itm_lid);
-}
-
-// find some existing item from string
-MomITEM*mom_find_item_from_string(const std::string&s);
-
-// make (or find) an item from string
-MomITEM*mom_make_item_from_string(const std::string&s);
-
-enum class MomStateTypeEn : uint8_t
-{
-  EMPTY,
-  MARK,
-  INT,
-  DOUBLE,
-  STRING,
-  VAL
-};
-
-class MomStatElem
-{
-public:
-protected:
-  struct MomMarkSt {};
-  MomStateTypeEn _st_type;
-  union
-  {
-    const void* _st_nptr;		// null when MomStateTypeEn::EMPTY
-    int _st_mark; // when MomStateTypeEn::MARK
-    long _st_int; // when MomStateTypeEn::INT
-    double _st_dbl; // when MomStateTypeEn::DOUBLE
-    std::string _st_str;		// when MomStateTypeEn::STRING
-    const MomVal* _st_val;		// when MomStateTypeEn::VAL;
-  };
-public:
-  explicit MomStatElem(std::nullptr_t)
-    : _st_type(MomStateTypeEn::EMPTY), _st_nptr(nullptr) {};
-  explicit MomStatElem() : MomStatElem(nullptr) {};
-  explicit MomStatElem(MomMarkSt, int m)
-    : _st_type(MomStateTypeEn::MARK), _st_mark(m) {};
-  explicit MomStatElem(long l)
-    : _st_type(MomStateTypeEn::INT), _st_int(l) {};
-  explicit MomStatElem(double d)
-    : _st_type(MomStateTypeEn::DOUBLE), _st_dbl(d) {};
-  explicit MomStatElem(const std::string&s)
-    : _st_type(MomStateTypeEn::STRING), _st_str(s) {};
-  explicit MomStatElem(const MomVal*v)
-    : _st_type(MomStateTypeEn::VAL), _st_val(v) {};
-  MomStatElem(const MomStatElem&e)
-    :_st_type(e._st_type), _st_nptr(nullptr)
-  {
-    switch (e._st_type)
-      {
-      case MomStateTypeEn::EMPTY:
-        break;
-      case MomStateTypeEn::MARK:
-        _st_mark = e._st_mark;
-        return;
-      case MomStateTypeEn::INT:
-        _st_int = e._st_int;
-        return;
-      case MomStateTypeEn::DOUBLE:
-        _st_dbl = e._st_dbl;
-        return;
-      case MomStateTypeEn::STRING:
-        _st_str = e._st_str;
-        return;
-      case MomStateTypeEn::VAL:
-        _st_val = e._st_val;
-        return;
-      }
-  }
-  MomStatElem(MomStatElem&&e) :
-    _st_type(e._st_type), _st_nptr(nullptr)
-  {
-    switch (e._st_type)
-      {
-      case MomStateTypeEn::EMPTY:
-        break;
-      case MomStateTypeEn::MARK:
-        _st_mark = e._st_mark;
-        break;
-      case MomStateTypeEn::INT:
-        _st_int = e._st_int;
-        break;
-      case MomStateTypeEn::DOUBLE:
-        _st_dbl = e._st_dbl;
-        break;
-      case MomStateTypeEn::STRING:
-        _st_str = std::move(e._st_str);
-        break;
-      case MomStateTypeEn::VAL:
-        _st_val = e._st_val;
-        break;
-      }
-    e._st_type =  MomStateTypeEn::EMPTY;
-    e._st_nptr = nullptr;
-  }
-  void clear()
-  {
-    typedef std::string str_t;
-    switch (_st_type)
-      {
-      case MomStateTypeEn::EMPTY:
-        break;
-      case MomStateTypeEn::MARK:
-        break;
-      case MomStateTypeEn::INT:
-        break;
-      case MomStateTypeEn::DOUBLE:
-        break;
-      case MomStateTypeEn::STRING:
-        _st_str.~str_t();
-        break;
-      case MomStateTypeEn::VAL:
-        break;
-      }
-    _st_nptr = nullptr;
-    _st_type =  MomStateTypeEn::EMPTY;
-  }
-  MomStatElem& operator = (const MomStatElem&e)
-  {
-    if (_st_type != e._st_type)
-      clear();
-    switch (e._st_type)
-      {
-      case MomStateTypeEn::EMPTY:
-        break;
-      case MomStateTypeEn::MARK:
-        _st_mark = e._st_mark;
-        break;
-      case MomStateTypeEn::INT:
-        _st_int = e._st_int;
-        break;
-      case MomStateTypeEn::DOUBLE:
-        _st_dbl = e._st_dbl;
-        break;
-      case MomStateTypeEn::STRING:
-        _st_str = e._st_str;
-        break;
-      case MomStateTypeEn::VAL:
-        _st_val = e._st_val;
-        break;
-      }
-    _st_type = e._st_type;
-    return *this;
-  }
-  ~MomStatElem()
-  {
-    clear();
-  };				// end ~MomStatElem
-};
-
-class MomStatEmpty : public MomStatElem
-{
-public:
-  explicit MomStatEmpty() : MomStatElem(nullptr) {};
-};
-
-class MomStatMark : public MomStatElem
-{
-public:
-  explicit MomStatMark(int m) :
-    MomStatElem(MomStatElem::MomMarkSt(), m) {};
-};
-
-class MomStatInt : public MomStatElem
-{
-public:
-  explicit MomStatInt(long l) :
-    MomStatElem(l) {}
-};
-
-class MomStatDouble : public MomStatElem
-{
-public:
-  explicit MomStatDouble(double d) :
-    MomStatElem(d) {}
-};
-
-class MomStatString : public MomStatElem
-{
-public:
-  explicit MomStatString(const std::string&s) :
-    MomStatElem(s) {}
-};
-
-class MomStatVal : public MomStatElem
-{
-public:
-  explicit MomStatVal(const MomVal*v=nullptr) :
-    MomStatElem(v) {}
-};
+  if (nocheck || n == 0)
+    return;
+  if (n < _minserial_)
+    MOM_FAILURE("MomSerial63 too small n:" << n);
+  if (n > _maxserial_)
+    MOM_FAILURE("MomSerial63 too big n:" << n);
+} /* end MomSerial63::MomSerial63 */
 
 
-#define MOM_GLOBAL_STATE "global.mom"
-
-class MomLoader
-{
-  static constexpr unsigned MAGIC =  0x1f3fd30f     /*524276495 */;
-  std::vector<MomStatElem> _ld_stack;
-  unsigned _ld_magic;
-  FILE *_ld_file;
-  std::string _ld_path;
-  char*_ld_linbuf;
-  size_t _ld_linsiz;
-  ssize_t _ld_linlen;
-  int _ld_lineno;
-  struct loader_compare_st
-  {
-    bool operator () (MomVal*l,MomVal*r)
-    {
-      if (l==r) return false;
-      if (l==nullptr || l==MOM_EMPTY_SLOT) return true;
-      if (r==nullptr || r==MOM_EMPTY_SLOT) return false;
-      const MomSTRING*lname = nullptr;
-      const MomSTRING*rname = nullptr;
-      uint16_t lefthid = 0, righthid=0;
-      uint64_t leftlid = 0, rightlid=0;
-      if (l->vtype == MomItypeEn::STRING)
-        lname = static_cast<MomSTRING*>(l);
-      else if (l->vtype == MomItypeEn::ITEM)
-        {
-          MomITEM*litm = static_cast<MomITEM*>(l);
-          lname = litm->itm_radix->rad_name;
-          lefthid = litm->itm_hid;
-          leftlid = litm->itm_lid;
-        };
-      if (r->vtype == MomItypeEn::STRING)
-        rname = static_cast<MomSTRING*>(r);
-      else if (r->vtype == MomItypeEn::ITEM)
-        {
-          MomITEM*ritm = static_cast<MomITEM*>(r);
-          lname = ritm->itm_radix->rad_name;
-          righthid = ritm->itm_hid;
-          rightlid = ritm->itm_lid;
-        };
-      if (lname == rname)
-        {
-          if (lefthid < righthid) return true;
-          if (lefthid > righthid) return false;
-          return leftlid <= rightlid;
-        };
-      if (lname == nullptr) return true;
-      if (rname == nullptr) return false;
-      return strcmp(lname->cstr, rname->cstr)<0;
-    }
-  };
-  // a set of items, but we may use a string name to test containership
-  std::set<MomVal*,loader_compare_st,traceable_allocator<MomVal*>> _ld_setitems;
-public:
-  MomLoader (const char*path);
-  ~MomLoader();
-  void first_pass(void);
-  void second_pass(void);
-  void push(const MomStatElem& el)
-  {
-    if (MOM_UNLIKELY(_ld_magic != MAGIC))
-      MOM_FATAPRINTF("corrupted loader");
-    _ld_stack.push_back(el);
-  };
-  void pop(unsigned nb=1)
-  {
-    if (nb>0)
-      {
-        if (_ld_stack.size()<nb)
-          MOM_FATAPRINTF("too big loader pop %d (has %d)",
-                         nb, (int)(_ld_stack.size()));
-        if (nb==1) _ld_stack.pop_back();
-        else
-          _ld_stack.erase(_ld_stack.end()-nb, _ld_stack.end());
-      }
-  }
-  void push_mark(int m)
-  {
-    push(MomStatMark {m});
-  };
-  void push_empty(void)
-  {
-    push(MomStatEmpty {});
-  };
-  void push_int(long l)
-  {
-    push(MomStatInt {l});
-  };
-  void push_double(double d)
-  {
-    push(MomStatDouble {d});
-  };
-  void push_string(const std::string&s)
-  {
-    push(MomStatString {s});
-  };
-  void push_val(const MomVal*v=nullptr)
-  {
-    push(MomStatVal {v});
-  };
-  void rewind(void)
-  {
-    if (_ld_magic != MAGIC)
-      MOM_FATAPRINTF("corrupted loader @%p", (void*)this);
-    if (_ld_file==nullptr) return;
-    ::rewind(_ld_file);
-    _ld_lineno = 0;
-  };
-  void getline(void)
-  {
-    if (_ld_file==nullptr) return;
-    if (_ld_magic != MAGIC)
-      MOM_FATAPRINTF("corrupted loader @%p", (void*)this);
-    if (_ld_linbuf != nullptr)
-      _ld_linbuf[0] = '\0';
-    _ld_linlen = ::getline(&_ld_linbuf, &_ld_linsiz, _ld_file);
-    if (_ld_linlen>=0)
-      _ld_lineno++;
-  }
-};				// end of class MomLoader
 
 #endif /*MONIMELT_INCLUDED_ */
