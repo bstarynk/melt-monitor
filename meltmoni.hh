@@ -74,6 +74,7 @@
 
 // standard C++11 stuff
 #include <atomic>
+#include <cstdint>
 #include <vector>
 #include <map>
 #include <set>
@@ -587,15 +588,41 @@ MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
 
 
 ////////////////
+// forward declarations.
+class MomAnyVal;		// abstract superclass of any memory value
+class MomIntSq;		// value, read-only hash-consed sequence of integers
+class MomDoubleSq;	// value, read-only hash-consed sequence of doubles
+class MomString;	// value, UTF8 read-only hash-consed string
+class MomAnySeqVal;		// abstract superclass of hash-consed object sequences (sets or tuples)
+class MomSetVal;		// value, hash-consed set of objects
+class MomTupleVal;		// value, hash-consed tuple of objects
+class MomNodeVal;		// value, hash-consed node: the
+// connective is an objects, the sons
+// are values
+
+enum class MomKind : std::int8_t
+{
+  TagIntK = -1,
+  TagNoneK = 0,
+  TagIntSqK,
+  TagDoubleSqK,
+  TagStringK,
+  TagSetK,
+  TagTupleK,
+  TagNodeK,
+};
+
+////////////////
 class MomValue
 {
   uintptr_t _v;
   // probably an odd _v (least bit set) represents some tagged integer (63 bits on 64 bits machine)
-  // a _v with two least bits cleared is a pointer to some MomValSuper
+  // a _v with two least bits cleared is a pointer to some MomAnyVal
   // a _v with the next to last bit set is a transient pointer
 public:
   // rule of five
   MomValue() : _v(0) {}
+  MomValue(std::nullptr_t) : _v(0) {}
   MomValue(const MomValue& src)
     : _v(src._v) {};
   MomValue(MomValue&& src)
@@ -618,6 +645,8 @@ public:
   {
     _v = 0;
   };
+  // tagged integers
+
 };				// end class MomValue
 
 #endif /*MONIMELT_INCLUDED_ */
