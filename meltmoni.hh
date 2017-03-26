@@ -586,5 +586,38 @@ MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
 } /* end MomSerial63::MomSerial63 */
 
 
+////////////////
+class MomValue
+{
+  uintptr_t _v;
+  // probably an odd _v (least bit set) represents some tagged integer (63 bits on 64 bits machine)
+  // a _v with two least bits cleared is a pointer to some MomValSuper
+  // a _v with the next to last bit set is a transient pointer
+public:
+  // rule of five
+  MomValue() : _v(0) {}
+  MomValue(const MomValue& src)
+    : _v(src._v) {};
+  MomValue(MomValue&& src)
+    : _v(src._v)
+  {
+    src._v = 0;
+  };
+  MomValue& operator = (const MomValue& src)
+  {
+    _v = src._v;
+    return *this;
+  };
+  MomValue& operator = (MomValue&& src)
+  {
+    _v = src._v;
+    src._v = 0;
+    return *this;
+  };
+  ~MomValue()
+  {
+    _v = 0;
+  };
+};				// end class MomValue
 
 #endif /*MONIMELT_INCLUDED_ */
