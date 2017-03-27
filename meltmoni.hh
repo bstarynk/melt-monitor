@@ -610,19 +610,34 @@ enum class MomKind : std::int8_t
   TagSetK,
   TagTupleK,
   TagNodeK,
+  Tag_LastK
+};
+static_assert ((unsigned)MomKind::Tag_LastK <= 8, "bad MomKind::Tag_Last");
+////////////////
+
+enum class MomEmpEnum
+{
+  NoneE = 0,
+  EmptyE
 };
 
-////////////////
+enum class MomTransEnum
+{
+  PersistentT = 0,
+  TransientT
+};
+
+struct MomPersistentTag {};
+struct MomTransientTag {};
 class MomValue
 {
   uintptr_t _v;
-  // probably an odd _v (least bit set) represents some tagged integer (63 bits on 64 bits machine)
+  // an odd _v (least bit set) represents some tagged integer (63 bits on 64 bits machine)
   // a _v with two least bits cleared is a pointer to some MomAnyVal
   // a _v with the next to last bit set is a transient pointer
 public:
   // rule of five
   MomValue() : _v(0) {}
-  MomValue(std::nullptr_t) : _v(0) {}
   MomValue(const MomValue& src)
     : _v(src._v) {};
   MomValue(MomValue&& src)
@@ -645,8 +660,172 @@ public:
   {
     _v = 0;
   };
+  // nil
+  bool is_nil() const
+  {
+    return _v == 0;
+  };
+  MomValue(std::nullptr_t) : _v(0) {}
+  // empty value
+  static constexpr uintptr_t _the_empty_v_ = (uintptr_t)(((void**)nullptr)+2);
+  bool is_strict_empty() const
+  {
+    return _v == _the_empty_v_;
+  };
+  bool is_empty() const
+  {
+    return is_nil() || is_strict_empty();
+  };
+  operator bool () const
+  {
+    return !is_empty();
+  };
+  bool operator ! () const
+  {
+    return is_empty();
+  };
+  MomValue(MomEmpEnum ev) :
+    _v(ev==MomEmpEnum::NoneE?0:_the_empty_v_) {};
   // tagged integers
-
+  bool is_tagint() const
+  {
+    return (_v & 1) == 1;
+  };
+  intptr_t as_tagint() const
+  {
+    if (!is_tagint())
+      MOM_FAILURE("MomValue::as_tagint not an integer");
+    return ((intptr_t)_v)>>1;
+  };
+  intptr_t to_tagint(intptr_t defv=0) const
+  {
+    if (is_tagint())
+      return ((intptr_t)_v)>>1;
+    else return defv;
+  }
+  MomValue(intptr_t i) : _v((i<<1)|1) {};
+  // any (transient or persistent) allocated value
+  bool is_val() const
+  {
+    return !is_tagint() && !is_empty();
+  };
+  MomValue(const MomAnyVal*p) // values are persistent by default
+    : MomValue(p, MomPersistentTag{}) {};
+  const MomAnyVal* as_val() const
+  {
+    if (!is_val())
+      MOM_FAILURE("MomValue::as_val not any value");
+    return (const MomAnyVal*)(_v & ~7);
+  }
+  operator const MomAnyVal* () const
+  {
+    return as_val();
+  };
+  const MomAnyVal* to_val(const MomAnyVal* def = nullptr) const
+  {
+    if (is_val())
+      return (const MomAnyVal*)(_v & ~7);
+    else return def;
+  }
+  // transient value
+  MomValue(const MomAnyVal*p, MomTransientTag) : _v(((uintptr_t)p) | 2)
+  {
+    MOM_ASSERT((((uintptr_t)p) & 7) == 0, "bad transient MomAnyVal " << (void*) p);
+  };
+  bool is_transient() const
+  {
+    return is_val() && ((_v & 2) != 0);
+  };
+  const MomAnyVal* as_transient() const
+  {
+    if (!is_transient())
+      MOM_FAILURE("MomValue::as_transient not transient value");
+    return (const MomAnyVal*)(_v & ~7);
+  }
+  const MomAnyVal* to_transient(const MomAnyVal* def = nullptr) const
+  {
+    if (is_transient())
+      return (const MomAnyVal*)(_v & ~7);
+    else return def;
+  }
+  // persistent value
+  MomValue(const MomAnyVal*p, MomPersistentTag) : _v((uintptr_t)p)
+  {
+    MOM_ASSERT((_v & 7) == 0, "bad MomAnyVal " << (void*) p);
+  };
+  bool is_persistent() const
+  {
+    return is_val() && ((_v & 2) == 0);
+  };
+  const MomAnyVal* as_persistent() const
+  {
+    if (!is_persistent())
+      MOM_FAILURE("MomValue::as_persistent not persistent value");
+    return (const MomAnyVal*)(_v & ~7);
+  }
+  const MomAnyVal* to_persistent(const MomAnyVal* def = nullptr) const
+  {
+    if (is_persistent())
+      return (const MomAnyVal*)(_v & ~7);
+    else return def;
+  }
 };				// end class MomValue
+
+
+typedef std::uint32_t MomHash; // hash codes are on 32 bits
+typedef std::uint32_t MomSize; // sizes have 27 bits
+typedef std::uint8_t MomGCMark; // garbage collector marks have 2 bits
+class MomGC;
+
+//// abstract super-class of all boxed values
+class MomAnyVal
+{
+public:
+  friend class MomIntSq;
+  friend class MomDoubleSq;
+  friend class MomString;
+  friend class MomAnySeqVal;
+  friend class MomSetVal;
+  friend class MomTupleVal;
+  friend class MomNodeVal;
+  friend class MomGC;
+  static constexpr MomSize _max_size = 1 << 27; // 134217728
+private:
+  // we start with the vtable ptr, probably 64 bits
+  // the header word contains:
+  //// 3 bits for the kind
+  //// 2 bits for the GC marking
+  //// 27 bits for the size
+  mutable std::uint32_t _headerw;
+  const MomHash _hashw;
+public:
+  MomKind kindw() const
+  {
+    return MomKind(_headerw>>29);
+  };
+  MomGCMark gcmarkw(MomGC*) const
+  {
+    return (_headerw>>27) & 03;
+  };
+  MomSize sizew() const
+  {
+    return _headerw & ((1<<27)-1);
+  };
+  MomHash hash() const
+  {
+    return _hashw;
+  };
+protected:
+  MomAnyVal(MomKind k, MomSize sz, MomHash h) :
+    _headerw(((std::uint32_t)k)<<29 | std::uint32_t(sz & (_max_size-1))),
+    _hashw(h)
+  {
+    MOM_ASSERT(k>MomKind::TagNoneK && k<MomKind::Tag_LastK, "MomAnyVal bad kind " << (int)k);
+    MOM_ASSERT(h!=0, "MomAnyVal zero hash");
+    MOM_ASSERT(sz<_max_size, "MomAnyVal huge size " << sz);
+  };
+  virtual ~MomAnyVal() =0;
+  virtual void scan_gc(MomGC*) const =0;
+};				// end class MomAnyVal
 
 #endif /*MONIMELT_INCLUDED_ */
