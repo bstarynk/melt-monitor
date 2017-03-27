@@ -780,6 +780,12 @@ class MomGC;
 //// abstract super-class of all boxed values
 class MomAnyVal
 {
+protected:
+  template<unsigned NbElem, class ValClass>
+  class HashConser
+  {
+#warning HashConser is incomplete
+  };
 public:
   friend class MomIntSq;
   friend class MomDoubleSq;
@@ -851,5 +857,13 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
   intptr_t ivalarr[MOM_FLEXIBLE_DIM];
 public:
   static MomHash compute_hash(const intptr_t* iarr, MomSize sz);
+  bool has_content(const intptr_t* iarr, MomSize sz)
+  {
+    if (sz !=  sizew()) return false;
+    if (sz > 0 && iarr==nullptr) return false;
+    for (unsigned ix=0; ix<(unsigned)sz; ix++)
+      if (MOM_LIKELY(ivalarr[ix] != iarr[ix])) return false;
+    return true;
+  };
 };				// end class MomIntSq
 #endif /*MONIMELT_INCLUDED_ */
