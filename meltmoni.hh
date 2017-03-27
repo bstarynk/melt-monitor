@@ -790,12 +790,13 @@ public:
   friend class MomNodeVal;
   friend class MomGC;
   static constexpr MomSize _max_size = 1 << 27; // 134217728
+  static constexpr size_t _alignment = 2*sizeof(void*);
 private:
   // we start with the vtable ptr, probably 64 bits
   // the header word contains:
-  //// 3 bits for the kind
-  //// 2 bits for the GC marking
-  //// 27 bits for the size
+  //// 3 bits for the kind (constant)
+  //// 2 bits for the GC marking (could change during GC operations)
+  //// 27 bits for the size (constant)
   mutable std::uint32_t _headerw;
   const MomHash _hashw;
 public:
@@ -807,6 +808,10 @@ public:
   {
     return (_headerw>>27) & 03;
   };
+  void set_gcmarkw(MomGC*, MomGCMark gm)
+  {
+    _headerw = (_headerw & ~((std::uint32_t)3<<27)) | ((gm & 3)<<27);
+  };
   MomSize sizew() const
   {
     return _headerw & ((1<<27)-1);
@@ -816,6 +821,13 @@ public:
     return _hashw;
   };
 protected:
+  void* operator new (size_t sz) = delete;
+  void* operator new (size_t sz, size_t gap)
+  {
+    MOM_ASSERT (sz % _alignment == 0, "MomAnyVal::new misaligned sz " << sz);
+    MOM_ASSERT (gap % _alignment == 0, "MomAnyVal::new misaligned gap " << gap);
+    return ::operator new(sz + gap);
+  }
   MomAnyVal(MomKind k, MomSize sz, MomHash h) :
     _headerw(((std::uint32_t)k)<<29 | std::uint32_t(sz & (_max_size-1))),
     _hashw(h)
@@ -825,7 +837,19 @@ protected:
     MOM_ASSERT(sz<_max_size, "MomAnyVal huge size " << sz);
   };
   virtual ~MomAnyVal() =0;
+  virtual MomKind vkind() const =0;
   virtual void scan_gc(MomGC*) const =0;
 };				// end class MomAnyVal
 
+/// internally, in many values, we end with a flexible array member of scalar or pointers
+/// since that do not exist in standard C++, we use the fictious dimension:
+#define MOM_FLEXIBLE_DIM 1
+
+
+class MomIntSq final : public MomAnyVal   // in scalarv.cc
+{
+  intptr_t ivalarr[MOM_FLEXIBLE_DIM];
+public:
+  static MomHash compute_hash(const intptr_t* iarr, MomSize sz);
+};				// end class MomIntSq
 #endif /*MONIMELT_INCLUDED_ */
