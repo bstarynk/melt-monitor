@@ -61,6 +61,9 @@ clean:
 
 
 
+## we could use git rev-parse HEAD for the lastgitcommit, but it does not
+## give any log comment...
+
 _timestamp.c: Makefile
 	@date +'const char monimelt_timestamp[]="%c";' > _timestamp.tmp
 	@(echo -n 'const char monimelt_lastgitcommit[]="' ; \
