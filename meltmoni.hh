@@ -847,6 +847,10 @@ protected:
 #define MOM_FLEXIBLE_DIM 1
 
 
+
+////////////////////////////////////////////////////////////////
+
+//// a constant hash-consed sequence of integers
 class MomIntSq final : public MomAnyVal   // in scalarv.cc
 {
   const intptr_t _ivalarr[MOM_FLEXIBLE_DIM];
@@ -883,4 +887,51 @@ public:
   };
   virtual void scan_gc(MomGC*) const {};
 };				// end class MomIntSq
+
+
+////////////////////////////////////////////////////////////////
+
+#if 0
+#error does not compile see http://stackoverflow.com/q/43180477/841108
+//// a constant hash-consed sequence of non-NaN doubles
+class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
+{
+  const double _dvalarr[MOM_FLEXIBLE_DIM];
+  MomDoubleSq(const double* iarr, MomSize sz, MomHash h);
+  static constexpr const int _width_ = 256;
+  static std::mutex _mtxarr_[_width_];
+  static std::unordered_multimap<MomHash,const MomDoubleSq*> _maparr_[_width_];
+public:
+  typedef double DoubleScalar;
+  static MomHash compute_hash(const double* iarr, MomSize sz);
+  static const MomDoubleSq* make_from_array(const double* iarr, MomSize sz);
+  static const MomDoubleSq* make_from_vector(const std::vector<double>& ivec)
+  {
+    return make_from_array(ivec.data(), ivec.size());
+  };
+  static const MomDoubleSq* make_from_ilist(std::initializer_list<double> il)
+  {
+    return make_from_array(il.begin(), il.size());
+  }
+  template <double ...Doubles> static const MomDoubleSq* make_from_doubles(Doubles args...)
+  {
+    return make_from_ilist(std::initializer_list<double> {args});
+  }
+  bool has_content(const double* darr, MomSize sz) const
+  {
+    if (sz !=  sizew()) return false;
+    if (sz > 0 && darr==nullptr) return false;
+    for (unsigned ix=0; ix<(unsigned)sz; ix++)
+      if (MOM_LIKELY(_dvalarr[ix] != darr[ix])) return false;
+    return true;
+  };
+  virtual MomKind vkind() const
+  {
+    return MomKind::TagIntSqK;
+  };
+  virtual void scan_gc(MomGC*) const {};
+};				// end class MomDoubleSq
+#endif
+
+
 #endif /*MONIMELT_INCLUDED_ */
