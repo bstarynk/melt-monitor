@@ -282,3 +282,32 @@ MomString::make_from_cstr(const char*cstr)
     }
   return res;
 } // end MomString::make_from_cstr
+
+
+const MomString*
+MomString::make_sprintf(const char*fmt, ...)
+{
+  constexpr int tinylen = 64;
+  va_list args;
+  int l = 0;
+  if (fmt==nullptr) return nullptr;
+  if (strlen(fmt)<tinylen)
+    {
+      char buf[5*tinylen+40];
+      memset(buf, 0, sizeof(buf));
+      va_start(args, fmt);
+      l = vsnprintf(buf, sizeof(buf), fmt, args);
+      va_end(args);
+      if (l < (int)sizeof(buf))
+        return  make_from_cstr(buf);
+    }
+  char *pbuf = nullptr;
+  va_start(args, fmt);
+  l = vasprintf(&pbuf, fmt, args);
+  va_end(args);
+  if (MOM_UNLIKELY(l<0 || pbuf==nullptr))
+    MOM_FATALOG("MomString::make_sprintf out of memory fmt=" << fmt);
+  auto res = make_from_cstr(pbuf);
+  free (pbuf);
+  return res;
+} // end of MomString::make_sprintf
