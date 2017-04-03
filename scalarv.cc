@@ -160,3 +160,36 @@ MomDoubleSq::compute_hash(const double* darr, MomSize sz)
   return h;
 } // end MomDoubleSq::compute_hash
 
+
+const MomDoubleSq*
+MomDoubleSq::make_from_array(const double* darr, MomSize sz)
+{
+  MomHash h = compute_hash(darr, sz);
+  MomDoubleSq* res = nullptr;
+  unsigned ix = h % _width_;
+  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
+  constexpr unsigned minbuckcount = 16;
+  auto& curmap = _maparr_[ix];
+  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
+    curmap.rehash(minbuckcount);
+  size_t buckix = curmap.bucket(h);
+  auto buckbeg = curmap.begin(buckix);
+  auto buckend = curmap.end(buckix);
+  for (auto it = buckbeg; it != buckend; it++)
+    {
+      if (it->first != h)
+        continue;
+      const MomDoubleSq*dsq = it->second;
+      MOM_ASSERT(dsq != nullptr, "null dsq in buckix=" << buckix);
+      if (MOM_UNLIKELY(dsq->has_content(darr, sz)))
+        return dsq;
+    }
+  res = new((sz-MOM_FLEXIBLE_DIM)*sizeof(double)) MomDoubleSq(darr,sz,h);
+  curmap.insert({h,res});
+  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
+    {
+      curmap.reserve(9*curmap.size()/8 + 5);
+    }
+  return res;
+} // end MomDoubleSq::make_from_array
+

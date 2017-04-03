@@ -906,10 +906,10 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
 public:
   static MomHash hash_double (double d);
   static MomHash compute_hash(const double* iarr, MomSize sz);
-  static const MomDoubleSq* make_from_array(const double* iarr, MomSize sz);
-  static const MomDoubleSq* make_from_vector(const std::vector<double>& ivec)
+  static const MomDoubleSq* make_from_array(const double* darr, MomSize sz);
+  static const MomDoubleSq* make_from_vector(const std::vector<double>& dvec)
   {
-    return make_from_array(ivec.data(), ivec.size());
+    return make_from_array(dvec.data(), dvec.size());
   };
   static const MomDoubleSq* make_from_ilist(std::initializer_list<double> il)
   {
