@@ -952,6 +952,24 @@ class MomString final : public MomAnyVal   // in scalarv.cc
   static std::unordered_multimap<MomHash,const MomString*> _maparr_[_width_];
 public:
   static MomHash compute_hash_dim(const char*cstr, MomSize*psiz=nullptr, uint32_t*pbylen=nullptr);
+  static const MomString* make_from_cstr(const char*cstr);
+  static const MomString*make_from_string(const std::string&str)
+  {
+    return make_from_cstr(str.c_str());
+  };
+  static const MomString*make_from_stream(std::ostringstream&outs)
+  {
+    outs << std::flush;
+    return make_from_string(outs.str());
+  }
+  bool has_cstr_content(const char* cstr, int len= -1) const
+  {
+    if (MOM_UNLIKELY(cstr==nullptr)) return false;
+    if (len<0) len = strlen(cstr);
+    if (MOM_UNLIKELY((unsigned)len != _bylen))
+      return false;
+    return !strcmp(cstr, _bstr);
+  }
   virtual MomKind vkind() const
   {
     return MomKind::TagStringK;

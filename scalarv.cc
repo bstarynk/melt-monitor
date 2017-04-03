@@ -235,3 +235,50 @@ MomString::compute_hash_dim(const char*cstr, MomSize*psiz, uint32_t*pbylen)
     *pbylen = sz;
   return h;
 } // end MomString::compute_hash_dim
+
+
+MomString::MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h)
+  : MomAnyVal(MomKind::TagStringK, sz, h),
+    _bylen(bylen),
+    _bstr{}
+{
+  MOM_ASSERT(sz==0 || cstr != nullptr,
+             "MomString::MomString null cstr for sz=" << sz);
+  memcpy(const_cast<char*>(_bstr), cstr, bylen);
+} // end MomString::MomString
+
+
+const MomString*
+MomString::make_from_cstr(const char*cstr)
+{
+  if (MOM_UNLIKELY(cstr==nullptr)) return nullptr;
+  MomSize sz = 0;
+  uint32_t bylen = 0;
+  MomHash h = compute_hash_dim(cstr, &sz, &bylen);
+  MomString* res = nullptr;
+  unsigned ix = h % _width_;
+  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
+  constexpr unsigned minbuckcount = 16;
+  auto& curmap = _maparr_[ix];
+  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
+    curmap.rehash(minbuckcount);
+  size_t buckix = curmap.bucket(h);
+  auto buckbeg = curmap.begin(buckix);
+  auto buckend = curmap.end(buckix);
+  for (auto it = buckbeg; it != buckend; it++)
+    {
+      if (it->first != h)
+        continue;
+      const MomString*strv = it->second;
+      MOM_ASSERT(strv != nullptr, "null strv in buckix=" << buckix);
+      if (MOM_UNLIKELY(strv->has_cstr_content(cstr, bylen)))
+        return strv;
+    }
+  res = new (((bylen+MOM_FLEXIBLE_DIM+1)|7)+1) MomString(cstr,sz,bylen,h);
+  curmap.insert({h,res});
+  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
+    {
+      curmap.reserve(9*curmap.size()/8 + 5);
+    }
+  return res;
+} // end MomString::make_from_cstr
