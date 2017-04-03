@@ -938,4 +938,25 @@ public:
 
 
 
+
+////////////////////////////////////////////////////////////////
+
+//// a constant hash-consed UTF-8 null-terminated string
+class MomString final : public MomAnyVal   // in scalarv.cc
+{
+  const uint32_t _bylen;
+  const char _bstr[MOM_FLEXIBLE_DIM];
+  MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h);
+  static constexpr const int _width_ = 256;
+  static std::mutex _mtxarr_[_width_];
+  static std::unordered_multimap<MomHash,const MomString*> _maparr_[_width_];
+public:
+  static MomHash compute_hash_dim(const char*cstr, MomSize*psiz=nullptr, uint32_t*pbylen=nullptr);
+  virtual MomKind vkind() const
+  {
+    return MomKind::TagStringK;
+  };
+  virtual void scan_gc(MomGC*) const {};
+};				// end class MomString
+
 #endif /*MONIMELT_INCLUDED_ */

@@ -193,3 +193,45 @@ MomDoubleSq::make_from_array(const double* darr, MomSize sz)
   return res;
 } // end MomDoubleSq::make_from_array
 
+
+////////////////////////////////////////////////////////////////
+std::mutex MomString::_mtxarr_[MomString::_width_];
+std::unordered_multimap<MomHash,const MomString*> MomString::_maparr_[MomString::_width_];
+
+MomHash
+MomString::compute_hash_dim(const char*cstr, MomSize*psiz, uint32_t*pbylen)
+{
+  if (!cstr)
+    {
+      if (psiz)
+        *psiz=0;
+      if (pbylen)
+        *pbylen=0;
+      return 0;
+    };
+  const gchar* pend = nullptr;
+  if (MOM_UNLIKELY(!g_utf8_validate(cstr, -1, &pend) || !pend || *pend))
+    MOM_FAILURE("MomString::compute_hash_dim invalid UTF-8 string");
+  if (MOM_UNLIKELY(pend - cstr > INT32_MAX))
+    MOM_FAILURE("MomString::compute_hash_dim huge size " << (pend - cstr));
+  MomSize sz = pend - cstr;
+  MomHash h1 = 13*sz + 10;
+  MomHash h2 = 34403;
+  int cnt = 0;
+  for (const char* pc = cstr; *pc; pc = g_utf8_next_char(pc))
+    {
+      gunichar uc = g_utf8_get_char(pc);
+      if (cnt % 2 == 0)
+        h1 = (h1*5413 + cnt) ^ (6427 * uc + 10);
+      else
+        h2 = (h2*9419) ^ (11*cnt + 11437 * uc - 17*cnt);
+    }
+  MomHash h = h1 ^ h2;
+  if (MOM_UNLIKELY(h==0))
+    h = 5*(h1 & 0xfffff) + 13*(h2 & 0xffffff) + 3*(cnt&0xfff) + 9;
+  if (psiz)
+    *psiz = cnt;
+  if (pbylen)
+    *pbylen = sz;
+  return h;
+} // end MomString::compute_hash_dim
