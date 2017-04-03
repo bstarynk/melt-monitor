@@ -597,9 +597,10 @@ class MomString;	// value, UTF8 read-only hash-consed string
 class MomAnySeqVal;		// abstract superclass of hash-consed object sequences (sets or tuples)
 class MomSetVal;		// value, hash-consed set of objects
 class MomTupleVal;		// value, hash-consed tuple of objects
-class MomNodeVal;		// value, hash-consed node: the
-// connective is an objects, the sons
-// are values
+class MomNodeVal;		/* value, hash-consed node: the
+ connective is an object, the sons
+ are values */
+////
 class MomObject;
 
 enum class MomKind : std::int8_t
@@ -993,23 +994,35 @@ class MomAnyObjSeq : public MomAnyVal   // in seqobjv.cc
   friend class MomGC;
   MomObject*const _obseq[MOM_FLEXIBLE_DIM];
 protected:
-  template<unsigned hinit, unsigned hk1, unsigned hk2>
-  static inline MomHash compute_hash(MomObject*const* obarr, unsigned sz);
-  MomAnyObjSeq(MomObject*const* obarr, MomSize sz, MomHash h);
+  template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4>
+  static inline MomHash compute_hash_seq(MomObject*const* obarr, unsigned sz);
+  inline MomAnyObjSeq(MomObject*const* obarr, MomSize sz, MomHash h);
 };				// end class MomAnyObjSeq
 
 
 ////////////////////////////////////////////////////////////////
-class MomSet : public MomAnyObjSeq   // in seqobjv.cc
+class MomSet : public MomAnyObjSeq
 {
-};				// end class MomSet
-
+  static constexpr unsigned hinit = 123017;
+  static constexpr unsigned k1 = 103049;
+  static constexpr unsigned k2 = 13063;
+  static constexpr unsigned k3 = 143093;
+  static constexpr unsigned k4 = 14083;
+public:
+  static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
+}; // end class MomSet
 
 ////////////////////////////////////////////////////////////////
-class MomTuple : public MomAnyObjSeq   // in seqobjv.cc
+class MomTuple : public MomAnyObjSeq
 {
-};				// end class MomTuple
-
+  static constexpr unsigned hinit = 173081;
+  static constexpr unsigned k1 = 135089;
+  static constexpr unsigned k2 = 35671;
+  static constexpr unsigned k3 = 5693;
+  static constexpr unsigned k4 = 56873;
+public:
+  static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
+}; // end class MomTuple
 
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
