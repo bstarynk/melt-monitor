@@ -900,11 +900,11 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
 {
   const double _dvalarr[MOM_FLEXIBLE_DIM];
   MomDoubleSq(const double* iarr, MomSize sz, MomHash h);
-  static constexpr const int _width_ = 256;
+  static constexpr const int _width_ = 128;
   static std::mutex _mtxarr_[_width_];
   static std::unordered_multimap<MomHash,const MomDoubleSq*> _maparr_[_width_];
 public:
-  typedef double DoubleScalar;
+  static MomHash hash_double (double d);
   static MomHash compute_hash(const double* iarr, MomSize sz);
   static const MomDoubleSq* make_from_array(const double* iarr, MomSize sz);
   static const MomDoubleSq* make_from_vector(const std::vector<double>& ivec)
@@ -931,7 +931,7 @@ public:
   };
   virtual MomKind vkind() const
   {
-    return MomKind::TagIntSqK;
+    return MomKind::TagDoubleSqK;
   };
   virtual void scan_gc(MomGC*) const {};
 };				// end class MomDoubleSq

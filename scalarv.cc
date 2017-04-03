@@ -93,3 +93,70 @@ MomIntSq::make_from_array(const intptr_t* iarr, MomSize sz)
   return res;
 } // end MomIntSq::make_from_array
 
+
+
+////////////////////////////////////////////////////////////////
+std::mutex MomDoubleSq::_mtxarr_[MomDoubleSq::_width_];
+std::unordered_multimap<MomHash,const MomDoubleSq*> MomDoubleSq::_maparr_[MomDoubleSq::_width_];
+
+MomDoubleSq::MomDoubleSq(const double* darr, MomSize sz, MomHash h)
+  : MomAnyVal(MomKind::TagDoubleSqK, sz, h),
+    _dvalarr{}
+{
+  MOM_ASSERT(sz==0 || darr != nullptr,
+             "MomDoubleSq::MomDoubleSq null darr for sz=" << sz);
+  memcpy (const_cast<double*>(_dvalarr), darr, sz*sizeof(double));
+}
+
+
+MomHash
+MomDoubleSq::hash_double(double d)
+{
+  int e = 0;
+  if (MOM_UNLIKELY(isnan(d)))
+    MOM_FAILURE("MomDoubleSq::hash_double got NaN");
+  if (MOM_UNLIKELY(isinf(d)))
+    {
+      if (d>0.0) return 9270666;
+      else return 3356443;
+    };
+  double x = frexp (d, &e);
+  MomHash h = ((MomHash) (x / (M_PI * M_LN2 * DBL_EPSILON))) ^ e;
+  if (!h)
+    {
+      h = e;
+      if (!h)
+        h = (x > 0.0) ? 1689767 : (x < 0.0) ? 2000281 : 13;
+    }
+  return h;
+} // end MomDoubleSq::hash_double
+
+
+MomHash
+MomDoubleSq::compute_hash(const double* darr, MomSize sz)
+{
+  constexpr MomHash inith = 51413;
+  if (sz == 0) return inith;
+  if (MOM_UNLIKELY(darr==nullptr))
+    MOM_FAILURE("MomDoubleSq::compute_hash null darr");
+  if (MOM_UNLIKELY(sz>=_max_size))
+    MOM_FAILURE("MomDoubleSq::compute_hash huge sz " <<sz);
+  MomHash h1 = 5*sz + 10;
+  MomHash h2 = 54413;
+  for (unsigned ix=0; ix<sz; ix++)
+    {
+      double x = darr[ix];
+      if (MOM_UNLIKELY(isnan(x)))
+        MOM_FAILURE("MomDoubleSq::compute_hash NaN at index " << ix);
+      MomHash hx = MomDoubleSq::hash_double(x);
+      if (ix % 2 == 0)
+        h1 = (h1 * 145069) ^ (hx * 17 + ix);
+      else
+        h2 = (h2 * 15193 - 7 * ix) ^ (hx * 1409 + 10 - (hx >> 20));
+    }
+  MomHash h = h1 ^ h2;
+  if (MOM_UNLIKELY(h==0))
+    h = (h1 & 0xfffff) + 11 * (h2 & 0xfffff) + 10;
+  return h;
+} // end MomDoubleSq::compute_hash
+
