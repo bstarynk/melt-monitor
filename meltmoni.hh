@@ -77,6 +77,7 @@
 #include <cstdint>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <sstream>
 #include <random>
@@ -780,12 +781,6 @@ class MomGC;
 //// abstract super-class of all boxed values
 class MomAnyVal
 {
-protected:
-  template<unsigned NbElem, class ValClass>
-  class HashConser
-  {
-#warning HashConser is incomplete
-  };
 public:
   friend class MomIntSq;
   friend class MomDoubleSq;
@@ -842,7 +837,7 @@ protected:
     MOM_ASSERT(h!=0, "MomAnyVal zero hash");
     MOM_ASSERT(sz<_max_size, "MomAnyVal huge size " << sz);
   };
-  virtual ~MomAnyVal() =0;
+  virtual ~MomAnyVal() {};
   virtual MomKind vkind() const =0;
   virtual void scan_gc(MomGC*) const =0;
 };				// end class MomAnyVal
@@ -854,16 +849,38 @@ protected:
 
 class MomIntSq final : public MomAnyVal   // in scalarv.cc
 {
-  intptr_t ivalarr[MOM_FLEXIBLE_DIM];
+  const intptr_t _ivalarr[MOM_FLEXIBLE_DIM];
+  MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h);
+  static constexpr const int _width_ = 256;
+  static std::mutex _mtxarr_[_width_];
+  static std::unordered_multimap<MomHash,const MomIntSq*> _maparr_[_width_];
 public:
   static MomHash compute_hash(const intptr_t* iarr, MomSize sz);
-  bool has_content(const intptr_t* iarr, MomSize sz)
+  static const MomIntSq* make_from_array(const intptr_t* iarr, MomSize sz);
+  static const MomIntSq* make_from_vector(const std::vector<intptr_t>& ivec)
+  {
+    return make_from_array(ivec.data(), ivec.size());
+  };
+  static const MomIntSq* make_from_ilist(std::initializer_list<intptr_t> il)
+  {
+    return make_from_array(il.begin(), il.size());
+  }
+  template <intptr_t ...> static const MomIntSq* make_from_ints(intptr_t args...)
+  {
+    return make_from_ilist(std::initializer_list<intptr_t> {args});
+  }
+  bool has_content(const intptr_t* iarr, MomSize sz) const
   {
     if (sz !=  sizew()) return false;
     if (sz > 0 && iarr==nullptr) return false;
     for (unsigned ix=0; ix<(unsigned)sz; ix++)
-      if (MOM_LIKELY(ivalarr[ix] != iarr[ix])) return false;
+      if (MOM_LIKELY(_ivalarr[ix] != iarr[ix])) return false;
     return true;
   };
+  virtual MomKind vkind() const
+  {
+    return MomKind::TagIntSqK;
+  };
+  virtual void scan_gc(MomGC*) const {};
 };				// end class MomIntSq
 #endif /*MONIMELT_INCLUDED_ */

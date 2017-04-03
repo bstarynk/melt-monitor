@@ -20,6 +20,21 @@
 
 #include "meltmoni.hh"
 
+
+std::mutex MomIntSq::_mtxarr_[MomIntSq::_width_];
+std::unordered_multimap<MomHash,const MomIntSq*> MomIntSq::_maparr_[MomIntSq::_width_];
+
+MomIntSq::MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h)
+  : MomAnyVal(MomKind::TagIntSqK, sz, h),
+    _ivalarr{}
+{
+  MOM_ASSERT(sz==0 || iarr != nullptr,
+             "MomIntSq::MomIntSq null iarr for sz=" << sz);
+  memcpy (const_cast<intptr_t*>(_ivalarr), iarr, sz*sizeof(intptr_t));
+}
+
+
+
 MomHash
 MomIntSq::compute_hash(const intptr_t* iarr, MomSize sz)
 {
@@ -43,3 +58,43 @@ MomIntSq::compute_hash(const intptr_t* iarr, MomSize sz)
     h = (h1 & 0xffffff) + (h2 & 0xffffff) + 5*(sz & 0xfff) + 10;
   return h;
 } // end MomIntSq::compute_hash
+
+
+
+const MomIntSq*
+MomIntSq::make_from_array(const intptr_t* iarr, MomSize sz)
+{
+  MomHash h = compute_hash(iarr, sz);
+  MomIntSq* res = nullptr;
+  unsigned ix = h % _width_;
+  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
+  constexpr unsigned minbuckcount = 16;
+  auto& curmap = _maparr_[ix];
+  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
+    curmap.rehash(minbuckcount);
+  size_t buckix = curmap.bucket(h);
+  auto buckbeg = curmap.begin(buckix);
+  auto buckend = curmap.end(buckix);
+  for (auto it = buckbeg; it != buckend; it++)
+    {
+      if (it->first != h)
+        continue;
+      const MomIntSq*isq = it->second;
+      MOM_ASSERT(isq != nullptr, "null isq in buckix=" << buckix);
+      if (MOM_UNLIKELY(isq->has_content(iarr, sz)))
+        return isq;
+    }
+  res = new((sz-1)*sizeof(intptr_t)) MomIntSq(iarr,sz,h);
+  curmap.insert({h,res});
+  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
+    {
+      curmap.reserve(9*curmap.size()/8 + 5);
+    }
+  return res;
+} // end MomIntSq::make_from_array
+
+/* this compile ok:
+const MomIntSq*test_momintsq() {
+  return MomIntSq::make_from_ints(1,2,3);
+}
+*/
