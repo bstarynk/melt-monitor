@@ -32,8 +32,10 @@ MomAnyObjSeq::compute_hash_seq(MomObject*const* obarr, unsigned sz)
   for (unsigned ix=0; ix<sz; ix++)
     {
       const MomObject* curob = obarr[ix];
-      if (curob==nullptr)
+      if (MOM_UNLIKELY(curob==nullptr))
         MOM_FAILURE("MomAnyObjSeq::compute_hash null object at ix=" << ix);
+      if (MOM_UNLIKELY(curob->kindw() != MomKind::TagObjectK))
+        MOM_FAILURE("MomAnyObjSeq::compute_hash bad object at ix=" << ix);
       MomHash hob = curob->hash();
       if (ix % 2 == 0)
         h1 = (k1 * h1) ^ (hob * k2 + ix);
@@ -46,6 +48,12 @@ MomAnyObjSeq::compute_hash_seq(MomObject*const* obarr, unsigned sz)
   return h;
 } // end of MomAnyObjSeq::compute_hash
 
+
+//////////////// sets
+
+std::mutex MomSet::_mtxarr_[MomSet::_width_];
+std::unordered_multimap<MomHash,const MomSet*> MomSet::_maparr_[MomSet::_width_];
+
 MomHash
 MomSet::compute_hash(MomObject*const* obarr, unsigned sz)
 {
@@ -55,6 +63,48 @@ MomSet::compute_hash(MomObject*const* obarr, unsigned sz)
          MomSet::k3,
          MomSet::k4>(obarr, sz);
 };
+
+
+const MomSet*
+MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
+{
+  MomHash h = compute_hash(obarr, sz);
+  MomSet* res = nullptr;
+  for (unsigned ix=1; ix<sz; ix++)
+    {
+      const MomObject*curob = obarr[ix];
+      const MomObject*prevob = obarr[ix-1];
+      if (MOM_UNLIKELY(!prevob->less(curob)))
+        MOM_FAILURE("MomSet::make_from_ascending_array bad order at ix="
+                    << ix);
+    }
+  unsigned ix = h % _width_;
+  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
+  constexpr unsigned minbuckcount = 16;
+  auto& curmap = _maparr_[ix];
+  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
+    curmap.rehash(minbuckcount);
+  size_t buckix = curmap.bucket(h);
+  auto buckbeg = curmap.begin(buckix);
+  auto buckend = curmap.end(buckix);
+  for (auto it = buckbeg; it != buckend; it++)
+    {
+      if (it->first != h)
+        continue;
+      const MomSet*iset = it->second;
+      MOM_ASSERT(iset != nullptr, "null iset in buckix=" << buckix);
+      if (MOM_UNLIKELY(iset->has_content(obarr, sz)))
+        return iset;
+    }
+  res = new((sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomSet(obarr,sz,h);
+  curmap.insert({h,res});
+  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
+    {
+      curmap.reserve(9*curmap.size()/8 + 5);
+    }
+  return res;
+} // end MomSet::make_from_ascending_array
+
 
 
 

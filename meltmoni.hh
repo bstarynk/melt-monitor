@@ -997,6 +997,15 @@ protected:
   template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4>
   static inline MomHash compute_hash_seq(MomObject*const* obarr, unsigned sz);
   inline MomAnyObjSeq(MomObject*const* obarr, MomSize sz, MomHash h);
+  inline bool has_content(MomObject*const*obarr, unsigned sz) const
+  {
+    if (sz !=  sizew()) return false;
+    if (sz > 0 && obarr==nullptr) return false;
+    for (unsigned ix=0; ix<(unsigned)sz; ix++)
+      if (MOM_LIKELY(_obseq[ix] != obarr[ix])) return false;
+    return true;
+  }
+  virtual void scan_gc(MomGC*) const;
 };				// end class MomAnyObjSeq
 
 
@@ -1008,8 +1017,18 @@ class MomSet : public MomAnyObjSeq
   static constexpr unsigned k2 = 13063;
   static constexpr unsigned k3 = 143093;
   static constexpr unsigned k4 = 14083;
+  static constexpr const int _width_ = 256;
+  static std::mutex _mtxarr_[_width_];
+  static std::unordered_multimap<MomHash,const MomSet*> _maparr_[_width_];
+  MomSet(MomObject*const* obarr, MomSize sz, MomHash h)
+    : MomAnyObjSeq(obarr,sz, h) {};
 public:
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
+  static const MomSet* make_from_ascending_array(MomObject*const* obarr, MomSize sz);
+  virtual MomKind vkind() const
+  {
+    return MomKind::TagSetK;
+  };
 }; // end class MomSet
 
 ////////////////////////////////////////////////////////////////
