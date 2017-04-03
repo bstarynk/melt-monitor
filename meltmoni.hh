@@ -176,11 +176,11 @@ __attribute__ ((format (printf, 3, 4), noreturn));
 			##__VA_ARGS__)
 
 
-#define MOM_FATALOG_AT(Fil,Lin,Log) do {	\
-  std::ostringstream _olog_#Lin;		\
-  _olog_#Lin << Log << std::flush;		\
-  mom_fataprintf_at (Fil,Lin,"%s",		\
-		     _olog_#Lin.c_str());	\
+#define MOM_FATALOG_AT(Fil,Lin,Log) do {		\
+  std::ostringstream _olog_##Lin;			\
+  _olog_##Lin << Log << std::flush;			\
+  mom_fataprintf_at (Fil,Lin,"%s",			\
+		     _olog_##Lin.str().c_str());	\
   } while(0)
 
 #define MOM_FATALOG_AT_BIS(Fil,Lin,Log)	\
@@ -953,15 +953,16 @@ class MomString final : public MomAnyVal   // in scalarv.cc
 public:
   static MomHash compute_hash_dim(const char*cstr, MomSize*psiz=nullptr, uint32_t*pbylen=nullptr);
   static const MomString* make_from_cstr(const char*cstr);
-  static const MomString*make_from_string(const std::string&str)
+  static const MomString* make_from_string(const std::string&str)
   {
     return make_from_cstr(str.c_str());
   };
-  static const MomString*make_from_stream(std::ostringstream&outs)
+  static const MomString* make_from_stream(std::ostringstream&outs)
   {
     outs << std::flush;
     return make_from_string(outs.str());
   }
+  static const MomString* make_sprintf(const char*fmt, ...) __attribute__((format(printf,1,2)));
   bool has_cstr_content(const char* cstr, int len= -1) const
   {
     if (MOM_UNLIKELY(cstr==nullptr)) return false;
