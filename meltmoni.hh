@@ -600,6 +600,7 @@ class MomTupleVal;		// value, hash-consed tuple of objects
 class MomNodeVal;		// value, hash-consed node: the
 // connective is an objects, the sons
 // are values
+class MomObject;
 
 enum class MomKind : std::int8_t
 {
@@ -611,6 +612,7 @@ enum class MomKind : std::int8_t
   TagSetK,
   TagTupleK,
   TagNodeK,
+  TagObjectK,
   Tag_LastK
 };
 static_assert ((unsigned)MomKind::Tag_LastK <= 8, "bad MomKind::Tag_Last");
@@ -853,6 +855,7 @@ protected:
 //// a constant hash-consed sequence of integers
 class MomIntSq final : public MomAnyVal   // in scalarv.cc
 {
+  friend class MomGC;
   const intptr_t _ivalarr[MOM_FLEXIBLE_DIM];
   MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h);
   static constexpr const int _width_ = 256;
@@ -898,6 +901,7 @@ public:
 //// a constant hash-consed sequence of non-NaN doubles
 class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
 {
+  friend class MomGC;
   const double _dvalarr[MOM_FLEXIBLE_DIM];
   MomDoubleSq(const double* iarr, MomSize sz, MomHash h);
   static constexpr const int _width_ = 128;
@@ -944,6 +948,7 @@ public:
 //// a constant hash-consed UTF-8 null-terminated string
 class MomString final : public MomAnyVal   // in scalarv.cc
 {
+  friend class MomGC;
   const uint32_t _bylen;
   const char _bstr[MOM_FLEXIBLE_DIM];
   MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h);
@@ -977,5 +982,73 @@ public:
   };
   virtual void scan_gc(MomGC*) const {};
 };				// end class MomString
+
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+
+// common super class for sets and tuples of objects
+
+class MomAnyObjSeq : public MomAnyVal   // in seqobjv.cc
+{
+  friend class MomGC;
+  MomObject*const _obseq[MOM_FLEXIBLE_DIM];
+protected:
+  template<unsigned hinit, unsigned hk1, unsigned hk2>
+  static inline MomHash compute_hash(MomObject*const* obarr, unsigned sz);
+  MomAnyObjSeq(MomObject*const* obarr, MomSize sz, MomHash h);
+};				// end class MomAnyObjSeq
+
+
+////////////////////////////////////////////////////////////////
+class MomSet : public MomAnyObjSeq   // in seqobjv.cc
+{
+};				// end class MomSet
+
+
+////////////////////////////////////////////////////////////////
+class MomTuple : public MomAnyObjSeq   // in seqobjv.cc
+{
+};				// end class MomTuple
+
+
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+
+class MomObject : public MomAnyVal // in objectv.cc
+{
+  const MomSerial63 _serhi, _serlo;
+public:
+  bool same(const MomObject*ob) const
+  {
+    return this == ob;
+  };
+  bool less(const MomObject*ob) const
+  {
+    if (!ob || this==ob) return false;
+    if (_serhi < ob->_serhi) return true;
+    else if (_serhi > ob->_serhi) return false;
+    if (_serlo < ob->_serlo) return true;
+    else if (_serlo > ob->_serlo) return false;
+    MOM_FATALOG("non-identical objects sharing same serial hi=" << _serhi
+                << " lo=" << _serlo);
+  };
+  bool less_equal(const MomObject*ob) const
+  {
+    if (!ob) return false;
+    if (this == ob) return true;
+    return less (ob);
+  };
+  bool greater(const MomObject*ob) const
+  {
+    if (!ob) return true;
+    return ob->less(this);
+  };
+  bool greater_equal(const MomObject*ob) const
+  {
+    if (!ob) return true;
+    return ob->less_equal(this);
+  };
+}; // end class MomObject
+
 
 #endif /*MONIMELT_INCLUDED_ */
