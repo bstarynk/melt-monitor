@@ -93,8 +93,3 @@ MomIntSq::make_from_array(const intptr_t* iarr, MomSize sz)
   return res;
 } // end MomIntSq::make_from_array
 
-/* this compile ok:
-const MomIntSq*test_momintsq() {
-  return MomIntSq::make_from_ints(1,2,3);
-}
-*/

@@ -869,10 +869,14 @@ public:
   {
     return make_from_array(il.begin(), il.size());
   }
-  template <intptr_t ...> static const MomIntSq* make_from_ints(intptr_t args...)
+  /// example: MonIntSq::make_from_ints(1,-2,3)
+  /// see http://stackoverflow.com/q/43180477/841108
+  template <typename... Ts>
+  static const MomIntSq* make_from_ints(Ts... args)
   {
-    return make_from_ilist(std::initializer_list<intptr_t> {args});
+    return make_from_ilist(std::initializer_list<intptr_t> {args...});
   }
+  ///
   bool has_content(const intptr_t* iarr, MomSize sz) const
   {
     if (sz !=  sizew()) return false;
@@ -891,8 +895,6 @@ public:
 
 ////////////////////////////////////////////////////////////////
 
-#if 0
-#error does not compile see http://stackoverflow.com/q/43180477/841108
 //// a constant hash-consed sequence of non-NaN doubles
 class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
 {
@@ -913,9 +915,11 @@ public:
   {
     return make_from_array(il.begin(), il.size());
   }
-  template <double ...Doubles> static const MomDoubleSq* make_from_doubles(Doubles args...)
+  /// example: MonDoubleSq::make_from_doubles(1.2,-2.4,3.0)
+  template <typename... Ts>
+  static const MomIntSq* make_from_doubles(Ts... args)
   {
-    return make_from_ilist(std::initializer_list<double> {args});
+    return make_from_ilist(std::initializer_list<double> {args...});
   }
   bool has_content(const double* darr, MomSize sz) const
   {
@@ -931,7 +935,7 @@ public:
   };
   virtual void scan_gc(MomGC*) const {};
 };				// end class MomDoubleSq
-#endif
+
 
 
 #endif /*MONIMELT_INCLUDED_ */
