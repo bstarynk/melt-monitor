@@ -398,6 +398,8 @@ const char *mom_hexdump_data (char *buf, unsigned buflen,
                               const unsigned char *data, unsigned datalen);
 
 
+typedef std::uint32_t MomHash; // hash codes are on 32 bits, but could become on 56 bits!
+
 const char *mom_double_to_cstr (double x, char *buf, size_t buflen);
 
 std::string mom_input_quoted_utf8_string(std::istream& ins);
@@ -653,6 +655,16 @@ public:
     const char *end = nullptr;
     return make_from_cstr(s, end, fail);
   };
+  MomHash hash() const
+  {
+    if (is_null()) return 0;
+    uint64_t shi = _idhi.serial();
+    uint64_t slo = _idlo.serial();
+    MomHash h = ((shi * 81281) ^ (slo * 33769)) + 11*(shi>>35) - 31*(slo>>47);
+    if (MOM_UNLIKELY(h==0))
+      h = 3*(shi & 0xffffff) + 5*(slo & 0xffffff) + 315;
+    return h;
+  }
 };				// end class MomIdent
 
 
@@ -890,7 +902,6 @@ public:
 };				// end class MomValue
 
 
-typedef std::uint32_t MomHash; // hash codes are on 32 bits
 typedef std::uint32_t MomSize; // sizes have 27 bits
 typedef std::uint8_t MomGCMark; // garbage collector marks have 2 bits
 class MomGC;
