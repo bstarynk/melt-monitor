@@ -1073,7 +1073,7 @@ static const struct option mom_long_options[] =
   {"add-predefined", required_argument, nullptr, xtraopt_addpredef},
   {"comment-predefined", required_argument, nullptr, xtraopt_commentpredef},
   {"test-id", no_argument, nullptr, xtraopt_testid},
-  {"parse-id", no_argument, nullptr, xtraopt_parseid},
+  {"parse-id", required_argument, nullptr, xtraopt_parseid},
   /* Terminating nullptr placeholder.  */
   {nullptr, no_argument, nullptr, 0},
 };
