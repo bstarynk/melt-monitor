@@ -57,6 +57,13 @@ MomAnyObjSeq::scan_gc(MomGC* gc) const
 } // end MomAnyObjSeq::scan_gc
 
 
+MomAnyObjSeq::MomAnyObjSeq(MomKind kd, MomObject*const* obarr, MomSize sz, MomHash h)
+  : MomAnyVal(kd,sz,h),
+    _obseq{nullptr}
+{
+  memcpy(const_cast<MomObject**>(_obseq), obarr, sz*sizeof(MomObject*));
+} // end MomAnyObjSeq::MomAnyObjSeq
+
 //////////////// sets
 
 std::mutex MomSet::_mtxarr_[MomSet::_width_];
