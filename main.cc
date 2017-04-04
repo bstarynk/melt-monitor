@@ -968,13 +968,6 @@ mom_fataprintf_at (const char *fil, int lin, const char *fmt, ...)
     }
   else
     msg = buf;
-#if __GLIBC__
-#define BACKTRACE_MAX_MOM 100
-  void *bbuf[BACKTRACE_MAX_MOM];
-  int blev = 0;
-  memset (bbuf, 0, sizeof (bbuf));
-  blev = backtrace (bbuf, BACKTRACE_MAX_MOM - 1);
-  char **bsym = backtrace_symbols (bbuf, blev);
   if (syslogging_mom)
     {
       if (err)
@@ -984,8 +977,6 @@ mom_fataprintf_at (const char *fil, int lin, const char *fmt, ...)
       else
         syslog (LOG_ALERT, "MONIMELT FATAL! @%s:%d <%s:%d> %s %s",
                 fil, lin, thrname, (int) mom_gettid (), timbuf, msg);
-      for (int i = 0; i < blev; i++)
-        syslog (LOG_ALERT, "MONIMELTB![%d]: %s", i, bsym[i]);
     }
   else
     {
@@ -996,13 +987,27 @@ mom_fataprintf_at (const char *fil, int lin, const char *fmt, ...)
       else
         fprintf (stderr, "MONIMELT FATAL @%s:%d <%s:%d> %s %s\n",
                  fil, lin, thrname, (int) mom_gettid (), timbuf, msg);
-      for (int i = 0; i < blev; i++)
-        fprintf (stderr, "MONIMELTB[%d]: %s\n", i, bsym[i]);
       fflush (nullptr);
     }
-#endif
-  if (bigbuf)
-    free (bigbuf);
+  MomBacktraceData backdata(fil,lin);
+  backdata.bt_outs << " !*!*! Monimelt FATAL !*!*!* " << msg << std::endl;
+  backtrace_full (btstate_mom, 1,
+                  MomBacktraceData::bt_callback,
+                  MomBacktraceData::bt_err_callback,
+                  (void *) &backdata);
+  backdata.bt_outs << std::endl;
+  if (syslogging_mom)
+    {
+      syslog (LOG_ALERT, "MONIMELT FATALBACKTRACE\n\t %s\n",
+              backdata.bt_outs.str().c_str());
+    }
+  else
+    {
+      fprintf (stderr, "MONIMELT FATALBACKTRACE\n\t %s\n",
+               backdata.bt_outs.str().c_str());
+    }
+  fflush(NULL);
+  /* no need to free bigbuf, we are aborting! */
   abort ();
 }
 
