@@ -1317,7 +1317,7 @@ main (int argc_main, char **argv_main)
                                        NULL);
   if (MOM_UNLIKELY(btstate_mom==nullptr))
     {
-      fprintf(stderr, "backtrace_create_state failed fatally (%m)\n");
+      fprintf(stderr, "%s: backtrace_create_state failed fatally (%m)\n", argv_main[0]);
       abort();
     }
   mom_prog_dlhandle = dlopen (nullptr, RTLD_NOW);
