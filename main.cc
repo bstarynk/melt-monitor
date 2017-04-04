@@ -1267,12 +1267,19 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           auto id1 = MomIdent::make_random();
           auto id2 = MomIdent::make_random();
           auto id3 = MomIdent::make_random();
-          MOM_INFORMLOG("test-id: id1= " << id1 << " =(" << id1.hi().serial() << "," << id1.lo().serial()
+          auto id4 = MomIdent::make_random();
+          MOM_INFORMLOG("test-id:" << std::endl
+                        << " .. id1= " << id1 << " =(" << id1.hi().serial() << "," << id1.lo().serial()
                         << ")/h" << id1.hash() << ",b#" << id1.bucketnum());
-          MOM_INFORMLOG("test-id: id2= " << id2 << " =(" << id2.hi().serial() << "," << id2.lo().serial()
+          MOM_INFORMLOG("test-id:" << std::endl
+                        << " .. id2= " << id2 << " =(" << id2.hi().serial() << "," << id2.lo().serial()
                         << ")/h" << id2.hash() << ",b#" << id2.bucketnum());
-          MOM_INFORMLOG("test-id: id3= " << id3 << " =(" << id3.hi().serial() << "," << id3.lo().serial()
+          MOM_INFORMLOG("test-id:" << std::endl
+                        << " .. id3= " << id3 << " =(" << id3.hi().serial() << "," << id3.lo().serial()
                         << ")/h" << id3.hash() << ",b#" << id3.bucketnum());
+          MOM_INFORMLOG("test-id:" << std::endl
+                        << " .. id4= " << id4 << " =(" << id4.hi().serial() << "," << id4.lo().serial()
+                        << ")/h" << id4.hash() << ",b#" << id4.bucketnum());
         }
         break;
         case xtraopt_parseid:
@@ -1280,7 +1287,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           if (optarg == nullptr)
             MOM_FATAPRINTF("missing id for --parse-id");
           auto idp = MomIdent::make_from_cstr(optarg, true);
-          MOM_INFORMLOG("parse-id: idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
+          MOM_INFORMLOG("parse-id '" << optarg << "'" << std::endl
+                        << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
                         << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
         }
         break;
