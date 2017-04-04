@@ -1070,6 +1070,8 @@ enum extraopt_en
   xtraopt_chdir_after_load,
   xtraopt_addpredef,
   xtraopt_commentpredef,
+  xtraopt_testid,
+  xtraopt_parseid,
 };
 
 static const struct option mom_long_options[] =
@@ -1083,6 +1085,8 @@ static const struct option mom_long_options[] =
   {"chdir-after-load", required_argument, nullptr, xtraopt_chdir_after_load},
   {"add-predefined", required_argument, nullptr, xtraopt_addpredef},
   {"comment-predefined", required_argument, nullptr, xtraopt_commentpredef},
+  {"test-id", no_argument, nullptr, xtraopt_testid},
+  {"parse-id", no_argument, nullptr, xtraopt_parseid},
   /* Terminating nullptr placeholder.  */
   {nullptr, no_argument, nullptr, 0},
 };
@@ -1106,6 +1110,8 @@ usage_mom (const char *argv0)
   printf ("\t --add-predefined predefname" " \t#Add a predefined\n");
   printf ("\t --comment-predefined comment"
           " \t#Set comment of next predefined\n");
+  printf ("\t --test-id" " \t#generate a few random ids\n");
+  printf ("\t --parse-id id" " \t#parse an id\n");
 }
 
 
@@ -1269,6 +1275,28 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           else
             MOM_FATAPRINTF("missing argument to --chdir-after-load");
           break;
+        case xtraopt_testid:
+        {
+          auto id1 = MomIdent::make_random();
+          auto id2 = MomIdent::make_random();
+          auto id3 = MomIdent::make_random();
+          MOM_INFORMLOG("test-id: id1= " << id1 << " =(" << id1.hi() << "," << id1.lo()
+                        << ")/h" << id1.hash() << ",b#" << id1.bucketnum());
+          MOM_INFORMLOG("test-id: id2= " << id2 << " =(" << id2.hi() << "," << id2.lo()
+                        << ")/h" << id2.hash() << ",b#" << id2.bucketnum());
+          MOM_INFORMLOG("test-id: id3= " << id3 << " =(" << id3.hi() << "," << id3.lo()
+                        << ")/h" << id3.hash() << ",b#" << id3.bucketnum());
+        }
+        break;
+        case xtraopt_parseid:
+        {
+          if (optarg == nullptr)
+            MOM_FATAPRINTF("missing id for --parse-id");
+          auto idp = MomIdent::make_from_cstr(optarg, true);
+          MOM_INFORMLOG("parse-id: idp= " << idp << " =(" << idp.hi() << "," << idp.lo()
+                        << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
+        }
+        break;
         default:
           MOM_FATAPRINTF ("bad option (%c) at %d", isalpha (opt) ? opt : '?',
                           optind);
