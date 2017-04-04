@@ -533,7 +533,7 @@ public:
     return _serial % (_deltaserial_ / _maxbucket_);
   };
   std::string to_string(void) const;
-  void to_cbuf16(char buf[16]) const;
+  void to_cbuf16(char buf[]) const; // actually char buf[static 16]
   static const MomSerial63 make_from_cstr(const char *s, const char *&end,
                                           bool fail = false);
   static const MomSerial63 make_from_cstr(const char *s, bool fail = false)
@@ -694,7 +694,7 @@ public:
   {
     return !less(r);
   };
-  void to_cbuf32(char buf[32]) const;
+  void to_cbuf32(char buf[]) const; // actually char buf[static 32]
   std::string to_string() const;
   static const MomIdent make_from_cstr(const char *s, const char *&end,
                                        bool fail = false);
@@ -722,7 +722,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
   memset(buf, 0, sizeof(buf));
   id.to_cbuf32(buf);
   os << buf;
-  memset(buf, 0, sizeof(buf));
+  MOM_ASSERT(strlen(buf)<sizeof(buf)-1, "bad buf:" << buf);
   return os;
 } // end operator << MomIdent
 
