@@ -49,6 +49,14 @@ MomAnyObjSeq::compute_hash_seq(MomObject*const* obarr, unsigned sz)
 } // end of MomAnyObjSeq::compute_hash
 
 
+void
+MomAnyObjSeq::scan_gc(MomGC* gc) const
+{
+#warning unimplemented MomAnyObjSeq::scan_gc
+  MOM_FATALOG("unimplemented MomAnyObjSeq::scan_gc gc=" << (void*)gc);
+} // end MomAnyObjSeq::scan_gc
+
+
 //////////////// sets
 
 std::mutex MomSet::_mtxarr_[MomSet::_width_];
