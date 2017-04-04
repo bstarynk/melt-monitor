@@ -716,11 +716,13 @@ public:
 };				// end class MomIdent
 
 
-inline std::ostream &operator<<(std::ostream &os, const MomIdent id)
+inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
 {
   char buf[32];
+  memset(buf, 0, sizeof(buf));
   id.to_cbuf32(buf);
   os << buf;
+  memset(buf, 0, sizeof(buf));
   return os;
 } // end operator << MomIdent
 

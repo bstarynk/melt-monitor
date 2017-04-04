@@ -1280,11 +1280,11 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           auto id1 = MomIdent::make_random();
           auto id2 = MomIdent::make_random();
           auto id3 = MomIdent::make_random();
-          MOM_INFORMLOG("test-id: id1= " << id1 << " =(" << id1.hi() << "," << id1.lo()
+          MOM_INFORMLOG("test-id: id1= " << id1 << " =(" << id1.hi().serial() << "," << id1.lo().serial()
                         << ")/h" << id1.hash() << ",b#" << id1.bucketnum());
-          MOM_INFORMLOG("test-id: id2= " << id2 << " =(" << id2.hi() << "," << id2.lo()
+          MOM_INFORMLOG("test-id: id2= " << id2 << " =(" << id2.hi().serial() << "," << id2.lo().serial()
                         << ")/h" << id2.hash() << ",b#" << id2.bucketnum());
-          MOM_INFORMLOG("test-id: id3= " << id3 << " =(" << id3.hi() << "," << id3.lo()
+          MOM_INFORMLOG("test-id: id3= " << id3 << " =(" << id3.hi().serial() << "," << id3.lo().serial()
                         << ")/h" << id3.hash() << ",b#" << id3.bucketnum());
         }
         break;
@@ -1293,7 +1293,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           if (optarg == nullptr)
             MOM_FATAPRINTF("missing id for --parse-id");
           auto idp = MomIdent::make_from_cstr(optarg, true);
-          MOM_INFORMLOG("parse-id: idp= " << idp << " =(" << idp.hi() << "," << idp.lo()
+          MOM_INFORMLOG("parse-id: idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
                         << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
         }
         break;
