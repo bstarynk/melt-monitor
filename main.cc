@@ -25,6 +25,7 @@
 #include <cxxabi.h>
 #define BASE_YEAR_MOM 2015
 
+static struct backtrace_state *btstate_mom;
 static bool syslogging_mom;
 static bool should_dump_mom;
 static const char*load_state_mom;
@@ -206,17 +207,10 @@ void mom_failure_backtrace_at(const char*fil, int lin, const std::string& str)
 {
   MomBacktraceData backdata(fil,lin);
   backdata.bt_outs << " !!! " << str << std::endl;
-  struct backtrace_state *btstate =
-    backtrace_create_state (NULL, 0, MomBacktraceData::bt_err_callback, NULL);
-  if (btstate != NULL)
-    {
-      backtrace_full (btstate, 1,
-                      MomBacktraceData::bt_callback,
-                      MomBacktraceData::bt_err_callback,
-                      (void *) &backdata);
-      free (btstate);
-      btstate = nullptr;
-    }
+  backtrace_full (btstate_mom, 1,
+                  MomBacktraceData::bt_callback,
+                  MomBacktraceData::bt_err_callback,
+                  (void *) &backdata);
   backdata.bt_outs << std::endl;
   mom_warnprintf_at (fil, lin, "FAILURE %s", backdata.bt_outs.str().c_str());
 } // end mom_failure_backtrace_at
@@ -226,17 +220,10 @@ void mom_backtracestr_at (const char*fil, int lin, const std::string&str)
 {
   MomBacktraceData backdata(fil,lin);
   backdata.bt_outs << " !!! " << str << std::endl;
-  struct backtrace_state *btstate =
-    backtrace_create_state (NULL, 0, MomBacktraceData::bt_err_callback, NULL);
-  if (btstate != NULL)
-    {
-      backtrace_full (btstate, 1,
-                      MomBacktraceData::bt_callback,
-                      MomBacktraceData::bt_err_callback,
-                      (void *) &backdata);
-      free (btstate);
-      btstate = nullptr;
-    }
+  backtrace_full (btstate_mom, 1,
+                  MomBacktraceData::bt_callback,
+                  MomBacktraceData::bt_err_callback,
+                  (void *) &backdata);
   backdata.bt_outs << std::endl;
   mom_informprintf_at (fil, lin, "BACKTRACE %s", backdata.bt_outs.str().c_str());
 } // end mom_backtracestr_at
@@ -1313,6 +1300,14 @@ main (int argc_main, char **argv_main)
   gethostname (hostname_mom, sizeof (hostname_mom) - 1);
   char **argv = argv_main;
   int argc = argc_main;
+  btstate_mom = backtrace_create_state(argv_main[0], /*multithreaded*/TRUE,
+                                       MomBacktraceData::bt_err_callback,
+                                       NULL);
+  if (MOM_UNLIKELY(btstate_mom==nullptr))
+    {
+      fprintf(stderr, "backtrace_create_state failed fatally (%m)\n");
+      abort();
+    }
   mom_prog_dlhandle = dlopen (nullptr, RTLD_NOW);
   if (!mom_prog_dlhandle)
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
