@@ -86,7 +86,7 @@ void
 MomSerial63::to_cbuf16(char cbuf[16]) const
 {
   static_assert(sizeof(MOM_B62DIGITS)==_base_+1, "bad MOM_B62DIGITS in MomSerial63");
-  memset (cbuf, 0, _nbdigits_+2);
+  memset (cbuf, 0, 16);
   cbuf[0] = '_';
   uint64_t n = _serial;
   char*pc = cbuf+_nbdigits_;
@@ -97,9 +97,11 @@ MomSerial63::to_cbuf16(char cbuf[16]) const
       *pc = _b62digstr_[d];
       pc--;
     }
+  cbuf[16-1] = (char)0;
   MOM_ASSERT(pc>=cbuf, "MomSerial63::to_cbuf16 bad pc - buffer underflow");
   MOM_ASSERT(cbuf[0] == '_' && isalnum(cbuf[1]) && isalnum(cbuf[_nbdigits_+1]),
              "MomSerial63::to_cbuf16 wrong cbuf=" << cbuf);
+  MOM_ASSERT(strlen(cbuf) < 16, "MomSerial63::to_cbuf16 overflow cbuf=" << cbuf);
   MOM_ASSERT(strlen(cbuf) == _nbdigits_ + 1, "MomSerial63::to_cbuf16 bad cbuf=" << cbuf);
 } // end MomSerial63::to_cbuf16
 
@@ -169,6 +171,7 @@ MomIdent::to_cbuf32(char buf[32]) const
   _idhi.to_cbuf16(buf);
   MOM_ASSERT(strlen(buf)==MomSerial63::_nbdigits_+1, "bad buf:" << buf);
   _idlo.to_cbuf16(buf+MomSerial63::_nbdigits_+1);
+  buf [32-1] = (char)0;
 } // end MomIdent::to_cbuf32
 
 
@@ -177,6 +180,7 @@ MomIdent::to_string() const
 {
   char buf[32];
   to_cbuf32(buf);
+  MOM_ASSERT(strlen(buf) == MomIdent::_charlen_, "bad buf:" << buf);
   return std::string{buf};
 } // end MomIdent::to_string()
 
