@@ -481,6 +481,11 @@ public:
   {
     _serial = 0;
   };
+  MomSerial63& operator = (const MomSerial63&s)
+  {
+    _serial = s._serial;
+    return *this;
+  }
   uint64_t serial() const
   {
     return _serial;
@@ -564,7 +569,9 @@ class MomIdent
 {
 public:
   const MomSerial63 _idhi, _idlo;
+  static constexpr const unsigned _charlen_ = 2*MomSerial63::_nbdigits_+2;
   MomIdent() : _idhi(), _idlo() {};
+  MomIdent(std::nullptr_t) : _idhi(), _idlo() {};
   MomIdent(MomSerial63 hi, MomSerial63 lo) : _idhi(hi), _idlo(lo) {};
   MomIdent(uint64_t hi, uint64_t lo, bool nocheck = false) :
     _idhi(hi, nocheck), _idlo(lo, nocheck) {};

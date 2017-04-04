@@ -38,8 +38,11 @@ mom_valid_name_radix_len (const char *str, int len)
       if (isalnum (*pc))
         continue;
       else if (*pc == '_')
-        if (pc[-1] == '_')
-          return false;
+        {
+          if (pc[-1] == '_')
+            return false;
+        }
+      else return false;
     }
   return true;
 }                               /* end mom_valid_name_radix */
@@ -142,8 +145,7 @@ failure:
       std::string str{s};
       if (str.size() > _nbdigits_+2)
         str.resize(_nbdigits_+2);
-      MOM_BACKTRACELOG("make_from_cstr failure str=" << str);
-      throw std::runtime_error("MomSerial63::make_from_cstr failure");
+      MOM_FAILURE("MomSerial63::make_from_cstr failure with " << str);
     }
   end = s;
   return MomSerial63{nullptr};
@@ -173,3 +175,43 @@ MomIdent::to_string() const
   to_cbuf32(buf);
   return std::string{buf};
 } // end MomIdent::to_string()
+
+
+
+const MomIdent
+MomIdent::make_from_cstr(const char *s, const char *&end,   bool fail)
+{
+  MomSerial63 hi(nullptr), lo(nullptr);
+  char *endhi = nullptr;
+  char *endlo = nullptr;
+  if (!s) goto failure;
+  if (s[0] != '_') goto failure;
+  if (s[1] == '_')
+    {
+      end = s+2;
+      return MomIdent{nullptr};
+    };
+  for (unsigned ix=0; ix<MomSerial63::_nbdigits_; ix++)
+    if (!strchr(MomSerial63::_b62digstr_,s[ix+1]))
+      goto failure;
+  if (s[MomSerial63::_nbdigits_+1] != '_')
+    goto failure;
+  for (unsigned ix=0; ix<MomSerial63::_nbdigits_; ix++)
+    if (!strchr(MomSerial63::_b62digstr_,s[MomSerial63::_nbdigits_+ix+2]))
+      goto failure;
+  hi = MomSerial63::make_from_cstr(s,endhi);
+  lo = MomSerial63::make_from_cstr(endhi,endlo);
+  if (!hi || !lo || endlo != s+_charlen_) goto failure;
+  end = endlo;
+  return MomIdent(hi,lo);
+failure:
+  if (fail)
+    {
+      std::string str{s};
+      if (str.size() > _charlen_+1)
+        str.resize(_charlen_+2);
+      MOM_FAILURE("MomIdent::make_from_cstr failure with " << str);
+    }
+  end = s;
+  return MomIdent(nullptr);
+} // end MomIdent::make_from_cstr
