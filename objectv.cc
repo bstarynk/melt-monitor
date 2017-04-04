@@ -271,7 +271,7 @@ MomIdent::make_from_cstr(const char *s, const char **pend,   bool fail)
       failmsg = "unended hi";
       goto failure;
     }
-  lo = MomSerial63::make_from_cstr(endhi,endlo);
+  lo = MomSerial63::make_from_cstr(endhi,&endlo,false);
   if (!lo)
     {
       failmsg = "bad lo";
