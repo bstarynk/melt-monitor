@@ -83,7 +83,7 @@ MomSerial63::make_random_of_bucket(unsigned bucknum)
 //constexpr const char MomSerial63::_b62digits_[] = MOM_B62DIGITS;
 
 void
-MomSerial63::to_cbuf16(char cbuf[16]) const
+MomSerial63::to_cbuf16(char cbuf[]) const
 {
   static_assert(sizeof(MOM_B62DIGITS)==_base_+1, "bad MOM_B62DIGITS in MomSerial63");
   memset (cbuf, 0, 16);
@@ -159,7 +159,7 @@ failure:
 
 
 void
-MomIdent::to_cbuf32(char buf[32]) const
+MomIdent::to_cbuf32(char buf[]) const
 {
   memset(buf, 0, 32);
   if (is_null())
@@ -169,9 +169,11 @@ MomIdent::to_cbuf32(char buf[32]) const
       return;
     }
   _idhi.to_cbuf16(buf);
-  MOM_ASSERT(strlen(buf)==MomSerial63::_nbdigits_+1, "bad buf:" << buf);
+  buf [32-1] = (char)0;
+  MOM_ASSERT(strlen(buf)==MomSerial63::_nbdigits_+1, "after idhi bad buf:" << buf);
   _idlo.to_cbuf16(buf+MomSerial63::_nbdigits_+1);
   buf [32-1] = (char)0;
+  MOM_ASSERT(strlen(buf)==MomIdent::_charlen_, "after idlo bad buf:" << buf);
 } // end MomIdent::to_cbuf32
 
 
