@@ -580,6 +580,22 @@ public:
   MomIdent(const MomIdent&id) = default;
   MomIdent(MomIdent&&id) = default;
   ~MomIdent() = default;
+  unsigned bucketnum() const
+  {
+    return _idhi.bucketnum();
+  };
+  uint64_t buckoffset() const
+  {
+    return _idhi.buckoffset();
+  };
+  static inline const MomIdent make_random(void)
+  {
+    return MomIdent(MomSerial63::make_random(), MomSerial63::make_random());
+  }
+  static const MomIdent make_random_of_bucket(unsigned bun)
+  {
+    return MomIdent(MomSerial63::make_random_of_bucket(bun), MomSerial63::make_random());
+  }
   MomSerial63 hi() const
   {
     return _idhi;
