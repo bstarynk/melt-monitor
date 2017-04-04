@@ -1214,8 +1214,16 @@ class MomTuple : public MomAnyObjSeq
   static constexpr unsigned k4 = 56873;
   MomTuple(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagTupleK, obarr,sz, h) {};
+  static constexpr const int _width_ = 256;
+  static std::mutex _mtxarr_[_width_];
+  static std::unordered_multimap<MomHash,const MomTuple*> _maparr_[_width_];
 public:
+  static const MomTuple* make_from_array(MomObject*const* obarr, MomSize sz);
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
+  virtual MomKind vkind() const
+  {
+    return MomKind::TagTupleK;
+  };
 }; // end class MomTuple
 
 ////////////////////////////////////////////////////////////////

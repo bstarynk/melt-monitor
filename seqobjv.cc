@@ -121,6 +121,10 @@ MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
 } // end MomSet::make_from_ascending_array
 
 
+//////////////// tuples
+
+std::mutex MomTuple::_mtxarr_[MomTuple::_width_];
+std::unordered_multimap<MomHash,const MomTuple*> MomTuple::_maparr_[MomTuple::_width_];
 
 
 MomHash
@@ -132,3 +136,36 @@ MomTuple::compute_hash(MomObject*const* obarr, unsigned sz)
           MomTuple::k3,
           MomTuple::k4>(obarr, sz);
 };
+
+
+const MomTuple*
+MomTuple::make_from_array(MomObject*const* obarr, MomSize sz)
+{
+  MomHash h = compute_hash(obarr, sz);
+  MomTuple* res = nullptr;
+  unsigned ix = h % _width_;
+  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
+  constexpr unsigned minbuckcount = 16;
+  auto& curmap = _maparr_[ix];
+  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
+    curmap.rehash(minbuckcount);
+  size_t buckix = curmap.bucket(h);
+  auto buckbeg = curmap.begin(buckix);
+  auto buckend = curmap.end(buckix);
+  for (auto it = buckbeg; it != buckend; it++)
+    {
+      if (it->first != h)
+        continue;
+      const MomTuple*ituple = it->second;
+      MOM_ASSERT(ituple != nullptr, "null ituple in buckix=" << buckix);
+      if (MOM_UNLIKELY(ituple->has_content(obarr, sz)))
+        return ituple;
+    }
+  res = new((sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomTuple(obarr,sz,h);
+  curmap.insert({h,res});
+  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
+    {
+      curmap.reserve(9*curmap.size()/8 + 5);
+    }
+  return res;
+} // end MomTuple::make_from_array
