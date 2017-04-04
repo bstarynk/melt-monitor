@@ -196,8 +196,17 @@ MomIdent::make_from_cstr(const char *s, const char *&end,   bool fail)
   MomSerial63 hi(nullptr), lo(nullptr);
   char *endhi = nullptr;
   char *endlo = nullptr;
-  if (!s) goto failure;
-  if (s[0] != '_') goto failure;
+  const char* failmsg = nullptr;
+  if (!s)
+    {
+      failmsg="nil s";
+      goto failure;
+    };
+  if (s[0] != '_')
+    {
+      failmsg="want underscore";
+      goto failure;
+    };
   if (s[1] == '_')
     {
       end = s+2;
@@ -205,15 +214,33 @@ MomIdent::make_from_cstr(const char *s, const char *&end,   bool fail)
     };
   for (unsigned ix=0; ix<MomSerial63::_nbdigits_; ix++)
     if (!strchr(MomSerial63::_b62digstr_,s[ix+1]))
-      goto failure;
+      {
+        failmsg="want base62 hi-digit";
+        goto failure;
+      };
   if (s[MomSerial63::_nbdigits_+1] != '_')
-    goto failure;
+    {
+      failmsg="want low underscore";
+      goto failure;
+    };
   for (unsigned ix=0; ix<MomSerial63::_nbdigits_; ix++)
     if (!strchr(MomSerial63::_b62digstr_,s[MomSerial63::_nbdigits_+ix+2]))
-      goto failure;
+      {
+        failmsg="want base62 lo-digit";
+        goto failure;
+      };
   hi = MomSerial63::make_from_cstr(s,endhi);
+  if (!hi)
+    {
+      failmsg = "bad hi";
+      goto failure;
+    }
   lo = MomSerial63::make_from_cstr(endhi,endlo);
-  if (!hi || !lo || endlo != s+_charlen_) goto failure;
+  if (!lo || endlo != s+_charlen_)
+    {
+      failmsg = "bad lo";
+      goto failure;
+    }
   end = endlo;
   return MomIdent(hi,lo);
 failure:
@@ -222,7 +249,7 @@ failure:
       std::string str{s};
       if (str.size() > _charlen_+1)
         str.resize(_charlen_+2);
-      MOM_FAILURE("MomIdent::make_from_cstr failure with " << str);
+      MOM_FAILURE("MomIdent::make_from_cstr failure with " << str << "; " << failmsg);
     }
   end = s;
   return MomIdent(nullptr);
