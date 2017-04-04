@@ -534,12 +534,11 @@ public:
   };
   std::string to_string(void) const;
   void to_cbuf16(char buf[]) const; // actually char buf[static 16]
-  static const MomSerial63 make_from_cstr(const char *s, const char *&end,
+  static const MomSerial63 make_from_cstr(const char *s, const char **pend,
                                           bool fail = false);
   static const MomSerial63 make_from_cstr(const char *s, bool fail = false)
   {
-    const char *end = nullptr;
-    return make_from_cstr(s, end, fail);
+    return make_from_cstr(s, nullptr, fail);
   };
   static const MomSerial63 make_random(void);
   static const MomSerial63 make_random_of_bucket(unsigned bun);
@@ -696,12 +695,11 @@ public:
   };
   void to_cbuf32(char buf[]) const; // actually char buf[static 32]
   std::string to_string() const;
-  static const MomIdent make_from_cstr(const char *s, const char *&end,
+  static const MomIdent make_from_cstr(const char *s, const char **pend,
                                        bool fail = false);
   static const MomIdent make_from_cstr(const char *s, bool fail = false)
   {
-    const char *end = nullptr;
-    return make_from_cstr(s, end, fail);
+    return make_from_cstr(s, nullptr, fail);
   };
   MomHash hash() const
   {
@@ -1171,7 +1169,7 @@ class MomAnyObjSeq : public MomAnyVal   // in seqobjv.cc
 protected:
   template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4>
   static inline MomHash compute_hash_seq(MomObject*const* obarr, unsigned sz);
-  MomAnyObjSeq(MomObject*const* obarr, MomSize sz, MomHash h);
+  MomAnyObjSeq(MomKind kd, MomObject*const* obarr, MomSize sz, MomHash h);
   inline bool has_content(MomObject*const*obarr, unsigned sz) const
   {
     if (sz !=  sizew()) return false;
@@ -1196,7 +1194,7 @@ class MomSet : public MomAnyObjSeq
   static std::mutex _mtxarr_[_width_];
   static std::unordered_multimap<MomHash,const MomSet*> _maparr_[_width_];
   MomSet(MomObject*const* obarr, MomSize sz, MomHash h)
-    : MomAnyObjSeq(obarr,sz, h) {};
+    : MomAnyObjSeq(MomKind::TagSetK, obarr,sz, h) {};
 public:
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
   static const MomSet* make_from_ascending_array(MomObject*const* obarr, MomSize sz);
@@ -1214,6 +1212,8 @@ class MomTuple : public MomAnyObjSeq
   static constexpr unsigned k2 = 35671;
   static constexpr unsigned k3 = 5693;
   static constexpr unsigned k4 = 56873;
+  MomTuple(MomObject*const* obarr, MomSize sz, MomHash h)
+    : MomAnyObjSeq(MomKind::TagTupleK, obarr,sz, h) {};
 public:
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
 }; // end class MomTuple

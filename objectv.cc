@@ -123,7 +123,7 @@ MomSerial63::to_string(void) const
 
 
 const MomSerial63
-MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
+MomSerial63::make_from_cstr(const char*s, const char**pend, bool fail)
 {
   const char *failmsg = nullptr;
   uint64_t n = 0;
@@ -167,9 +167,12 @@ MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
       failmsg = "too big serial";
       goto failure;
     }
-  end = s+_nbdigits_+1;
+  if (pend != nullptr)
+    *pend = s+_nbdigits_+1;
   return MomSerial63{n};
 failure:
+  if (pend != nullptr)
+    *pend = s;
   if (fail)
     {
       std::string str{s};
@@ -181,9 +184,9 @@ failure:
     {
       MOM_WARNPRINTF("MomSerial63::make_from_cstr mistaken with %.30s: %s", s, failmsg);
     }
-  end = s;
   return MomSerial63{nullptr};
 } // end MomSerial63::make_from_cstr
+
 
 
 void
@@ -217,11 +220,11 @@ MomIdent::to_string() const
 
 
 const MomIdent
-MomIdent::make_from_cstr(const char *s, const char *&end,   bool fail)
+MomIdent::make_from_cstr(const char *s, const char **pend,   bool fail)
 {
   MomSerial63 hi(nullptr), lo(nullptr);
-  char *endhi = nullptr;
-  char *endlo = nullptr;
+  const char *endhi = nullptr;
+  const char *endlo = nullptr;
   const char* failmsg = nullptr;
   if (!s)
     {
@@ -235,7 +238,8 @@ MomIdent::make_from_cstr(const char *s, const char *&end,   bool fail)
     };
   if (s[1] == '_')
     {
-      end = s+2;
+      if (pend)
+        *pend = s+2;
       return MomIdent{nullptr};
     };
   for (unsigned ix=0; ix<MomSerial63::_nbdigits_; ix++)
@@ -255,10 +259,16 @@ MomIdent::make_from_cstr(const char *s, const char *&end,   bool fail)
         failmsg="want base62 lo-digit";
         goto failure;
       };
-  hi = MomSerial63::make_from_cstr(s,endhi);
+  MOM_ASSERT(s && s[0], "MomIdent::make_from_cstr bad s=" << s);
+  hi = MomSerial63::make_from_cstr(s,&endhi,false);
   if (!hi)
     {
       failmsg = "bad hi";
+      goto failure;
+    }
+  if (!endhi)
+    {
+      failmsg = "unended hi";
       goto failure;
     }
   lo = MomSerial63::make_from_cstr(endhi,endlo);
@@ -272,9 +282,12 @@ MomIdent::make_from_cstr(const char *s, const char *&end,   bool fail)
       failmsg = "short lo";
       goto failure;
     }
-  end = endlo;
+  if (pend)
+    *pend = endlo;
   return MomIdent(hi,lo);
 failure:
+  if (pend)
+    *pend = s;
   if (fail)
     {
       std::string str{s};
@@ -282,6 +295,5 @@ failure:
         str.resize(_charlen_+2);
       MOM_FAILURE("MomIdent::make_from_cstr failure with:" << str << "; " << failmsg);
     }
-  end = s;
   return MomIdent(nullptr);
 } // end MomIdent::make_from_cstr
