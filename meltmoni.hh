@@ -299,6 +299,8 @@ __attribute__ ((format (printf, 4, 5)));
 			 ##__VA_ARGS__)
 
 
+////////////////
+
 void
 mom_informprintf_at (const char *fil, int lin, const char *fmt, ...)
 __attribute__ ((format (printf, 3, 4)));
@@ -317,6 +319,21 @@ __attribute__ ((format (printf, 3, 4)));
 			  ##__VA_ARGS__)
 
 
+#define MOM_INFORMLOG_AT(Fil,Lin,Log) do {		\
+  std::ostringstream _olog_##Lin;			\
+  _olog_##Lin << Log << std::flush;			\
+  mom_informprintf_at (Fil,Lin,"%s",			\
+		     _olog_##Lin.str().c_str());	\
+  } while(0)
+
+#define MOM_INFORMLOG_AT_BIS(Fil,Lin,Log)	\
+  MOM_INFORMLOG_AT(Fil,Lin,Log)
+
+#define MOM_INFORMLOG(Log)			\
+  MOM_INFORMLOG_AT_BIS(__FILE__,__LINE__,Log)
+
+
+////////////////
 void
 mom_warnprintf_at (const char *fil, int lin, const char *fmt, ...)
 __attribute__ ((format (printf, 3, 4)));
@@ -333,6 +350,21 @@ __attribute__ ((format (printf, 3, 4)));
 #define MOM_WARNPRINTF(Fmt,...)			\
   MOM_WARNPRINTF_AT_BIS(__FILE__,__LINE__,Fmt,	\
 			##__VA_ARGS__)
+
+
+#define MOM_WARNLOG_AT(Fil,Lin,Log) do {		\
+  std::ostringstream _olog_##Lin;			\
+  _olog_##Lin << Log << std::flush;			\
+  mom_warnprintf_at (Fil,Lin,"%s",			\
+		     _olog_##Lin.str().c_str());	\
+  } while(0)
+
+#define MOM_WARNLOG_AT_BIS(Fil,Lin,Log)	\
+  MOM_WARNLOG_AT(Fil,Lin,Log)
+
+#define MOM_WARNLOG(Log)			\
+  MOM_WARNLOG_AT_BIS(__FILE__,__LINE__,Log)
+
 
 // the program handle from GC_dlopen with nullptr
 extern void *mom_prog_dlhandle;
