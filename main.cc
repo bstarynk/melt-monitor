@@ -1006,9 +1006,8 @@ mom_fataprintf_at (const char *fil, int lin, const char *fmt, ...)
       fprintf (stderr, "MONIMELT FATALBACKTRACE\n\t %s\n",
                backdata.bt_outs.str().c_str());
     }
-  fflush(NULL);
   /* no need to free bigbuf, we are aborting! */
-  abort ();
+  mom_abort ();
 }
 
 
