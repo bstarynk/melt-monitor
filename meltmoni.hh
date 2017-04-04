@@ -451,6 +451,8 @@ public:
 };				// end class MomRandom
 
 
+////////////////////////////////////////////////////////////////
+
 #define MOM_B62DIGITS                   \
   "0123456789"                          \
   "abcdefghijklmnopqrstuvwxyz"          \
@@ -492,6 +494,7 @@ public:
     return _serial % (_deltaserial_ / _maxbucket_);
   };
   std::string to_string(void) const;
+  void to_cbuf16(char buf[16]) const;
   static const MomSerial63 make_from_cstr(const char *s, const char *&end,
                                           bool fail = false);
   static const MomSerial63 make_from_cstr(const char *s, bool fail = false)
@@ -554,6 +557,110 @@ inline std::ostream &operator<<(std::ostream &os, const MomSerial63 s)
   os << s.to_string();
   return os;
 } // end operator << MomSerial63
+
+
+////////////////
+class MomIdent
+{
+public:
+  const MomSerial63 _idhi, _idlo;
+  MomIdent() : _idhi(), _idlo() {};
+  MomIdent(MomSerial63 hi, MomSerial63 lo) : _idhi(hi), _idlo(lo) {};
+  MomIdent(uint64_t hi, uint64_t lo, bool nocheck = false) :
+    _idhi(hi, nocheck), _idlo(lo, nocheck) {};
+  MomIdent(const MomIdent&id) = default;
+  MomIdent(MomIdent&&id) = default;
+  ~MomIdent() = default;
+  MomSerial63 hi() const
+  {
+    return _idhi;
+  };
+  MomSerial63 lo() const
+  {
+    return _idlo;
+  };
+  bool is_null () const
+  {
+    return !_idhi && !_idlo;
+  };
+  bool operator ! () const
+  {
+    return is_null();
+  };
+  operator bool () const
+  {
+    return !is_null();
+  };
+  bool equal(const MomIdent& rid) const
+  {
+    return _idhi==rid._idhi && _idlo==rid._idlo;
+  };
+  bool less(const MomIdent&rid) const
+  {
+    if (_idhi == rid._idhi)
+      {
+        return _idlo.less(rid._idlo);
+      }
+    else if (_idhi.less(rid._idhi)) return true;
+    else return false;
+  }
+  bool less_equal(const MomIdent&rid) const
+  {
+    if (_idhi == rid._idhi)
+      {
+        return _idlo.less_equal(rid._idlo);
+      }
+    else if (_idhi.less(rid._idhi)) return true;
+    else return false;
+  }
+  bool operator==(const MomIdent& r) const
+  {
+    return equal(r);
+  };
+  bool operator!=(const MomIdent& r) const
+  {
+    return !equal(r);
+  };
+  bool operator<(const MomIdent& r) const
+  {
+    return less(r);
+  };
+  bool operator<=(const MomIdent& r) const
+  {
+    return less_equal(r);
+  };
+  bool operator>(const MomIdent& r) const
+  {
+    return !less_equal(r);
+  };
+  bool operator>=(const MomIdent& r) const
+  {
+    return !less(r);
+  };
+  void to_cbuf32(char buf[32]) const;
+  std::string to_string() const;
+  static const MomIdent make_from_cstr(const char *s, const char *&end,
+                                       bool fail = false);
+  static const MomIdent make_from_cstr(const char *s, bool fail = false)
+  {
+    const char *end = nullptr;
+    return make_from_cstr(s, end, fail);
+  };
+};				// end class MomIdent
+
+
+inline std::ostream &operator<<(std::ostream &os, const MomIdent id)
+{
+  char buf[32];
+  id.to_cbuf32(buf);
+  os << buf;
+  return os;
+} // end operator << MomIdent
+
+
+
+
+////////////////////////////////////////////////////////////////
 
 class MomLoader;
 class MomDumper;
@@ -996,7 +1103,7 @@ class MomAnyObjSeq : public MomAnyVal   // in seqobjv.cc
 protected:
   template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4>
   static inline MomHash compute_hash_seq(MomObject*const* obarr, unsigned sz);
-  inline MomAnyObjSeq(MomObject*const* obarr, MomSize sz, MomHash h);
+  MomAnyObjSeq(MomObject*const* obarr, MomSize sz, MomHash h);
   inline bool has_content(MomObject*const*obarr, unsigned sz) const
   {
     if (sz !=  sizew()) return false;
@@ -1048,7 +1155,7 @@ public:
 
 class MomObject : public MomAnyVal // in objectv.cc
 {
-  const MomSerial63 _serhi, _serlo;
+  const MomIdent _id;
 public:
   bool same(const MomObject*ob) const
   {
@@ -1057,12 +1164,9 @@ public:
   bool less(const MomObject*ob) const
   {
     if (!ob || this==ob) return false;
-    if (_serhi < ob->_serhi) return true;
-    else if (_serhi > ob->_serhi) return false;
-    if (_serlo < ob->_serlo) return true;
-    else if (_serlo > ob->_serlo) return false;
-    MOM_FATALOG("non-identical objects sharing same serial hi=" << _serhi
-                << " lo=" << _serlo);
+    if (_id < ob->_id) return true;
+    else if (_id > ob->_id) return false;
+    MOM_FATALOG("non-identical objects sharing same id=" << _id);
   };
   bool less_equal(const MomObject*ob) const
   {

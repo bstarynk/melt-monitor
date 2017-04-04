@@ -20,3 +20,156 @@
 
 #include "meltmoni.hh"
 
+
+bool
+mom_valid_name_radix_len (const char *str, int len)
+{
+  if (!str)
+    return false;
+  if (len < 0)
+    len = strlen (str);
+  if (len <= 0)
+    return false;
+  if (!isalpha (str[0]))
+    return false;
+  const char *end = str + len;
+  for (const char *pc = str; pc < end; pc++)
+    {
+      if (isalnum (*pc))
+        continue;
+      else if (*pc == '_')
+        if (pc[-1] == '_')
+          return false;
+    }
+  return true;
+}                               /* end mom_valid_name_radix */
+
+
+const MomSerial63
+MomSerial63::make_random(void)
+{
+  uint64_t s = 0;
+  do
+    {
+      s = MomRandom::random_64u() & (((uint64_t)1<<63)-1);
+    }
+  while (s<=_minserial_ || s>=_maxserial_);
+  return MomSerial63{s};
+} // end MomSerial63::make_random
+
+
+const MomSerial63
+MomSerial63::make_random_of_bucket(unsigned bucknum)
+{
+  if (MOM_UNLIKELY(bucknum >= _maxbucket_))
+    {
+      MOM_FAILURE("MomSerial63::random_of_bucket too big bucknum="
+                  << bucknum);
+    }
+  uint64_t ds = MomRandom::random_64u() % (_deltaserial_ / _maxbucket_);
+  uint64_t s = (bucknum * (_deltaserial_ / _maxbucket_)) + ds + _minserial_;
+  MOM_ASSERT(s>=_minserial_ && s<=_maxserial_,
+             "good s=" << s << " between _minserial_=" << _minserial_
+             << " and _maxserial_=" << _maxserial_
+             << " with ds=" << ds << " and bucknum=" << bucknum
+             << " and _deltaserial_=" << _deltaserial_
+             << " and _maxbucket_=" << _maxbucket_);
+  return MomSerial63{s};
+} // end of MomSerial63::make_random_of_bucket
+
+//constexpr const char MomSerial63::_b62digits_[] = MOM_B62DIGITS;
+
+void
+MomSerial63::to_cbuf16(char cbuf[16]) const
+{
+  static_assert(sizeof(MOM_B62DIGITS)==_base_+1, "bad MOM_B62DIGITS in MomSerial63");
+  memset (cbuf, 0, _nbdigits_+2);
+  cbuf[0] = '_';
+  uint64_t n = _serial;
+  char*pc = cbuf+_nbdigits_;
+  while (n != 0)
+    {
+      unsigned d = n % _base_;
+      n = n / _base_;
+      *pc = _b62digstr_[d];
+      pc--;
+    }
+  MOM_ASSERT(pc>=cbuf, "to_cbuf16 bad pc - buffer underflow");
+  MOM_ASSERT(strlen(cbuf) == _nbdigits_ + 1, "to_cbuf16 bad cbuf=" << cbuf);
+} // end MomSerial63::to_cbuf16
+
+std::string
+MomSerial63::to_string(void) const
+{
+  static_assert(sizeof(MOM_B62DIGITS)==_base_+1, "bad MOM_B62DIGITS in MomSerial63");
+  char buf[16];
+  memset(buf, 0, sizeof(buf));
+  to_cbuf16(buf);
+  MOM_ASSERT(strlen(buf) == _nbdigits_ + 1, "to_string bad buf=" << buf);
+  return std::string{buf};
+} // end  MomSerial63::to_string
+
+
+
+const MomSerial63
+MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
+{
+  uint64_t n = 0;
+  if (!s)
+    goto failure;
+  if (s[0] != '_')
+    goto failure;
+  if (!isdigit(s[1]))
+    goto failure;
+  for (auto i=0U; i<_nbdigits_; i++)
+    {
+      if (!s[i+1])
+        goto failure;
+      auto p = strchr(_b62digstr_,s[i+1]);
+      if (!p)
+        goto failure;
+      n = n*_base_ + (p-_b62digstr_);
+    }
+  if (n!=0 && n<_minserial_)
+    goto failure;
+  if (n>_maxserial_)
+    goto failure;
+  end = s+_nbdigits_+1;
+  return MomSerial63{n};
+failure:
+  if (fail)
+    {
+      std::string str{s};
+      if (str.size() > _nbdigits_+2)
+        str.resize(_nbdigits_+2);
+      MOM_BACKTRACELOG("make_from_cstr failure str=" << str);
+      throw std::runtime_error("MomSerial63::make_from_cstr failure");
+    }
+  end = s;
+  return MomSerial63{nullptr};
+} // end MomSerial63::make_from_cstr
+
+
+void
+MomIdent::to_cbuf32(char buf[32]) const
+{
+  memset(buf, 0, 32);
+  if (is_null())
+    {
+      buf[0] = buf[1] = '_';
+      buf[2] = (char)0;
+      return;
+    }
+  _idhi.to_cbuf16(buf);
+  MOM_ASSERT(strlen(buf)==MomSerial63::_nbdigits_+1, "bad buf:" << buf);
+  _idlo.to_cbuf16(buf+MomSerial63::_nbdigits_+1);
+} // end MomIdent::to_cbuf32
+
+
+std::string
+MomIdent::to_string() const
+{
+  char buf[32];
+  to_cbuf32(buf);
+  return std::string{buf};
+} // end MomIdent::to_string()
