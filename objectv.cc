@@ -277,7 +277,7 @@ MomIdent::make_from_cstr(const char *s, const char **pend,   bool fail)
       failmsg = "bad lo";
       goto failure;
     }
-  if (endlo != s+_charlen_+1)
+  if (endlo != s+_charlen_)
     {
       failmsg = "short lo";
       goto failure;
