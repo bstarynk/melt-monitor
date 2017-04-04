@@ -125,26 +125,48 @@ MomSerial63::to_string(void) const
 const MomSerial63
 MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
 {
+  const char *failmsg = nullptr;
   uint64_t n = 0;
   if (!s)
-    goto failure;
+    {
+      failmsg = "nil s";
+      goto failure;
+    }
   if (s[0] != '_')
-    goto failure;
+    {
+      failmsg = "no underscore";
+      goto failure;
+    }
   if (!isdigit(s[1]))
-    goto failure;
+    {
+      failmsg = "no starting digit";
+      goto failure;
+    }
   for (auto i=0U; i<_nbdigits_; i++)
     {
       if (!s[i+1])
-        goto failure;
+        {
+          failmsg = "missing digit";
+          goto failure;
+        }
       auto p = strchr(_b62digstr_,s[i+1]);
       if (!p)
-        goto failure;
+        {
+          failmsg = "bad digit";
+          goto failure;
+        }
       n = n*_base_ + (p-_b62digstr_);
     }
   if (n!=0 && n<_minserial_)
-    goto failure;
+    {
+      failmsg = "too small serial";
+      goto failure;
+    }
   if (n>_maxserial_)
-    goto failure;
+    {
+      failmsg = "too big serial";
+      goto failure;
+    }
   end = s+_nbdigits_+1;
   return MomSerial63{n};
 failure:
@@ -153,7 +175,11 @@ failure:
       std::string str{s};
       if (str.size() > _nbdigits_+2)
         str.resize(_nbdigits_+2);
-      MOM_FAILURE("MomSerial63::make_from_cstr failure with " << str);
+      MOM_FAILURE("MomSerial63::make_from_cstr failure with " << str << "; " << failmsg);
+    }
+  else
+    {
+      MOM_WARNPRINTF("MomSerial63::make_from_cstr mistaken with %.30s: %s", s, failmsg);
     }
   end = s;
   return MomSerial63{nullptr};
