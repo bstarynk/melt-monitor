@@ -1339,11 +1339,13 @@ public:
 
 class MomObject : public MomAnyVal // in objectv.cc
 {
+  /// not needed, should use the bucket number
   static constexpr const int _swidth_ = 512;
   static std::mutex _mtxarr_[_swidth_];
   static std::unordered_multimap<MomHash,MomObject*> _maparr_[_swidth_];
   const MomIdent _ob_id;
   mutable std::shared_mutex _ob_shmtx;
+#warning MomObject confusion; slotindex is really the bucketnum
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h /2357167)) % _swidth_;
