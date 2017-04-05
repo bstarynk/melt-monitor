@@ -1281,6 +1281,19 @@ class MomTuple : public MomAnyObjSeq
   static std::unordered_multimap<MomHash,const MomTuple*> _maparr_[_width_];
 public:
   static const MomTuple* make_from_array(MomObject*const* obarr, MomSize sz);
+  static const MomTuple* make_from_objptr_vector(const MomObjptrVector&ovec)
+  {
+    return make_from_array(ovec.data(), ovec.size());
+  };
+  static const MomTuple* make_from_objptr_ilist(std::initializer_list<MomObject*> il)
+  {
+    return make_from_array(il.begin(), il.size());
+  };
+  template <typename... Ts>
+  static const MomSet* make_from_objptrs(Ts... args)
+  {
+    return make_from_objptr_ilist(std::initializer_list<MomObject*> {args...});
+  };
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
   virtual MomKind vkind() const
   {
