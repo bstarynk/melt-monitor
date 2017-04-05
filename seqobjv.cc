@@ -120,6 +120,18 @@ MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
   return res;
 } // end MomSet::make_from_ascending_array
 
+const MomSet*
+MomSet::make_from_objptr_set(const MomObjptrSet&oset)
+{
+  MomObjptrVector vec;
+  vec.reserve(oset.size());
+  for (MomObject* pob : oset)
+    {
+      if (MOM_LIKELY(pob != nullptr))
+        vec.push_back(pob);
+    }
+  return make_from_ascending_objptr_vector(vec);
+} // end MomSet::make_from_objptr_set
 
 //////////////// tuples
 

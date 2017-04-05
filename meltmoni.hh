@@ -1165,6 +1165,9 @@ struct MomObjptrLess
   inline bool operator()  (const MomObject*, const MomObject*);
 };
 
+typedef std::set<MomObject*,MomObjptrLess> MomObjptrSet;
+typedef std::vector<MomObject*> MomObjptrVector;
+
 // common super class for sets and tuples of objects
 
 class MomAnyObjSeq : public MomAnyVal   // in seqobjv.cc
@@ -1242,6 +1245,21 @@ class MomSet : public MomAnyObjSeq
 public:
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
   static const MomSet* make_from_ascending_array(MomObject*const* obarr, MomSize sz);
+  static const MomSet* make_from_objptr_set(const MomObjptrSet&oset);
+  static const MomSet* make_from_objptr_ilist(std::initializer_list<MomObject*> il)
+  {
+    MomObjptrSet set(il);
+    return make_from_objptr_set(set);
+  };
+  template <typename... Ts>
+  static const MomSet* make_from_objptrs(Ts... args)
+  {
+    return make_from_objptr_ilist(std::initializer_list<MomObject*> {args...});
+  };
+  static const MomSet* make_from_ascending_objptr_vector(const MomObjptrVector&ovec)
+  {
+    return make_from_ascending_array(ovec.data(), ovec.size());
+  };
   virtual MomKind vkind() const
   {
     return MomKind::TagSetK;
