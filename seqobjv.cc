@@ -66,8 +66,8 @@ MomAnyObjSeq::MomAnyObjSeq(MomKind kd, MomObject*const* obarr, MomSize sz, MomHa
 
 //////////////// sets
 
-std::mutex MomSet::_mtxarr_[MomSet::_width_];
-std::unordered_multimap<MomHash,const MomSet*> MomSet::_maparr_[MomSet::_width_];
+std::mutex MomSet::_mtxarr_[MomSet::_swidth_];
+std::unordered_multimap<MomHash,const MomSet*> MomSet::_maparr_[MomSet::_swidth_];
 
 MomHash
 MomSet::compute_hash(MomObject*const* obarr, unsigned sz)
@@ -93,7 +93,7 @@ MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
         MOM_FAILURE("MomSet::make_from_ascending_array bad order at ix="
                     << ix);
     }
-  unsigned ix = h % _width_;
+  unsigned ix = slotindex(h);
   std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
   constexpr unsigned minbuckcount = 16;
   auto& curmap = _maparr_[ix];
@@ -135,8 +135,8 @@ MomSet::make_from_objptr_set(const MomObjptrSet&oset)
 
 //////////////// tuples
 
-std::mutex MomTuple::_mtxarr_[MomTuple::_width_];
-std::unordered_multimap<MomHash,const MomTuple*> MomTuple::_maparr_[MomTuple::_width_];
+std::mutex MomTuple::_mtxarr_[MomTuple::_swidth_];
+std::unordered_multimap<MomHash,const MomTuple*> MomTuple::_maparr_[MomTuple::_swidth_];
 
 
 MomHash
@@ -155,7 +155,7 @@ MomTuple::make_from_array(MomObject*const* obarr, MomSize sz)
 {
   MomHash h = compute_hash(obarr, sz);
   MomTuple* res = nullptr;
-  unsigned ix = h % _width_;
+  unsigned ix = slotindex(h);
   std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
   constexpr unsigned minbuckcount = 16;
   auto& curmap = _maparr_[ix];

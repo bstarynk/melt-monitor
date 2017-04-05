@@ -301,5 +301,5 @@ failure:
 
 ////////////////////////////////////////////////////////////////
 
-std::mutex MomObject::_mtxarr_[MomObject::_width_];
-std::unordered_multimap<MomHash,MomObject*> MomObject::_maparr_[MomObject::_width_];
+std::mutex MomObject::_mtxarr_[MomObject::_swidth_];
+std::unordered_multimap<MomHash,MomObject*> MomObject::_maparr_[MomObject::_swidth_];

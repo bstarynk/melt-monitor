@@ -1043,9 +1043,13 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
   friend class MomGC;
   const intptr_t _ivalarr[MOM_FLEXIBLE_DIM];
   MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h);
-  static constexpr const int _width_ = 256;
-  static std::mutex _mtxarr_[_width_];
-  static std::unordered_multimap<MomHash,const MomIntSq*> _maparr_[_width_];
+  static constexpr const int _swidth_ = 256;
+  static std::mutex _mtxarr_[_swidth_];
+  static std::unordered_multimap<MomHash,const MomIntSq*> _maparr_[_swidth_];
+  static unsigned slotindex(MomHash h)
+  {
+    return (h ^ (h / 2316179)) % _swidth_;
+  };
 public:
   static MomHash compute_hash(const intptr_t* iarr, MomSize sz);
   static const MomIntSq* make_from_array(const intptr_t* iarr, MomSize sz);
@@ -1089,9 +1093,13 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
   friend class MomGC;
   const double _dvalarr[MOM_FLEXIBLE_DIM];
   MomDoubleSq(const double* iarr, MomSize sz, MomHash h);
-  static constexpr const int _width_ = 128;
-  static std::mutex _mtxarr_[_width_];
-  static std::unordered_multimap<MomHash,const MomDoubleSq*> _maparr_[_width_];
+  static constexpr const int _swidth_ = 128;
+  static std::mutex _mtxarr_[_swidth_];
+  static std::unordered_multimap<MomHash,const MomDoubleSq*> _maparr_[_swidth_];
+  static unsigned slotindex(MomHash h)
+  {
+    return (h ^ (h / 2317057)) % _swidth_;
+  };
 public:
   static MomHash hash_double (double d);
   static MomHash compute_hash(const double* iarr, MomSize sz);
@@ -1137,9 +1145,13 @@ class MomString final : public MomAnyVal   // in scalarv.cc
   const uint32_t _bylen;
   const char _bstr[MOM_FLEXIBLE_DIM];
   MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h);
-  static constexpr const int _width_ = 256;
-  static std::mutex _mtxarr_[_width_];
-  static std::unordered_multimap<MomHash,const MomString*> _maparr_[_width_];
+  static constexpr const int _swidth_ = 256;
+  static std::mutex _mtxarr_[_swidth_];
+  static unsigned slotindex(MomHash h)
+  {
+    return (h ^ (h / 2318021)) % _swidth_;
+  };
+  static std::unordered_multimap<MomHash,const MomString*> _maparr_[_swidth_];
 public:
   static MomHash compute_hash_dim(const char*cstr, MomSize*psiz=nullptr, uint32_t*pbylen=nullptr);
   static const MomString* make_from_cstr(const char*cstr);
@@ -1248,9 +1260,13 @@ class MomSet : public MomAnyObjSeq
   static constexpr unsigned k2 = 13063;
   static constexpr unsigned k3 = 143093;
   static constexpr unsigned k4 = 14083;
-  static constexpr const int _width_ = 256;
-  static std::mutex _mtxarr_[_width_];
-  static std::unordered_multimap<MomHash,const MomSet*> _maparr_[_width_];
+  static constexpr const int _swidth_ = 256;
+  static std::mutex _mtxarr_[_swidth_];
+  static std::unordered_multimap<MomHash,const MomSet*> _maparr_[_swidth_];
+  static unsigned slotindex(MomHash h)
+  {
+    return (h ^ (h / 2325097)) % _swidth_;
+  };
   MomSet(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagSetK, obarr,sz, h) {};
 public:
@@ -1287,9 +1303,13 @@ class MomTuple : public MomAnyObjSeq
   static constexpr unsigned k4 = 56873;
   MomTuple(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagTupleK, obarr,sz, h) {};
-  static constexpr const int _width_ = 256;
-  static std::mutex _mtxarr_[_width_];
-  static std::unordered_multimap<MomHash,const MomTuple*> _maparr_[_width_];
+  static constexpr const int _swidth_ = 256;
+  static std::mutex _mtxarr_[_swidth_];
+  static std::unordered_multimap<MomHash,const MomTuple*> _maparr_[_swidth_];
+  static unsigned slotindex(MomHash h)
+  {
+    return (h ^ (h / 2327183)) % _swidth_;
+  };
 public:
   static const MomTuple* make_from_array(MomObject*const* obarr, MomSize sz);
   static const MomTuple* make_from_objptr_vector(const MomObjptrVector&ovec)
@@ -1319,10 +1339,15 @@ public:
 
 class MomObject : public MomAnyVal // in objectv.cc
 {
-  static constexpr const int _width_ = 512;
-  static std::mutex _mtxarr_[_width_];
-  static std::unordered_multimap<MomHash,MomObject*> _maparr_[_width_];
-  const MomIdent _id;
+  static constexpr const int _swidth_ = 512;
+  static std::mutex _mtxarr_[_swidth_];
+  static std::unordered_multimap<MomHash,MomObject*> _maparr_[_swidth_];
+  const MomIdent _ob_id;
+  mutable std::shared_mutex _ob_shmtx;
+  static unsigned slotindex(MomHash h)
+  {
+    return (h ^ (h /2357167)) % _swidth_;
+  };
 public:
   bool same(const MomObject*ob) const
   {
@@ -1331,9 +1356,9 @@ public:
   bool less(const MomObject*ob) const
   {
     if (!ob || this==ob) return false;
-    if (_id < ob->_id) return true;
-    else if (_id > ob->_id) return false;
-    MOM_FATALOG("non-identical objects sharing same id=" << _id);
+    if (_ob_id < ob->_ob_id) return true;
+    else if (_ob_id > ob->_ob_id) return false;
+    MOM_FATALOG("non-identical objects sharing same id=" << _ob_id);
   };
   static bool less2(const MomObject*ob1, const MomObject*ob2)
   {

@@ -21,8 +21,8 @@
 #include "meltmoni.hh"
 
 
-std::mutex MomIntSq::_mtxarr_[MomIntSq::_width_];
-std::unordered_multimap<MomHash,const MomIntSq*> MomIntSq::_maparr_[MomIntSq::_width_];
+std::mutex MomIntSq::_mtxarr_[MomIntSq::_swidth_];
+std::unordered_multimap<MomHash,const MomIntSq*> MomIntSq::_maparr_[MomIntSq::_swidth_];
 
 MomIntSq::MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h)
   : MomAnyVal(MomKind::TagIntSqK, sz, h),
@@ -66,7 +66,7 @@ MomIntSq::make_from_array(const intptr_t* iarr, MomSize sz)
 {
   MomHash h = compute_hash(iarr, sz);
   MomIntSq* res = nullptr;
-  unsigned ix = h % _width_;
+  unsigned ix = slotindex(h);
   std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
   constexpr unsigned minbuckcount = 16;
   auto& curmap = _maparr_[ix];
@@ -96,8 +96,8 @@ MomIntSq::make_from_array(const intptr_t* iarr, MomSize sz)
 
 
 ////////////////////////////////////////////////////////////////
-std::mutex MomDoubleSq::_mtxarr_[MomDoubleSq::_width_];
-std::unordered_multimap<MomHash,const MomDoubleSq*> MomDoubleSq::_maparr_[MomDoubleSq::_width_];
+std::mutex MomDoubleSq::_mtxarr_[MomDoubleSq::_swidth_];
+std::unordered_multimap<MomHash,const MomDoubleSq*> MomDoubleSq::_maparr_[MomDoubleSq::_swidth_];
 
 MomDoubleSq::MomDoubleSq(const double* darr, MomSize sz, MomHash h)
   : MomAnyVal(MomKind::TagDoubleSqK, sz, h),
@@ -166,7 +166,7 @@ MomDoubleSq::make_from_array(const double* darr, MomSize sz)
 {
   MomHash h = compute_hash(darr, sz);
   MomDoubleSq* res = nullptr;
-  unsigned ix = h % _width_;
+  unsigned ix = slotindex(h);
   std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
   constexpr unsigned minbuckcount = 16;
   auto& curmap = _maparr_[ix];
@@ -195,8 +195,8 @@ MomDoubleSq::make_from_array(const double* darr, MomSize sz)
 
 
 ////////////////////////////////////////////////////////////////
-std::mutex MomString::_mtxarr_[MomString::_width_];
-std::unordered_multimap<MomHash,const MomString*> MomString::_maparr_[MomString::_width_];
+std::mutex MomString::_mtxarr_[MomString::_swidth_];
+std::unordered_multimap<MomHash,const MomString*> MomString::_maparr_[MomString::_swidth_];
 
 MomHash
 MomString::compute_hash_dim(const char*cstr, MomSize*psiz, uint32_t*pbylen)
@@ -256,7 +256,7 @@ MomString::make_from_cstr(const char*cstr)
   uint32_t bylen = 0;
   MomHash h = compute_hash_dim(cstr, &sz, &bylen);
   MomString* res = nullptr;
-  unsigned ix = h % _width_;
+  unsigned ix = slotindex(h);
   std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
   constexpr unsigned minbuckcount = 16;
   auto& curmap = _maparr_[ix];
