@@ -1348,10 +1348,17 @@ class MomObject : public MomAnyVal // in objectv.cc
   {
     return (h ^ (h /2357167)) % _swidth_;
   };
+  MomObject(const MomIdent id, MomHash h);
 public:
+  static MomObject*find_object_of_id(const MomIdent id);
+  static MomObject*make_object_of_id(const MomIdent id);
   bool same(const MomObject*ob) const
   {
     return this == ob;
+  };
+  const MomIdent id() const
+  {
+    return _ob_id;
   };
   bool less(const MomObject*ob) const
   {
@@ -1390,7 +1397,13 @@ public:
     if (!ob) return true;
     return ob->less_equal(this);
   };
+  virtual MomKind vkind() const
+  {
+    return MomKind::TagObjectK;
+  };
+  virtual void scan_gc(MomGC*) const;
 }; // end class MomObject
+
 
 bool
 MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2)

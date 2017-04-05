@@ -1178,7 +1178,6 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   char **argv = *pargv;
   int opt = -1;
   char *commentstr = nullptr;
-  char *suffix = nullptr;
   while ((opt = getopt_long (argc, argv, "hVdsD:L:",
                              mom_long_options, nullptr)) >= 0)
     {
