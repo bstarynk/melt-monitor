@@ -1321,7 +1321,7 @@ main (int argc_main, char **argv_main)
       abort();
     }
   mom_prog_dlhandle = dlopen (nullptr, RTLD_NOW);
-  if (!mom_prog_dlhandle)
+  if (MOM_UNLIKELY(!mom_prog_dlhandle))
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
   parse_program_arguments_mom(&argc, &argv);
 } // end of main

@@ -24,7 +24,6 @@
 #define _GNU_SOURCE 1
 #endif /*_GNU_SOURCE*/
 
-#define GC_THREADS 1
 #define HAVE_PTHREADS 1
 
 
@@ -366,7 +365,7 @@ __attribute__ ((format (printf, 3, 4)));
   MOM_WARNLOG_AT_BIS(__FILE__,__LINE__,Log)
 
 
-// the program handle from GC_dlopen with nullptr
+// the program handle from dlopen with nullptr
 extern void *mom_prog_dlhandle;
 
 // time measurement, in seconds
