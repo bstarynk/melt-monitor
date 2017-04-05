@@ -1160,6 +1160,11 @@ public:
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
 
+struct MomObjptrLess
+{
+  inline bool operator()  (const MomObject*, const MomObject*);
+};
+
 // common super class for sets and tuples of objects
 
 class MomAnyObjSeq : public MomAnyVal   // in seqobjv.cc
@@ -1231,6 +1236,9 @@ public:
 
 class MomObject : public MomAnyVal // in objectv.cc
 {
+  static constexpr const int _width_ = 512;
+  static std::mutex _mtxarr_[_width_];
+  static std::unordered_multimap<MomHash,MomObject*> _maparr_[_width_];
   const MomIdent _id;
 public:
   bool same(const MomObject*ob) const
@@ -1244,12 +1252,26 @@ public:
     else if (_id > ob->_id) return false;
     MOM_FATALOG("non-identical objects sharing same id=" << _id);
   };
+  static bool less2(const MomObject*ob1, const MomObject*ob2)
+  {
+    if (ob1==ob2) return false;
+    if (!ob1) return true;
+    if (!ob2) return false;
+    return ob1->less(ob2);
+  }
   bool less_equal(const MomObject*ob) const
   {
     if (!ob) return false;
     if (this == ob) return true;
     return less (ob);
   };
+  static bool less_equal2(const MomObject*ob1, const MomObject*ob2)
+  {
+    if (ob1==ob2) return true;
+    if (!ob1) return true;
+    if (!ob2) return false;
+    return ob1->less_equal(ob2);
+  }
   bool greater(const MomObject*ob) const
   {
     if (!ob) return true;
@@ -1262,5 +1284,9 @@ public:
   };
 }; // end class MomObject
 
-
+bool
+MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2)
+{
+  return MomObject::less2(ob1, ob2);
+}      // end MomObjptrLess::operator
 #endif /*MONIMELT_INCLUDED_ */

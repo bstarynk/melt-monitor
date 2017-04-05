@@ -12,3 +12,7 @@ monimelt
 
 ## generated
 _timestamp.*
+
+## core dumps
+core*
+vgcore*

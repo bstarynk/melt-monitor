@@ -297,3 +297,9 @@ failure:
     }
   return MomIdent(nullptr);
 } // end MomIdent::make_from_cstr
+
+
+////////////////////////////////////////////////////////////////
+
+std::mutex MomObject::_mtxarr_[MomObject::_width_];
+std::unordered_multimap<MomHash,MomObject*> MomObject::_maparr_[MomObject::_width_];
