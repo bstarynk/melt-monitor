@@ -1184,6 +1184,45 @@ protected:
     return true;
   }
   virtual void scan_gc(MomGC*) const;
+public:
+  typedef MomObject*const* iterator;
+  iterator begin() const
+  {
+    return _obseq+0;
+  };
+  iterator end() const
+  {
+    return _obseq+sizew();
+  };
+  MomObject* unsafe_at(unsigned ix) const
+  {
+    return _obseq[ix];
+  };
+  MomObject* at(unsigned ix) const
+  {
+    if (ix < sizew()) return unsafe_at(ix);
+    return nullptr;
+  };
+  MomObject* checked_at(unsigned ix) const
+  {
+    if (ix < sizew()) return unsafe_at(ix);
+    MOM_FAILURE("MomAnyObjSeq::checked_at index " << ix << " out of range");
+  };
+  MomObject* nth(int i) const
+  {
+    int sz = (int)sizew();
+    if (i<0) i+=sz;
+    if (i<sz) return unsafe_at((unsigned)i);
+    return nullptr;
+  }
+  MomObject* checked_nth(int i) const
+  {
+    int origi = i;
+    int sz = (int)sizew();
+    if (i<0) i+=sz;
+    if (i<sz) return unsafe_at((unsigned)i);
+    MOM_FAILURE("MomAnyObjSeq::checked_nth index " << origi << " out of range");
+  }
 };				// end class MomAnyObjSeq
 
 
