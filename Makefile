@@ -22,7 +22,7 @@ CC=gcc
 CXX=g++
 WARNFLAGS= -Wall -Wextra -fdiagnostics-color=auto
 CFLAGS= -std=gnu11 $(WARNFLAGS) $(PREPROFLAGS) $(OPTIMFLAGS)
-CXXFLAGS= -std=gnu++11 $(WARNFLAGS) $(PREPROFLAGS) $(OPTIMFLAGS)
+CXXFLAGS= -std=gnu++17 $(WARNFLAGS) $(PREPROFLAGS) $(OPTIMFLAGS)
 INDENT= indent
 ASTYLE= astyle
 MD5SUM= md5sum

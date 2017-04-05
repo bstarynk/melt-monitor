@@ -24,6 +24,10 @@
 #define _GNU_SOURCE 1
 #endif /*_GNU_SOURCE*/
 
+#if __cplusplus < 201412L
+#error expecting C++17 standard
+#endif
+
 #define HAVE_PTHREADS 1
 
 
@@ -81,6 +85,7 @@
 #include <sstream>
 #include <random>
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
 #include <functional>
 #include <algorithm>
@@ -953,6 +958,13 @@ typedef std::uint32_t MomSize; // sizes have 27 bits
 typedef std::uint8_t MomGCMark; // garbage collector marks have 2 bits
 class MomGC;
 
+struct MomNewTag
+{
+};
+
+constexpr const MomNewTag mom_newtg;
+#define mom_new(...) new(mom_newtg,__VA_ARGS__)
+
 //// abstract super-class of all boxed values
 class MomAnyVal
 {
@@ -998,7 +1010,7 @@ public:
   };
 protected:
   void* operator new (size_t sz) = delete;
-  void* operator new (size_t sz, size_t gap)
+  void* operator new (size_t sz, MomNewTag, size_t gap)
   {
     MOM_ASSERT (sz % _alignment == 0, "MomAnyVal::new misaligned sz " << sz);
     MOM_ASSERT (gap % _alignment == 0, "MomAnyVal::new misaligned gap " << gap);
@@ -1299,6 +1311,8 @@ public:
     return MomKind::TagTupleK;
   };
 }; // end class MomTuple
+
+
 
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////

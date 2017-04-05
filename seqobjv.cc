@@ -111,7 +111,7 @@ MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
       if (MOM_UNLIKELY(iset->has_content(obarr, sz)))
         return iset;
     }
-  res = new((sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomSet(obarr,sz,h);
+  res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomSet(obarr,sz,h);
   curmap.insert({h,res});
   if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
     {
@@ -173,7 +173,7 @@ MomTuple::make_from_array(MomObject*const* obarr, MomSize sz)
       if (MOM_UNLIKELY(ituple->has_content(obarr, sz)))
         return ituple;
     }
-  res = new((sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomTuple(obarr,sz,h);
+  res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomTuple(obarr,sz,h);
   curmap.insert({h,res});
   if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
     {

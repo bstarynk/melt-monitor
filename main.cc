@@ -1272,6 +1272,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           auto id2 = MomIdent::make_random();
           auto id3 = MomIdent::make_random();
           auto id4 = MomIdent::make_random();
+          MOM_INFORMLOG("test-id __cplusplus=" << __cplusplus);
           MOM_INFORMLOG("test-id:" << std::endl
                         << " .. id1= " << id1 << " =(" << id1.hi().serial() << "," << id1.lo().serial()
                         << ")/h" << id1.hash() << ",b#" << id1.bucketnum());

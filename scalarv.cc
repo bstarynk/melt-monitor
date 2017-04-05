@@ -84,7 +84,7 @@ MomIntSq::make_from_array(const intptr_t* iarr, MomSize sz)
       if (MOM_UNLIKELY(isq->has_content(iarr, sz)))
         return isq;
     }
-  res = new((sz-MOM_FLEXIBLE_DIM)*sizeof(intptr_t)) MomIntSq(iarr,sz,h);
+  res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(intptr_t)) MomIntSq(iarr,sz,h);
   curmap.insert({h,res});
   if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
     {
@@ -184,7 +184,7 @@ MomDoubleSq::make_from_array(const double* darr, MomSize sz)
       if (MOM_UNLIKELY(dsq->has_content(darr, sz)))
         return dsq;
     }
-  res = new((sz-MOM_FLEXIBLE_DIM)*sizeof(double)) MomDoubleSq(darr,sz,h);
+  res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(double)) MomDoubleSq(darr,sz,h);
   curmap.insert({h,res});
   if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
     {
@@ -274,7 +274,7 @@ MomString::make_from_cstr(const char*cstr)
       if (MOM_UNLIKELY(strv->has_cstr_content(cstr, bylen)))
         return strv;
     }
-  res = new (((bylen+MOM_FLEXIBLE_DIM+1)|7)+1) MomString(cstr,sz,bylen,h);
+  res = new (mom_newtg, ((bylen+MOM_FLEXIBLE_DIM+1)|7)+1) MomString(cstr,sz,bylen,h);
   curmap.insert({h,res});
   if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
     {
