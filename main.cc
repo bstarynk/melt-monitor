@@ -1063,6 +1063,7 @@ enum extraopt_en
   xtraopt_commentpredef,
   xtraopt_testid,
   xtraopt_parseid,
+  xtraopt_parseval,
 };
 
 static const struct option mom_long_options[] =
@@ -1078,6 +1079,7 @@ static const struct option mom_long_options[] =
   {"comment-predefined", required_argument, nullptr, xtraopt_commentpredef},
   {"test-id", no_argument, nullptr, xtraopt_testid},
   {"parse-id", required_argument, nullptr, xtraopt_parseid},
+  {"parse-val", required_argument, nullptr, xtraopt_parseval},
   /* Terminating nullptr placeholder.  */
   {nullptr, no_argument, nullptr, 0},
 };
@@ -1103,6 +1105,7 @@ usage_mom (const char *argv0)
           " \t#Set comment of next predefined\n");
   printf ("\t --test-id" " \t#generate a few random ids\n");
   printf ("\t --parse-id id" " \t#parse an id\n");
+  printf ("\t --parse-val <val>" " \t#parse some value\n");
 }
 
 
@@ -1294,6 +1297,22 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           MOM_INFORMLOG("parse-id '" << optarg << "'" << std::endl
                         << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
                         << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
+        }
+        break;
+        case xtraopt_parseval:
+        {
+          if (optarg == nullptr)
+            MOM_FATAPRINTF("missing value for --parse-val");
+          std::string pstr{optarg};
+          std::istringstream ins{pstr};
+          MomParser pars(ins);
+          MOM_INFORMLOG("parse-val '" << optarg << "'" << std::endl
+                        << "peekbyte(0)=" << pars.peekbyte(0) << ' '
+                        << "peekbyte(1)=" << pars.peekbyte(1) << ' '
+                        << "peekbyte(2)=" << pars.peekbyte(2) << ' '
+                        << "peekbyte(3)=" << pars.peekbyte(3) << ' '
+                        << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
+#warning incomplete --parse-val
         }
         break;
         default:

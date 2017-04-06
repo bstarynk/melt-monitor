@@ -25,9 +25,11 @@ MomParser::parse_value(bool *pgotval)
 {
   auto inipos = _painp.tellg();
   int pc = 0;
+  int nc = 0;
   if (_painp.eof())
     goto failure;
 again:
+  nc = 0;
   if (!_painp)
     goto failure;
   pc = _painp.peek();
@@ -39,18 +41,12 @@ again:
         goto failure;
       return i;
     }
-  else if (pc=='\n')
-    {
-      _palincount ++;
-      _painp.get();
-      goto again;
-    }
   else if (isspace(pc))
     {
-      _painp.get();
+      skip_spaces();
       goto again;
     }
-  else if (pc=='#')
+  else if (pc=='/' && (nc=='/' || (nc=peekbyte(1))=='/'))
     {
       do
         {

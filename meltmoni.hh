@@ -1467,10 +1467,32 @@ public:
         _painp.seekg(t);
         return res;
       }
+    else if (_painp.getline(buf, off), buf[off] != 0)
+      {
+        int res = buf[off];
+        _painp.seekg(t);
+        return res;
+      }
     else
       {
         _painp.seekg(t);
         return std::char_traits<char>::eof();
+      }
+  }
+  void skip_spaces()
+  {
+    if (!_painp) return;
+    while (_painp)
+      {
+        int pc = _painp.peek();
+        if (pc == '\n')
+          {
+            _palincount++;
+            _painp.get();
+          }
+        else if (pc>0 && isspace(pc))
+          _painp.get();
+        else break;
       }
   }
   MomValue parse_value(bool* pgotval);
