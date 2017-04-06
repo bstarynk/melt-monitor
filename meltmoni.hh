@@ -1443,6 +1443,36 @@ public:
   {
     return _painp;
   };
+  static constexpr unsigned _maxpeek_ = 16;
+  int peekbyte(unsigned off)
+  {
+    if (!_painp) return std::char_traits<char>::eof();
+    if (off==0) return _painp.peek();
+    else if (off==1)
+      {
+        _painp.get();
+        auto res = _painp.peek();
+        _painp.unget();
+        return res;
+      }
+    else if (off > _maxpeek_)
+      MOM_FAILURE("MomParser::peekchar invalid offset " << off);
+    auto t = _painp.tellg();
+    char buf[_maxpeek_+4];
+    memset (buf, 0, sizeof(buf));
+    auto cnt = _painp.readsome(buf, off);
+    if (cnt==off)
+      {
+        int res = buf[off];
+        _painp.seekg(t);
+        return res;
+      }
+    else
+      {
+        _painp.seekg(t);
+        return std::char_traits<char>::eof();
+      }
+  }
   MomValue parse_value(bool* pgotval);
 };				// end class MomParser
 

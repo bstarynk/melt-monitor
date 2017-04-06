@@ -59,6 +59,8 @@ again:
       while (pc!='\n' || !_painp);
       if (pc == '\n')
         {
+          _palincount ++;
+          goto again;
         }
     }
 failure:
