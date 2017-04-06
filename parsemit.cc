@@ -24,7 +24,18 @@ MomValue
 MomParser::parse_value(bool *pgotval)
 {
   auto inipos = _painp.tellg();
-  if (_painp.eof()) goto failure;
+  int pc = 0;
+  if (_painp.eof())
+    goto failure;
+  pc = _painp.peek();
+  if (pc>0 && (pc=='+' || pc=='-' || isdigit(pc)))
+    {
+      intptr_t i=0;
+      _painp >> i;
+      if (!_painp)
+        goto failure;
+      return i;
+    }
 failure:
   if (pgotval)
     *pgotval = false;
@@ -36,4 +47,15 @@ failure:
 void
 MomEmitter::emit_value(const MomValue v, int depth)
 {
+  if (!v)
+    {
+      _emout << "__";
+      return;
+    }
+  else if (v.is_tagint())
+    {
+      intptr_t i = v.to_tagint();
+      _emout << i;
+      return;
+    }
 } // end of MomEmitter::emit_value
