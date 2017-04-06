@@ -301,32 +301,22 @@ failure:
 
 ////////////////////////////////////////////////////////////////
 
-std::mutex MomObject::_mtxarr_[MomObject::_swidth_];
-std::unordered_multimap<MomHash,MomObject*> MomObject::_maparr_[MomObject::_swidth_];
+std::mutex MomObject::_bumtxarr_[MomSerial63::_maxbucket_];
+std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> MomObject::_bumaparr_[MomSerial63::_maxbucket_];
 
 MomObject*
 MomObject::find_object_of_id(const MomIdent id)
 {
   if (id.is_null()) return nullptr;
-  MomHash hid = id.hash();
-  unsigned ix = slotindex(hid);
-  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
+  unsigned buix = id.bucketnum();
+  std::lock_guard<std::mutex> _gu(_bumtxarr_[buix]);
   constexpr unsigned minbuckcount = 16;
-  auto& curmap = _maparr_[ix];
-  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
-    curmap.rehash(minbuckcount);
-  size_t buckix = curmap.bucket(hid);
-  auto buckbeg = curmap.begin(buckix);
-  auto buckend = curmap.end(buckix);
-  for (auto it = buckbeg; it != buckend; it++)
-    {
-      if (it->first != hid)
-        continue;
-      const MomObject*iob = it->second;
-      MOM_ASSERT(iob != nullptr, "null iob in buckix=" << buckix);
-      if (MOM_UNLIKELY(iob->id() == id))
-        return const_cast<MomObject*>(iob);
-    }
+  auto& curmap = _bumaparr_[buix];
+  if (MOM_UNLIKELY(curmap.bucket_count() < _bumincount_))
+    curmap.rehash(_bumincount_);
+  auto it = curmap.find(id);
+  if (it != curmap.end())
+    return it->second;
   return nullptr;
 } // end of MomObject::find_object_of_id
 
@@ -344,28 +334,18 @@ MomObject*
 MomObject::make_object_of_id(const MomIdent id)
 {
   if (id.is_null()) return nullptr;
-  MomHash hid = id.hash();
-  unsigned ix = slotindex(hid);
-  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
+  unsigned buix = id.bucketnum();
+  std::lock_guard<std::mutex> _gu(_bumtxarr_[buix]);
   constexpr unsigned minbuckcount = 16;
-  auto& curmap = _maparr_[ix];
-  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
-    curmap.rehash(minbuckcount);
-  size_t buckix = curmap.bucket(hid);
-  auto buckbeg = curmap.begin(buckix);
-  auto buckend = curmap.end(buckix);
-  for (auto it = buckbeg; it != buckend; it++)
-    {
-      if (it->first != hid)
-        continue;
-      const MomObject*iob = it->second;
-      MOM_ASSERT(iob != nullptr, "null iob in buckix=" << buckix);
-      if (MOM_UNLIKELY(iob->id() == id))
-        return const_cast<MomObject*>(iob);
-    }
-  MomObject*resob = new(mom_newtg,0) MomObject(id,hid);
-  curmap.insert({hid,resob});
-  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
+  auto& curmap = _bumaparr_[buix];
+  if (MOM_UNLIKELY(curmap.bucket_count() < _bumincount_))
+    curmap.rehash(_bumincount_);
+  auto it = curmap.find(id);
+  if (it != curmap.end())
+    return it->second;
+  MomObject*resob = new(mom_newtg,0) MomObject(id,id.hash());
+  curmap.insert({id,resob});
+  if (MOM_UNLIKELY(MomRandom::random_32u() % _bumincount_ == 0))
     {
       curmap.reserve(9*curmap.size()/8 + 5);
     }

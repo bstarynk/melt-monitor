@@ -1188,6 +1188,15 @@ struct MomObjptrLess
   inline bool operator()  (const MomObject*, const MomObject*);
 };
 
+struct MomIdentBucketHash
+{
+  inline size_t operator() (const MomIdent& id) const
+  {
+    return ((145219L * id.hi().serial()) ^ (415271L * id.lo().serial()))
+           + id.hi().serial();
+  }
+};
+
 typedef std::set<MomObject*,MomObjptrLess> MomObjptrSet;
 typedef std::vector<MomObject*> MomObjptrVector;
 
@@ -1339,17 +1348,11 @@ public:
 
 class MomObject : public MomAnyVal // in objectv.cc
 {
-  /// not needed, should use the bucket number
-  static constexpr const int _swidth_ = 512;
-  static std::mutex _mtxarr_[_swidth_];
-  static std::unordered_multimap<MomHash,MomObject*> _maparr_[_swidth_];
+  static std::mutex _bumtxarr_[MomSerial63::_maxbucket_];
+  static std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _bumaparr_[MomSerial63::_maxbucket_];
+  static constexpr unsigned _bumincount_ = 16;
   const MomIdent _ob_id;
   mutable std::shared_mutex _ob_shmtx;
-#warning MomObject confusion; slotindex is really the bucketnum
-  static unsigned slotindex(MomHash h)
-  {
-    return (h ^ (h /2357167)) % _swidth_;
-  };
   MomObject(const MomIdent id, MomHash h);
 public:
   static MomObject*find_object_of_id(const MomIdent id);
