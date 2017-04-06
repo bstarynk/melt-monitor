@@ -741,6 +741,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
 
 class MomLoader;
 class MomDumper;
+class MomParser;
 
 class MomGuardPmutex
 {
@@ -1422,4 +1423,40 @@ MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2)
 {
   return MomObject::less2(ob1, ob2);
 }      // end MomObjptrLess::operator
+
+
+////////////////////////////////////////////////////////////////
+
+class MomParser			// in file parsemit.cc
+{
+  std::istream &_painp;
+public:
+  MomParser(std::istream&inp)
+    : _painp(inp)
+  {
+  }
+  ~MomParser()
+  {
+  }
+  std::istream& input() const
+  {
+    return _painp;
+  };
+  MomValue parse_value(bool* pgotval);
+};				// end class MomParser
+
+
+class MomEmitter 		// in file parsemit.cc
+{
+  std::ostream &_emout;
+  std::ostream::pos_type _emlastnewline;
+public:
+  MomEmitter(std::ostream&out)
+    : _emout(out),
+      _emlastnewline(out.tellp())
+  {
+  }
+  void emit_value(const MomValue v, int depth=0);
+};				// end class MomEmitter
+
 #endif /*MONIMELT_INCLUDED_ */
