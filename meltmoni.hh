@@ -1430,9 +1430,10 @@ MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2)
 class MomParser			// in file parsemit.cc
 {
   std::istream &_painp;
+  unsigned _palincount;
 public:
-  MomParser(std::istream&inp)
-    : _painp(inp)
+  MomParser(std::istream&inp, unsigned lincount=0)
+    : _painp(inp), _palincount(lincount)
   {
   }
   ~MomParser()

@@ -27,6 +27,9 @@ MomParser::parse_value(bool *pgotval)
   int pc = 0;
   if (_painp.eof())
     goto failure;
+again:
+  if (!_painp)
+    goto failure;
   pc = _painp.peek();
   if (pc>0 && (pc=='+' || pc=='-' || isdigit(pc)))
     {
@@ -35,6 +38,28 @@ MomParser::parse_value(bool *pgotval)
       if (!_painp)
         goto failure;
       return i;
+    }
+  else if (pc=='\n')
+    {
+      _palincount ++;
+      _painp.get();
+      goto again;
+    }
+  else if (isspace(pc))
+    {
+      _painp.get();
+      goto again;
+    }
+  else if (pc=='#')
+    {
+      do
+        {
+          pc = _painp.get();
+        }
+      while (pc!='\n' || !_painp);
+      if (pc == '\n')
+        {
+        }
     }
 failure:
   if (pgotval)
