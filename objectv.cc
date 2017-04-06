@@ -351,3 +351,30 @@ MomObject::make_object_of_id(const MomIdent id)
     }
   return resob;
 } // end of MomObject::make_object_of_id
+
+MomObject*
+MomObject::make_object(void)
+{
+  MomIdent id = MomIdent::make_random();
+  if (id.is_null()) return nullptr;
+  unsigned buix = id.bucketnum();
+  std::lock_guard<std::mutex> _gu(_bumtxarr_[buix]);
+  auto& curmap = _bumaparr_[buix];
+  if (MOM_UNLIKELY(curmap.bucket_count() < _bumincount_))
+    curmap.rehash(_bumincount_);
+  auto it = curmap.end();
+  for(;;)
+    {
+      it = curmap.find(id);
+      if (MOM_LIKELY(it == curmap.end()))
+        break;
+      id = MomIdent::make_random_of_bucket(buix);
+    };
+  MomObject*resob = new(mom_newtg,0) MomObject(id,id.hash());
+  curmap.insert({id,resob});
+  if (MOM_UNLIKELY(MomRandom::random_32u() % _bumincount_ == 0))
+    {
+      curmap.reserve(9*curmap.size()/8 + 5);
+    }
+  return resob;
+} // end MomObject::make_object

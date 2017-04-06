@@ -605,16 +605,22 @@ inline std::ostream &operator<<(std::ostream &os, const MomSerial63 s)
 class MomIdent
 {
 public:
-  const MomSerial63 _idhi, _idlo;
+  MomSerial63 _idhi, _idlo;
   static constexpr const unsigned _charlen_ = 2*MomSerial63::_nbdigits_+2;
   MomIdent() : _idhi(), _idlo() {};
   MomIdent(std::nullptr_t) : _idhi(), _idlo() {};
   MomIdent(MomSerial63 hi, MomSerial63 lo) : _idhi(hi), _idlo(lo) {};
   MomIdent(uint64_t hi, uint64_t lo, bool nocheck = false) :
     _idhi(hi, nocheck), _idlo(lo, nocheck) {};
-  MomIdent(const MomIdent&id) = default;
-  MomIdent(MomIdent&&id) = default;
-  ~MomIdent() = default;
+  MomIdent(const MomIdent&id) : _idhi(id._idhi), _idlo(id._idlo) {};
+  MomIdent(MomIdent&& id): _idhi(std::move(id._idhi)), _idlo(std::move(id._idlo)) {};
+  MomIdent& operator = (const MomIdent&id)
+  {
+    _idhi = id._idhi;
+    _idlo = id._idlo;
+    return *this;
+  };
+  ~MomIdent() {};
   unsigned bucketnum() const
   {
     return _idhi.bucketnum();
@@ -1357,6 +1363,7 @@ class MomObject : public MomAnyVal // in objectv.cc
 public:
   static MomObject*find_object_of_id(const MomIdent id);
   static MomObject*make_object_of_id(const MomIdent id);
+  static MomObject*make_object(void); // of random id
   bool same(const MomObject*ob) const
   {
     return this == ob;
