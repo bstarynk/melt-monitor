@@ -1326,7 +1326,6 @@ main (int argc_main, char **argv_main)
   parse_program_arguments_mom(&argc, &argv);
 } // end of main
 
-#warning TODO: should use systematic hash-consing
 
 #warning TODO: should code an explicit garbage collector
 
