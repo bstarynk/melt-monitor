@@ -742,6 +742,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
 class MomLoader;
 class MomDumper;
 class MomParser;
+class MomEmitter;
 
 MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
 {
@@ -1410,11 +1411,14 @@ MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2)
 
 class MomParser			// in file parsemit.cc
 {
-  std::istream &_painp;
-  unsigned _palincount;
+  std::istream &_parinp;
+  std::string _parlinstr;
+  unsigned _parlincount;
+  long _parlinoffset;
+  int _parcol;
 public:
   MomParser(std::istream&inp, unsigned lincount=0)
-    : _painp(inp), _palincount(lincount)
+    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}
   {
   }
   ~MomParser()
@@ -1422,59 +1426,39 @@ public:
   }
   std::istream& input() const
   {
-    return _painp;
+    return _parinp;
+  };
+  bool eol() const
+  {
+    return _parcol >= (int)_parlinstr.size();
   };
   static constexpr unsigned _maxpeek_ = 16;
-  int peekbyte(unsigned off)
+  int peekbyte(unsigned off=0)
   {
-    if (!_painp) return std::char_traits<char>::eof();
-    if (off==0) return _painp.peek();
-    else if (off==1)
-      {
-        _painp.get();
-        auto res = _painp.peek();
-        _painp.unget();
-        return res;
-      }
-    else if (off > _maxpeek_)
-      MOM_FAILURE("MomParser::peekchar invalid offset " << off);
-    auto t = _painp.tellg();
-    char buf[_maxpeek_+4];
-    memset (buf, 0, sizeof(buf));
-    auto cnt = _painp.readsome(buf, off);
-    if (cnt==off)
-      {
-        int res = buf[off];
-        _painp.seekg(t);
-        return res;
-      }
-    else if (_painp.getline(buf, off), buf[off] != 0)
-      {
-        int res = buf[off];
-        _painp.seekg(t);
-        return res;
-      }
-    else
-      {
-        _painp.seekg(t);
-        return std::char_traits<char>::eof();
-      }
+    if (_parcol<0) return EOF;
+    if (_parcol+off > _parlinstr.size()) return EOF;
+    return _parlinstr[_parcol+off];
   }
   void skip_spaces()
   {
-    if (!_painp) return;
-    while (_painp)
+    for (;;)
       {
-        int pc = _painp.peek();
-        if (pc == '\n')
+        if (eol())
           {
-            _palincount++;
-            _painp.get();
+            if (!_parinp) return;
+            next_line();
           }
-        else if (pc>0 && isspace(pc))
-          _painp.get();
+        else if (isspace(peekbyte()))
+          _parcol++;
         else break;
       }
+  }
+  void next_line()
+  {
+    _parlinoffset = _parinp.tellg();
+    std::getline(_parinp, _parlinstr);
+    _parcol = 0;
+    _parlincount++;
   }
   MomValue parse_value(bool* pgotval);
 };				// end class MomParser

@@ -23,46 +23,37 @@
 MomValue
 MomParser::parse_value(bool *pgotval)
 {
-  auto inipos = _painp.tellg();
+  auto inioff = _parlinoffset;
+  auto inicol = _parcol;
   int pc = 0;
   int nc = 0;
-  if (_painp.eof())
-    goto failure;
 again:
-  nc = 0;
-  if (!_painp)
-    goto failure;
-  pc = _painp.peek();
-  if (pc>0 && (pc=='+' || pc=='-' || isdigit(pc)))
+  if (eol())
     {
-      intptr_t i=0;
-      _painp >> i;
-      if (!_painp)
-        goto failure;
-      return i;
+      skip_spaces();
+      if (eol() && !_parinp) goto failure;
+      goto again;
+    }
+  pc = peekbyte(0);
+  nc = peekbyte(1);
+  if (pc>0 && (((pc=='+' || pc=='-') && isdigit(nc)) || isdigit(pc)))
+    {
+#warning should parse an integer
     }
   else if (isspace(pc))
     {
       skip_spaces();
       goto again;
     }
-  else if (pc=='/' && (nc=='/' || (nc=peekbyte(1))=='/'))
+  else if (pc=='/' && nc == '/')
     {
-      do
-        {
-          pc = _painp.get();
-        }
-      while (pc!='\n' || !_painp);
-      if (pc == '\n')
-        {
-          _palincount ++;
-          goto again;
-        }
+      next_line();
+      goto again;
     }
 failure:
   if (pgotval)
     *pgotval = false;
-  _painp.seekg(inipos);
+#warning failure unhandled, should restore start line & col
   return nullptr;
 } // end of MomParser::parse_value
 
