@@ -743,25 +743,6 @@ class MomLoader;
 class MomDumper;
 class MomParser;
 
-class MomGuardPmutex
-{
-  pthread_mutex_t* _pmtx;
-public:
-  MomGuardPmutex(pthread_mutex_t& mtx)
-  {
-    _pmtx = &mtx;
-    pthread_mutex_lock (_pmtx);
-  };
-  ~MomGuardPmutex()
-  {
-    pthread_mutex_unlock(_pmtx);
-    _pmtx = nullptr;
-  }
-  MomGuardPmutex(const MomGuardPmutex&) = delete;
-  MomGuardPmutex(MomGuardPmutex&&) = delete;
-  MomGuardPmutex() = delete;
-}; // end MomGuardPmutex
-
 MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
 {
   if (nocheck || n == 0)
