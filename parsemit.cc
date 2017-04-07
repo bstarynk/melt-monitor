@@ -25,6 +25,7 @@ MomParser::parse_value(bool *pgotval)
 {
   auto inioff = _parlinoffset;
   auto inicol = _parcol;
+  auto inilincnt = _parlincount;
   int pc = 0;
   int nc = 0;
 again:
@@ -38,7 +39,12 @@ again:
   nc = peekbyte(1);
   if (pc>0 && (((pc=='+' || pc=='-') && isdigit(nc)) || isdigit(pc)))
     {
-#warning should parse an integer
+      const char*curp = peekchars();
+      char*endp = nullptr;
+      long long ll = strtoll(curp, &endp, 0);
+      if (endp>curp)
+        consume(endp-curp);
+      return MomValue((intptr_t)ll);
     }
   else if (isspace(pc))
     {
@@ -50,12 +56,41 @@ again:
       next_line();
       goto again;
     }
+  else if (pc=='_' && nc=='_')
+    {
+      consume(2);
+      return MomValue{nullptr};
+    }
+  else if (pc=="°"[0] && nc=="°"[1])
+    {
+      static_assert(sizeof("°")==3, "wrong length for °");
+      consume(2);
+      bool gotvval = false;
+      auto vv = MomParser::parse_value(&gotvval);
+      if (gotvval)
+        {
+          if (vv.is_val())
+            return MomValue(vv.to_val(),MomTransientTag{});
+          else return vv;
+        }
+      else
+        goto failure;
+    }
 failure:
   if (pgotval)
     *pgotval = false;
-#warning failure unhandled, should restore start line & col
+  if (_parinp.tellg() != _parlinoffset)
+    {
+      _parinp.seekg(inioff);
+      std::getline(_parinp, _parlinstr);
+      _parcol = 0;
+      _parlincount = inilincnt;
+    }
+  _parcol = inicol;
   return nullptr;
 } // end of MomParser::parse_value
+
+
 
 
 void
@@ -71,5 +106,10 @@ MomEmitter::emit_value(const MomValue v, int depth)
       intptr_t i = v.to_tagint();
       _emout << i;
       return;
+    }
+  else if (v.is_transient())
+    {
+      _emout << "°";
+      emit_value(MomValue{v.to_transient()}, depth);
     }
 } // end of MomEmitter::emit_value

@@ -1439,6 +1439,24 @@ public:
     if (_parcol+off > _parlinstr.size()) return EOF;
     return _parlinstr[_parcol+off];
   }
+  const char* peekchars(unsigned off=0)
+  {
+    if (_parcol<0) return nullptr;
+    if (_parcol+off > _parlinstr.size()) return nullptr;
+    return _parlinstr.c_str()+_parcol+off;
+  }
+  void consume(unsigned nbytes)
+  {
+    auto linsiz = _parlinstr.size();
+    if (_parcol + nbytes < linsiz)
+      {
+        _parcol+=nbytes;
+      }
+    else
+      {
+        next_line();
+      }
+  }
   void skip_spaces()
   {
     for (;;)
@@ -1458,7 +1476,8 @@ public:
     _parlinoffset = _parinp.tellg();
     std::getline(_parinp, _parlinstr);
     _parcol = 0;
-    _parlincount++;
+    if (_parinp)
+      _parlincount++;
   }
   MomValue parse_value(bool* pgotval);
 };				// end class MomParser
