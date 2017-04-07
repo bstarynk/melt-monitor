@@ -63,6 +63,29 @@ again:
     }
   else if (pc=='(' && nc=='#')	// (# integer sequence #)
     {
+      std::vector<intptr_t> v;
+      for (;;)
+        {
+          skip_spaces();
+          pc = peekbyte(0);
+          nc = peekbyte(1);
+          if (pc==EOF)
+            {
+              goto failure;
+            }
+          else if (pc=='#' && nc==')')
+            {
+              consume(2);
+              break;
+            }
+          else if (isdigit(pc) || (isdigit(nc) && (pc=='+' || pc=='-')))
+            {
+            }
+          else
+            {
+#warning should define how parsing should fail
+            }
+        }
     }
   else if (pc=='(' && nc==':')	// (: double sequence :)
     {

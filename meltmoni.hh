@@ -1153,6 +1153,14 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
     return (h ^ (h / 2316179)) % _swidth_;
   };
 public:
+  const intptr_t *begin() const
+  {
+    return _ivalarr;
+  };
+  const intptr_t *end() const
+  {
+    return _ivalarr+sizew();
+  };
   static MomHash compute_hash(const intptr_t* iarr, MomSize sz);
   static const MomIntSq* make_from_array(const intptr_t* iarr, MomSize sz);
   static const MomIntSq* make_from_vector(const std::vector<intptr_t>& ivec)
@@ -1203,6 +1211,14 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
     return (h ^ (h / 2317057)) % _swidth_;
   };
 public:
+  const double *begin() const
+  {
+    return _dvalarr;
+  };
+  const double *end() const
+  {
+    return _dvalarr+sizew();
+  };
   static MomHash hash_double (double d);
   static MomHash compute_hash(const double* iarr, MomSize sz);
   static const MomDoubleSq* make_from_array(const double* darr, MomSize sz);
