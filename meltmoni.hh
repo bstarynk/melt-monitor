@@ -761,7 +761,7 @@ class MomAnyVal;		// abstract superclass of any memory value
 class MomIntSq;		// value, read-only hash-consed sequence of integers
 class MomDoubleSq;	// value, read-only hash-consed sequence of doubles
 class MomString;	// value, UTF8 read-only hash-consed string
-class MomAnySeqVal;		// abstract superclass of hash-consed object sequences (sets or tuples)
+class MomAnySeqObjVal;		// abstract superclass of hash-consed object sequences (sets or tuples)
 class MomSetVal;		// value, hash-consed set of objects
 class MomTupleVal;		// value, hash-consed tuple of objects
 class MomNodeVal;		/* value, hash-consed node: the
@@ -961,7 +961,7 @@ public:
   friend class MomIntSq;
   friend class MomDoubleSq;
   friend class MomString;
-  friend class MomAnySeqVal;
+  friend class MomAnySeqObjVal;
   friend class MomSetVal;
   friend class MomTupleVal;
   friend class MomNodeVal;
@@ -997,6 +997,119 @@ public:
   {
     return _hashw;
   };
+  // integer sequences
+  const MomIntSq* as_intsq() const
+  {
+    if (kindw() != MomKind::TagIntSqK)
+      MOM_FAILURE("MomAnyVal::as_intsq not intsq " << this);
+    return reinterpret_cast<const MomIntSq*>(this);
+  }
+  bool is_intsq() const
+  {
+    return kindw() == MomKind::TagIntSqK;
+  };
+  const MomIntSq* to_intsq(const MomIntSq* def=nullptr) const
+  {
+    if (is_intsq()) return  reinterpret_cast<const MomIntSq*>(this);
+    else return def;
+  }
+  // double sequences
+  const MomDoubleSq* as_doublesq() const
+  {
+    if (kindw() != MomKind::TagDoubleSqK)
+      MOM_FAILURE("MomAnyVal::as_doublesq not doublesq " << this);
+    return reinterpret_cast<const MomDoubleSq*>(this);
+  }
+  bool is_doublesq() const
+  {
+    return kindw() == MomKind::TagDoubleSqK;
+  };
+  const MomDoubleSq* to_doublesq(const MomDoubleSq* def=nullptr) const
+  {
+    if (is_doublesq()) return  reinterpret_cast<const MomDoubleSq*>(this);
+    else return def;
+  }
+  // strings
+  const MomString* as_string() const
+  {
+    if (kindw() != MomKind::TagStringK)
+      MOM_FAILURE("MomAnyVal::as_string not string " << this);
+    return reinterpret_cast<const MomString*>(this);
+  }
+  bool is_string() const
+  {
+    return kindw() == MomKind::TagStringK;
+  };
+  const MomString* to_string(const MomString* def=nullptr) const
+  {
+    if (is_string()) return  reinterpret_cast<const MomString*>(this);
+    else return def;
+  }
+  // sequences of objects (sets or tuples)
+  const MomAnySeqObjVal* as_seqobjval() const
+  {
+    if (kindw() != MomKind::TagSetK && kindw() != MomKind::TagTupleK)
+      MOM_FAILURE("MomAnyVal::as_seqobj not seqobjval " << this);
+    return reinterpret_cast<const MomAnySeqObjVal*>(this);
+  }
+  bool is_seqobjval() const
+  {
+    return kindw() == MomKind::TagSetK || kindw() == MomKind::TagTupleK;
+  };
+  const MomAnySeqObjVal* to_seqobjval(const MomAnySeqObjVal* def=nullptr) const
+  {
+    if (is_seqobjval()) return  reinterpret_cast<const MomAnySeqObjVal*>(this);
+    else return def;
+  }
+  // sets
+  const MomSetVal* as_set() const
+  {
+    if (kindw() != MomKind::TagSetK)
+      MOM_FAILURE("MomAnyVal::as_set not set " << this);
+    return reinterpret_cast<const MomSetVal*>(this);
+  }
+  bool is_set() const
+  {
+    return kindw() == MomKind::TagSetK;
+  };
+  const MomSetVal* to_set(const MomSetVal* def=nullptr) const
+  {
+    if (is_set()) return  reinterpret_cast<const MomSetVal*>(this);
+    else return def;
+  }
+  // tuples
+  const MomTupleVal* as_tuple() const
+  {
+    if (kindw() != MomKind::TagTupleK)
+      MOM_FAILURE("MomAnyVal::as_tuple not tuple " << this);
+    return reinterpret_cast<const MomTupleVal*>(this);
+  }
+  bool is_tuple() const
+  {
+    return kindw() == MomKind::TagTupleK;
+  };
+  const MomTupleVal* to_tuple(const MomTupleVal* def=nullptr) const
+  {
+    if (is_tuple()) return  reinterpret_cast<const MomTupleVal*>(this);
+    else return def;
+  }
+  // nodes
+  const MomNodeVal* as_node() const
+  {
+    if (kindw() != MomKind::TagNodeK)
+      MOM_FAILURE("MomAnyVal::as_node not node " << this);
+    return reinterpret_cast<const MomNodeVal*>(this);
+  }
+  bool is_node() const
+  {
+    return kindw() == MomKind::TagNodeK;
+  };
+  const MomNodeVal* to_node(const MomNodeVal* def=nullptr) const
+  {
+    if (is_node()) return  reinterpret_cast<const MomNodeVal*>(this);
+    else return def;
+  }
+  //
 protected:
   void* operator new (size_t sz) = delete;
   void* operator new (size_t sz, MomNewTag, size_t gap)
