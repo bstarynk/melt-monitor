@@ -61,6 +61,18 @@ again:
       consume(2);
       return MomValue{nullptr};
     }
+  else if (pc=='(' && nc=='#')	// (# integer sequence #)
+    {
+    }
+  else if (pc=='(' && nc==':')	// (: double sequence :)
+    {
+    }
+  else if (pc=='[') // tuple
+    {
+    }
+  else if (pc=='{') // set
+    {
+    }
   else if (pc=="°"[0] && nc=="°"[1])
     {
       static_assert(sizeof("°")==3, "wrong length for °");
@@ -92,6 +104,12 @@ failure:
 
 
 
+void
+MomEmitter::emit_space()
+{
+  MOM_FATAPRINTF("unimplemented MomEmitter::emit_space");
+#warning unimplemented MomEmitter::emit_space
+} // end MomEmitter::emit_space
 
 void
 MomEmitter::emit_value(const MomValue v, int depth)
@@ -111,5 +129,50 @@ MomEmitter::emit_value(const MomValue v, int depth)
     {
       _emout << "°";
       emit_value(MomValue{v.to_transient()}, depth);
+    }
+  else if (v.is_val())
+    {
+      auto vv = v.as_val();
+      switch (vv->kindw())
+        {
+        case MomKind::TagIntSqK:
+        {
+          _emout << "(#";
+#warning should emit integer sequence content
+          _emout << "#)";
+        }
+        break;
+        case MomKind::TagDoubleSqK:
+        {
+          _emout << "(:";
+#warning should emit double sequence content
+          _emout << ":)";
+        }
+        break;
+        case MomKind::TagStringK:
+        {
+        }
+        break;
+        case MomKind::TagSetK:
+        {
+        }
+        break;
+        case MomKind::TagTupleK:
+        {
+        }
+        break;
+        case MomKind::TagNodeK:
+        {
+        }
+        break;
+        case MomKind::TagObjectK:
+        {
+        }
+        break;
+        case MomKind::TagIntK:
+        case MomKind::TagNoneK:
+        case MomKind::Tag_LastK:
+          MOM_FATAPRINTF("impossible tag #%d for vv@%p", (int) vv->kindw(), vv);
+        }
     }
 } // end of MomEmitter::emit_value

@@ -1493,6 +1493,7 @@ public:
       _emlastnewline(out.tellp())
   {
   }
+  void emit_space();
   void emit_value(const MomValue v, int depth=0);
 };				// end class MomEmitter
 
