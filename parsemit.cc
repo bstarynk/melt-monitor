@@ -82,9 +82,7 @@ again:
             {
             }
           else
-            {
-#warning should define how parsing should fail
-            }
+            MOM_PARSE_FAILURE(this, "invalid integer sequence");
         }
     }
   else if (pc=='(' && nc==':')	// (: double sequence :)
