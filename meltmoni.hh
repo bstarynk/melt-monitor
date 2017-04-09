@@ -1545,9 +1545,18 @@ class MomParser			// in file parsemit.cc
   unsigned _parlincount;
   long _parlinoffset;
   int _parcol;
+  bool _parsilent;
 public:
+  class Mom_parse_failure : public Mom_runtime_failure
+  {
+    const MomParser *_pars;
+  public:
+    Mom_parse_failure(const MomParser* pa, const char*fil, int lin, const std::string&msg)
+      : Mom_runtime_failure(fil,lin,msg), _pars(pa) {}
+    ~Mom_parse_failure() = default;
+  };
   MomParser(std::istream&inp, unsigned lincount=0)
-    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}
+    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}, _parsilent{false}
   {
   }
   ~MomParser()
@@ -1556,6 +1565,10 @@ public:
   std::istream& input() const
   {
     return _parinp;
+  };
+  bool silent() const
+  {
+    return _parsilent;
   };
   bool eol() const
   {
@@ -1611,6 +1624,22 @@ public:
   MomValue parse_value(bool* pgotval);
 };				// end class MomParser
 
+#define MOM_PARSE_FAILURE_AT(Par,Fil,Lin,Log) do {		\
+    std::ostringstream _olog_##Lin;				\
+    const MomParser* _pars_##Lin = Par;				\
+    _olog_##Lin << "PARSE FAIL:" << Log << std::flush;		\
+    if (!_pars_##Lin->silent())					\
+      mom_failure_backtrace_at(Fil, Lin,			\
+			       _olog_##Lin.str());		\
+    throw MomParser::Mom_parse_failure (_pars_##Lin,Fil,Lin,	\
+					_olog_##Lin.str());	\
+  } while(0)
+
+#define MOM_PARSE_FAILURE_AT_BIS(Par,Fil,Lin,Log)	\
+  MOM_PARSE_FAILURE_AT(Par,Fil,Lin,Log)
+
+#define MOM_PARSE_FAILURE(Par,Log)			\
+  MOM_PARSE_FAILURE_AT_BIS((Par),__FILE__,__LINE__,Log)
 
 class MomEmitter 		// in file parsemit.cc
 {
