@@ -44,6 +44,7 @@ again:
       long long ll = strtoll(curp, &endp, 0);
       if (endp>curp)
         consume(endp-curp);
+      if (pgotval) *pgotval = true;
       return MomValue((intptr_t)ll);
     }
   else if (isspace(pc))
@@ -78,12 +79,19 @@ again:
               consume(2);
               break;
             }
-          else if (isdigit(pc) || (isdigit(nc) && (pc=='+' || pc=='-')))
+          else if ((pc<127 && isdigit(pc)) || (nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
             {
+              const char*curp = peekchars();
+              char*endp = nullptr;
+              long long ll = strtoll(curp, &endp, 0);
+              consume(endp-curp);
+              v.push_back(ll);
             }
           else
             MOM_PARSE_FAILURE(this, "invalid integer sequence");
         }
+      if (pgotval) *pgotval = true;
+      return MomValue(MomIntSq::make_from_vector(v));
     }
   else if (pc=='(' && nc==':')	// (: double sequence :)
     {
@@ -112,14 +120,7 @@ again:
 failure:
   if (pgotval)
     *pgotval = false;
-  if (_parinp.tellg() != _parlinoffset)
-    {
-      _parinp.seekg(inioff);
-      std::getline(_parinp, _parlinstr);
-      _parcol = 0;
-      _parlincount = inilincnt;
-    }
-  _parcol = inicol;
+  restore_state(inioff, inilincnt, inicol);
   return nullptr;
 } // end of MomParser::parse_value
 
