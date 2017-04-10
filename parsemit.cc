@@ -95,6 +95,34 @@ again:
     }
   else if (pc=='(' && nc==':')	// (: double sequence :)
     {
+      std::vector<double> v;
+      for (;;)
+        {
+          skip_spaces();
+          pc = peekbyte(0);
+          nc = peekbyte(1);
+          if (pc==EOF)
+            {
+              goto failure;
+            }
+          else if (pc==':' && nc==')')
+            {
+              consume(2);
+              break;
+            }
+          else if ((pc<127 && isdigit(pc)) || (nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
+            {
+              const char*curp = peekchars();
+              char*endp = nullptr;
+              double x = strtod(curp, &endp);
+              consume(endp-curp);
+              v.push_back(x);
+            }
+          else
+            MOM_PARSE_FAILURE(this, "invalid double sequence");
+        }
+      if (pgotval) *pgotval = true;
+      return MomValue(MomDoubleSq::make_from_vector(v));
     }
   else if (pc=='[') // tuple
     {
@@ -120,6 +148,63 @@ again:
 failure:
   if (pgotval)
     *pgotval = false;
+  restore_state(inioff, inilincnt, inicol);
+  return nullptr;
+} // end of MomParser::parse_value
+
+
+MomObject*
+MomParser::parse_objptr(bool *pgotob)
+{
+  MomObject*respob = nullptr;
+  auto inioff = _parlinoffset;
+  auto inicol = _parcol;
+  auto inilincnt = _parlincount;
+  int pc = 0;
+  int nc = 0;
+again:
+  if (eol())
+    {
+      skip_spaces();
+      if (eol() && !_parinp) goto failure;
+      goto again;
+    }
+  pc = peekbyte(0);
+  nc = peekbyte(1);
+  if (pc < 127 && isspace(pc))
+    {
+      skip_spaces();
+      goto again;
+    }
+  else if (pc=='_' && nc<127 && isdigit(nc))
+    {
+      const char* endp = nullptr;
+      const char*curp = peekchars();
+      auto id = MomIdent::make_from_cstr(curp,&endp);
+      if (id.is_null()) goto failure;
+      if (_parmakefromid)
+        respob = MomObject::make_object_of_id(id);
+      else
+        respob = MomObject::find_object_of_id(id);
+      if (respob)
+        {
+          consume(endp-curp);
+          if (pgotob)
+            *pgotob = true;
+          return respob;
+        }
+      else goto failure;
+    }
+  else if (pc=='_' && nc=='_')
+    {
+      consume(2);
+      if (pgotob)
+        *pgotob = true;
+      return nullptr;
+    }
+failure:
+  if (pgotob)
+    *pgotob = false;
   restore_state(inioff, inilincnt, inicol);
   return nullptr;
 } // end of MomParser::parse_value

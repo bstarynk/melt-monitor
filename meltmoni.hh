@@ -1546,6 +1546,7 @@ class MomParser			// in file parsemit.cc
   long _parlinoffset;
   int _parcol;
   bool _parsilent;
+  bool _parmakefromid;
 public:
   class Mom_parse_failure : public Mom_runtime_failure
   {
@@ -1560,7 +1561,7 @@ public:
     };
   };
   MomParser(std::istream&inp, unsigned lincount=0)
-    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}, _parsilent{false}
+    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}, _parsilent{false}, _parmakefromid{false}
   {
   }
   ~MomParser()
@@ -1638,6 +1639,7 @@ public:
       _parlincount++;
   }
   MomValue parse_value(bool* pgotval);
+  MomObject* parse_objptr(bool* pgotob);
 };				// end class MomParser
 
 #define MOM_PARSE_FAILURE_AT(Par,Fil,Lin,Log) do {		\
