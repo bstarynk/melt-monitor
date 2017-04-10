@@ -1554,6 +1554,10 @@ public:
     Mom_parse_failure(const MomParser* pa, const char*fil, int lin, const std::string&msg)
       : Mom_runtime_failure(fil,lin,msg), _pars(pa) {}
     ~Mom_parse_failure() = default;
+    const MomParser* parser() const
+    {
+      return _pars;
+    };
   };
   MomParser(std::istream&inp, unsigned lincount=0)
     : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}, _parsilent{false}
@@ -1599,6 +1603,18 @@ public:
         next_line();
       }
   }
+  void restore_state(long offset, int linecount, int col)
+  {
+    if ((long)_parinp.tellg() != (long)(_parlinoffset+_parlinstr.size()+1))
+      {
+        _parlinstr.clear();
+        _parinp.seekg(offset);
+        std::getline(_parinp, _parlinstr);
+        _parcol = 0;
+        _parlincount = linecount;
+      }
+    _parcol = col;
+  };
   void skip_spaces()
   {
     for (;;)
@@ -1641,6 +1657,9 @@ public:
 #define MOM_PARSE_FAILURE(Par,Log)			\
   MOM_PARSE_FAILURE_AT_BIS((Par),__FILE__,__LINE__,Log)
 
+
+
+////////////////
 class MomEmitter 		// in file parsemit.cc
 {
   std::ostream &_emout;
