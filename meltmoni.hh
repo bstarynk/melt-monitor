@@ -769,6 +769,7 @@ class MomNodeVal;		/* value, hash-consed node: the
  are values */
 ////
 class MomObject;
+class MomPayload;
 
 enum class MomKind : std::int8_t
 {
@@ -1304,7 +1305,7 @@ public:
 struct MomObjptrLess
 {
   inline bool operator()  (const MomObject*, const MomObject*);
-};
+};				// end MomObjptrLess
 
 struct MomIdentBucketHash
 {
@@ -1313,7 +1314,13 @@ struct MomIdentBucketHash
     return ((145219L * id.hi().serial()) ^ (415271L * id.lo().serial()))
            + id.hi().serial();
   }
-};
+}; //end MomIdentBucketHash
+
+
+struct MomObjptrHash
+{
+  inline size_t operator() (const MomObject*pob) const;
+};				// en MomObjptrHash
 
 typedef std::set<MomObject*,MomObjptrLess> MomObjptrSet;
 typedef std::vector<MomObject*> MomObjptrVector;
@@ -1464,15 +1471,19 @@ public:
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
 
-class MomObject : public MomAnyVal // in objectv.cc
+class MomObject final : public MomAnyVal // in objectv.cc
 {
+  friend class MomPayload;
   static std::mutex _bumtxarr_[MomSerial63::_maxbucket_];
   static std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _bumaparr_[MomSerial63::_maxbucket_];
   static constexpr unsigned _bumincount_ = 16;
   const MomIdent _ob_id;
   mutable std::shared_mutex _ob_shmtx;
+  std::unordered_map<MomObject*,MomValue,MomObjptrHash> _ob_attrs;
+  MomPayload* _ob_payl;
   MomObject(const MomIdent id, MomHash h);
 public:
+  ~MomObject();
   static MomObject*find_object_of_id(const MomIdent id);
   static MomObject*make_object_of_id(const MomIdent id);
   static MomObject*make_object(void); // of random id
@@ -1526,6 +1537,8 @@ public:
     return MomKind::TagObjectK;
   };
   virtual void scan_gc(MomGC*) const;
+  inline void unsync_clear_payload();
+  void unsync_clear_all();
 }; // end class MomObject
 
 
@@ -1536,6 +1549,26 @@ MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2)
 }      // end MomObjptrLess::operator
 
 
+size_t
+MomObjptrHash::operator() (const MomObject*pob) const
+{
+  if (!pob) return 0;
+  return pob->hash();
+}
+
+class MomPayload
+{
+  friend class MomObject;
+protected:
+  const MomObject* _py_owner;
+  virtual void scan_gc(MomGC*) const =0;
+  virtual ~MomPayload()
+  {
+    auto ownob = _py_owner;
+    _py_owner = nullptr;
+    if (ownob) const_cast<MomObject*>(ownob)->unsync_clear_payload();
+  }
+};    // end MomPayload
 ////////////////////////////////////////////////////////////////
 
 class MomParser			// in file parsemit.cc
@@ -1675,5 +1708,14 @@ public:
   void emit_space();
   void emit_value(const MomValue v, int depth=0);
 };				// end class MomEmitter
+
+void
+MomObject::unsync_clear_payload()
+{
+  auto py = _ob_payl;
+  _ob_payl = nullptr;
+  if (py)
+    delete py;
+}
 
 #endif /*MONIMELT_INCLUDED_ */

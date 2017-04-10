@@ -323,12 +323,25 @@ MomObject::find_object_of_id(const MomIdent id)
 
 
 MomObject::MomObject(const MomIdent id, MomHash h)
-  : MomAnyVal(MomKind::TagObjectK, h, 0)
+  : MomAnyVal(MomKind::TagObjectK, h, 0),
+    _ob_id(id), _ob_shmtx(),
+    _ob_attrs{},
+    _ob_payl(nullptr)
 {
   MOM_ASSERT(h != 0 && id.hash() == h, "MomObject::MomObject corrupted h=" << h << " for id=" << id);
 } // end MomObject::MomObject
 
+void
+MomObject::unsync_clear_all()
+{
+  _ob_attrs.clear();
+  unsync_clear_payload();
+} // end MomObject::unsync_clear_all
 
+MomObject::~MomObject()
+{
+  unsync_clear_all();
+} // end MomObject::~MomObject
 
 MomObject*
 MomObject::make_object_of_id(const MomIdent id)
@@ -386,3 +399,4 @@ MomObject::scan_gc(MomGC*) const
 #warning unimplemented MomObject::scan_gc
   MOM_FATAPRINTF("unimplemented MomObject::scan_gc");
 } // end of MomObject::scan_gc
+
