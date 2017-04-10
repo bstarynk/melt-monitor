@@ -378,3 +378,11 @@ MomObject::make_object(void)
     }
   return resob;
 } // end MomObject::make_object
+
+
+void
+MomObject::scan_gc(MomGC*) const
+{
+#warning unimplemented MomObject::scan_gc
+  MOM_FATAPRINTF("unimplemented MomObject::scan_gc");
+} // end of MomObject::scan_gc
