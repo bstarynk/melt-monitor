@@ -1480,6 +1480,8 @@ class MomNode final : public MomAnyVal
     memcpy (const_cast<MomValue*>(_nod_sons), sons, arity * sizeof(MomValue));
   };
 public:
+  static MomHash compute_hash(const MomObject*conn, const MomValue*, MomSize sz);
+  bool has_content(const MomObject*conn, const MomValue*, MomSize sz);
   static const MomNode* make_from_array(const MomObject*conn, const MomValue*, MomSize sz);
   static const MomNode* make_from_vector(const MomObject*conn, const std::vector<MomValue>& vvec)
   {
