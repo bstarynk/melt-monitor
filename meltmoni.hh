@@ -764,7 +764,7 @@ class MomString;	// value, UTF8 read-only hash-consed string
 class MomAnySeqObjVal;		// abstract superclass of hash-consed object sequences (sets or tuples)
 class MomSet;		// value, hash-consed set of objects
 class MomTuple;		// value, hash-consed tuple of objects
-class MomNodeVal;		/* value, hash-consed node: the
+class MomNode;		/* value, hash-consed node: the
  connective is an object, the sons
  are values */
 ////
@@ -965,7 +965,7 @@ public:
   friend class MomAnySeqObjVal;
   friend class MomSet;
   friend class MomTuple;
-  friend class MomNodeVal;
+  friend class MomNode;
   friend class MomGC;
   static constexpr MomSize _max_size = 1 << 27; // 134217728
   static constexpr size_t _alignment = 2*sizeof(void*);
@@ -1095,19 +1095,19 @@ public:
     else return def;
   }
   // nodes
-  const MomNodeVal* as_node() const
+  const MomNode* as_node() const
   {
     if (kindw() != MomKind::TagNodeK)
       MOM_FAILURE("MomAnyVal::as_node not node " << this);
-    return reinterpret_cast<const MomNodeVal*>(this);
+    return reinterpret_cast<const MomNode*>(this);
   }
   bool is_node() const
   {
     return kindw() == MomKind::TagNodeK;
   };
-  const MomNodeVal* to_node(const MomNodeVal* def=nullptr) const
+  const MomNode* to_node(const MomNode* def=nullptr) const
   {
-    if (is_node()) return  reinterpret_cast<const MomNodeVal*>(this);
+    if (is_node()) return  reinterpret_cast<const MomNode*>(this);
     else return def;
   }
   //
@@ -1467,6 +1467,41 @@ public:
 }; // end class MomTuple
 
 
+
+
+////////////////////////////////////////////////////////////////
+class MomNode final : public MomAnyVal
+{
+  MomObject* const _nod_conn;
+  const MomValue _nod_sons[MOM_FLEXIBLE_DIM];
+  MomNode(MomObject*conn, const MomValue*sons, unsigned arity, MomHash h)
+    : MomAnyVal(MomKind::TagNodeK, arity, h), _nod_conn(conn), _nod_sons{nullptr}
+  {
+    memcpy (const_cast<MomValue*>(_nod_sons), sons, arity * sizeof(MomValue));
+  };
+public:
+  static const MomNode* make_from_array(const MomObject*conn, const MomValue*, MomSize sz);
+  static const MomNode* make_from_vector(const MomObject*conn, const std::vector<MomValue>& vvec)
+  {
+    return make_from_array(conn, vvec.data(), vvec.size());
+  };
+  static const MomNode* make_from_ilist(const MomObject*conn, std::initializer_list<const MomValue> il)
+  {
+    return make_from_array(conn, il.begin(), il.size());
+  };
+  template <typename... Ts>
+  static const MomNode* make_from_values(const MomObject*conn, Ts... args)
+  {
+    return make_from_ilist(conn, std::initializer_list<const MomValue> {args...});
+  };
+  virtual MomKind vkind() const
+  {
+    return MomKind::TagNodeK;
+  };
+protected:
+  ~MomNode();
+  virtual void scan_gc(MomGC*) const ;
+};    // end class MomNode
 
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
