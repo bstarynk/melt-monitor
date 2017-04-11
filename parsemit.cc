@@ -126,9 +126,50 @@ again:
     }
   else if (pc=='[') // tuple
     {
+      consume(1);
+      MomObjptrVector vec;
+      for (;;)
+        {
+          bool gotcurobj = false;
+          MomObject* curob = nullptr;
+          skip_spaces();
+          pc = peekbyte(0);
+          if (pc == '}')
+            {
+              consume(1);
+              break;
+            }
+          curob = parse_objptr(&gotcurobj);
+          if (!curob || !gotcurobj)
+            MOM_PARSE_FAILURE(this, "missing component object in vector");
+        }
+      if (pgotval)
+        *pgotval = true;
+      return MomValue(MomTuple::make_from_objptr_vector(vec));
     }
   else if (pc=='{') // set
     {
+      MomObjptrSet set;
+      consume(1);
+      for (;;)
+        {
+          bool gotcurobj = false;
+          skip_spaces();
+          MomObject* curob = nullptr;
+          pc = peekbyte(0);
+          if (pc == '}')
+            {
+              consume(1);
+              break;
+            }
+          curob = parse_objptr(&gotcurobj);
+          if (!curob || !gotcurobj)
+            MOM_PARSE_FAILURE(this, "missing element object in set");
+          set.insert(curob);
+        }
+      if (pgotval)
+        *pgotval = true;
+      return MomValue(MomSet::make_from_objptr_set(set));
     }
   else if (pc=="°"[0] && nc=="°"[1])
     {
@@ -138,6 +179,8 @@ again:
       auto vv = MomParser::parse_value(&gotvval);
       if (gotvval)
         {
+          if (pgotval)
+            *pgotval = true;
           if (vv.is_val())
             return MomValue(vv.to_val(),MomTransientTag{});
           else return vv;
