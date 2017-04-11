@@ -762,8 +762,8 @@ class MomIntSq;		// value, read-only hash-consed sequence of integers
 class MomDoubleSq;	// value, read-only hash-consed sequence of doubles
 class MomString;	// value, UTF8 read-only hash-consed string
 class MomAnySeqObjVal;		// abstract superclass of hash-consed object sequences (sets or tuples)
-class MomSetVal;		// value, hash-consed set of objects
-class MomTupleVal;		// value, hash-consed tuple of objects
+class MomSet;		// value, hash-consed set of objects
+class MomTuple;		// value, hash-consed tuple of objects
 class MomNodeVal;		/* value, hash-consed node: the
  connective is an object, the sons
  are values */
@@ -963,8 +963,8 @@ public:
   friend class MomDoubleSq;
   friend class MomString;
   friend class MomAnySeqObjVal;
-  friend class MomSetVal;
-  friend class MomTupleVal;
+  friend class MomSet;
+  friend class MomTuple;
   friend class MomNodeVal;
   friend class MomGC;
   static constexpr MomSize _max_size = 1 << 27; // 134217728
@@ -1063,35 +1063,35 @@ public:
     else return def;
   }
   // sets
-  const MomSetVal* as_set() const
+  const MomSet* as_set() const
   {
     if (kindw() != MomKind::TagSetK)
       MOM_FAILURE("MomAnyVal::as_set not set " << this);
-    return reinterpret_cast<const MomSetVal*>(this);
+    return reinterpret_cast<const MomSet*>(this);
   }
   bool is_set() const
   {
     return kindw() == MomKind::TagSetK;
   };
-  const MomSetVal* to_set(const MomSetVal* def=nullptr) const
+  const MomSet* to_set(const MomSet* def=nullptr) const
   {
-    if (is_set()) return  reinterpret_cast<const MomSetVal*>(this);
+    if (is_set()) return  reinterpret_cast<const MomSet*>(this);
     else return def;
   }
   // tuples
-  const MomTupleVal* as_tuple() const
+  const MomTuple* as_tuple() const
   {
     if (kindw() != MomKind::TagTupleK)
       MOM_FAILURE("MomAnyVal::as_tuple not tuple " << this);
-    return reinterpret_cast<const MomTupleVal*>(this);
+    return reinterpret_cast<const MomTuple*>(this);
   }
   bool is_tuple() const
   {
     return kindw() == MomKind::TagTupleK;
   };
-  const MomTupleVal* to_tuple(const MomTupleVal* def=nullptr) const
+  const MomTuple* to_tuple(const MomTuple* def=nullptr) const
   {
-    if (is_tuple()) return  reinterpret_cast<const MomTupleVal*>(this);
+    if (is_tuple()) return  reinterpret_cast<const MomTuple*>(this);
     else return def;
   }
   // nodes
@@ -1556,6 +1556,8 @@ MomObjptrHash::operator() (const MomObject*pob) const
   return pob->hash();
 }
 
+
+////////////////
 class MomPayload
 {
   friend class MomObject;
@@ -1568,6 +1570,8 @@ protected:
     _py_owner = nullptr;
     if (ownob) const_cast<MomObject*>(ownob)->unsync_clear_payload();
   }
+  MomPayload(const MomObject* owner) :
+    _py_owner(owner) {};
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
 
