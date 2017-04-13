@@ -941,6 +941,7 @@ public:
       return (const MomAnyVal*)(_v & ~7);
     else return def;
   }
+  inline MomHash hash() const;
 };				// end class MomValue
 
 
@@ -1128,9 +1129,33 @@ protected:
     MOM_ASSERT(sz<_max_size, "MomAnyVal huge size " << sz);
   };
   virtual ~MomAnyVal() {};
-  virtual MomKind vkind() const =0;
   virtual void scan_gc(MomGC*) const =0;
+public:
+  virtual MomKind vkind() const =0;
 };				// end class MomAnyVal
+
+MomHash
+MomValue::hash() const
+{
+  if (is_empty()) return 0;
+  if (is_tagint())
+    {
+      auto iv = as_tagint();
+      MomHash h = (iv * 241) ^ (iv >> 28);
+      if (MOM_UNLIKELY(h==0))
+        h = (iv & 0xfffff) + 130;
+      return h;
+    }
+  auto v = as_val();
+  MomHash h = v->hash();
+  if (MOM_UNLIKELY(is_transient()))
+    {
+      h = (317*h) ^ (31*(((unsigned)v->vkind())+10));
+      if (MOM_UNLIKELY(h==0))
+        h = 31*(((unsigned)v->vkind()) & 0xfffff) + 10;
+    }
+  return h;
+} // end MomValue::hash
 
 /// internally, in many values, we end with a flexible array member of scalar or pointers
 /// since that do not exist in standard C++, we use the fictious dimension:
@@ -1470,7 +1495,7 @@ public:
 
 
 ////////////////////////////////////////////////////////////////
-class MomNode final : public MomAnyVal
+class MomNode final : public MomAnyVal // in nodev.cc
 {
   MomObject* const _nod_conn;
   const MomValue _nod_sons[MOM_FLEXIBLE_DIM];
@@ -1480,7 +1505,7 @@ class MomNode final : public MomAnyVal
     memcpy (const_cast<MomValue*>(_nod_sons), sons, arity * sizeof(MomValue));
   };
 public:
-  static MomHash compute_hash(const MomObject*conn, const MomValue*, MomSize sz);
+  static MomHash compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz);
   bool has_content(const MomObject*conn, const MomValue*, MomSize sz);
   static const MomNode* make_from_array(const MomObject*conn, const MomValue*, MomSize sz);
   static const MomNode* make_from_vector(const MomObject*conn, const std::vector<MomValue>& vvec)
