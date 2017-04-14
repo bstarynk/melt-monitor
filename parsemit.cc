@@ -29,6 +29,7 @@ MomParser::parse_value(bool *pgotval)
   int pc = 0;
   int nc = 0;
 again:
+  skip_spaces();
   if (eol())
     {
       skip_spaces();
