@@ -1187,6 +1187,10 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
     return (h ^ (h / 2316179)) % _swidth_;
   };
 public:
+  intptr_t unsafe_at(unsigned ix) const
+  {
+    return _ivalarr[ix];
+  };
   const intptr_t *begin() const
   {
     return _ivalarr;
@@ -1252,6 +1256,10 @@ public:
   const double *end() const
   {
     return _dvalarr+sizew();
+  };
+  double unsafe_at(unsigned ix) const
+  {
+    return _dvalarr[ix];
   };
   static MomHash hash_double (double d);
   static MomHash compute_hash(const double* iarr, MomSize sz);
@@ -1816,9 +1824,17 @@ public:
   }
   void emit_newline(int depth);
   void emit_value(const MomValue v, int depth=0);
+  std::ostream &out()
+  {
+    return _emout;
+  };
   int column() const
   {
     return _emout.tellp() - _emlastnewline;
+  };
+  bool too_wide(int off=0) const
+  {
+    return column()+off >= _emlinewidth;
   };
 };				// end class MomEmitter
 
