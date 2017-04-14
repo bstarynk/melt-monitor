@@ -1702,17 +1702,21 @@ public:
     return _parcol >= (int)_parlinstr.size();
   };
   static constexpr unsigned _maxpeek_ = 16;
-  int peekbyte(unsigned off=0)
+  int peekbyte(unsigned off=0) const
   {
     if (_parcol<0) return EOF;
     if (_parcol+off > _parlinstr.size()) return EOF;
     return _parlinstr[_parcol+off];
   }
-  const char* peekchars(unsigned off=0)
+  const char* peekchars(unsigned off=0) const
   {
     if (_parcol<0) return nullptr;
     if (_parcol+off > _parlinstr.size()) return nullptr;
     return _parlinstr.c_str()+_parcol+off;
+  }
+  bool gotcstr (const char*str, unsigned off=0) const
+  {
+    return !strncmp(str, peekchars(off), strlen(str));
   }
   void consume(unsigned nbytes)
   {

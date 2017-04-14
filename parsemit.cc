@@ -171,6 +171,41 @@ again:
         *pgotval = true;
       return MomValue(MomSet::make_from_objptr_set(set));
     }
+  else if (pc=='*' && nc<127 && !(nc>0 && ispunct(nc))) // node
+    {
+      MomObject* connob = nullptr;
+      bool gotconn = false;
+      std::vector<MomValue> sonvec;
+      consume(1);
+      skip_spaces();
+      connob = parse_objptr(&gotconn);
+      if (!connob || !gotconn)
+        MOM_PARSE_FAILURE(this, "missing connective object in node");
+      skip_spaces();
+      pc = peekbyte(0);
+      if (pc != '(')
+        MOM_PARSE_FAILURE(this, "missing left parenthesis in node of " << connob);
+      consume(1);
+      for (;;)
+        {
+          bool gotcurval = false;
+          MomValue curval{nullptr};
+          skip_spaces();
+          pc = peekbyte(0);
+          if (pc == ')')
+            {
+              consume(1);
+              break;
+            }
+          curval = parse_value(&gotcurval);
+          if (!curval || !gotcurval)
+            MOM_PARSE_FAILURE(this, "missing son#" << sonvec.size() << " in node of " << connob);
+          sonvec.push_back(curval);
+        }
+      if (pgotval)
+        *pgotval = true;
+      return MomValue(MomNode::make_from_vector(connob,sonvec));
+    }
   else if (pc=="°"[0] && nc=="°"[1])
     {
       static_assert(sizeof("°")==3, "wrong length for °");
@@ -313,6 +348,8 @@ MomEmitter::emit_value(const MomValue v, int depth)
         break;
         case MomKind::TagNodeK:
         {
+          _emout << "*";
+#warning should emit node content
         }
         break;
         case MomKind::TagObjectK:
