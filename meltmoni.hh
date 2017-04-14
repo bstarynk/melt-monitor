@@ -856,6 +856,14 @@ public:
   {
     return is_empty();
   };
+  bool operator == (const MomValue r) const
+  {
+    return _v == r._v;
+  };
+  bool operator != (const MomValue r) const
+  {
+    return _v != r._v;
+  };
   MomValue(MomEmpEnum ev) :
     _v(ev==MomEmpEnum::NoneE?0:_the_empty_v_) {};
   // tagged integers
@@ -1497,17 +1505,32 @@ public:
 ////////////////////////////////////////////////////////////////
 class MomNode final : public MomAnyVal // in nodev.cc
 {
-  MomObject* const _nod_conn;
+  const MomObject* const _nod_conn;
   const MomValue _nod_sons[MOM_FLEXIBLE_DIM];
-  MomNode(MomObject*conn, const MomValue*sons, unsigned arity, MomHash h)
+  MomNode(const MomObject*conn, const MomValue*sons, unsigned arity, MomHash h)
     : MomAnyVal(MomKind::TagNodeK, arity, h), _nod_conn(conn), _nod_sons{nullptr}
   {
     memcpy (const_cast<MomValue*>(_nod_sons), sons, arity * sizeof(MomValue));
   };
+  static constexpr const int _swidth_ = 512;
+  static std::mutex _mtxarr_[_swidth_];
+  static std::unordered_multimap<MomHash,const MomNode*> _maparr_[_swidth_];
+  static unsigned slotindex(MomHash h)
+  {
+    return (h ^ (h /3500183)) % _swidth_;
+  };
 public:
   static MomHash compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz);
-  bool has_content(const MomObject*conn, const MomValue*, MomSize sz);
-  static const MomNode* make_from_array(const MomObject*conn, const MomValue*, MomSize sz);
+  bool has_content(const MomObject*conn, const MomValue*varr, MomSize sz) const
+  {
+    if (_nod_conn != conn) return false;
+    if (sizew() != sz) return false;
+    if (sz > 0 && varr == nullptr) return false;
+    for (unsigned ix=0; ix<(unsigned)sz; ix++)
+      if (MOM_LIKELY(_nod_sons[ix] != varr[ix])) return false;
+    return true;
+  }
+  static const MomNode* make_from_array(const MomObject*conn, const MomValue*varr, MomSize sz);
   static const MomNode* make_from_vector(const MomObject*conn, const std::vector<MomValue>& vvec)
   {
     return make_from_array(conn, vvec.data(), vvec.size());
@@ -1526,7 +1549,7 @@ public:
     return MomKind::TagNodeK;
   };
 protected:
-  ~MomNode();
+  ~MomNode() {};
   virtual void scan_gc(MomGC*) const ;
 };    // end class MomNode
 
