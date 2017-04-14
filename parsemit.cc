@@ -171,6 +171,18 @@ again:
         *pgotval = true;
       return MomValue(MomSet::make_from_objptr_set(set));
     }
+  else if (pc=='"')   // JSON encoded UTF8 string, on the same line
+    {
+      consume(1);
+      std::string restinline{peekchars()};
+      std::istringstream ins{restinline};
+      auto str = mom_input_quoted_utf8_string(ins);
+      consume(ins.tellp());
+      pc = peekbyte(0);
+      if (pc != '"')
+        MOM_PARSE_FAILURE(this, "expecting doublequote ending string, but got " << (char)pc);
+      consume(1);
+    }
   else if (pc=='*' && nc<127 && !(nc>0 && ispunct(nc))) // node
     {
       MomObject* connob = nullptr;
