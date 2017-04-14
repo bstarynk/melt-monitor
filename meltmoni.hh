@@ -1556,6 +1556,23 @@ public:
   {
     return MomKind::TagNodeK;
   };
+  const MomObject* conn() const
+  {
+    return  _nod_conn;
+  };
+  typedef const MomValue* iterator;
+  const MomValue* begin() const
+  {
+    return _nod_sons;
+  };
+  const MomValue* end() const
+  {
+    return _nod_sons + sizew();
+  };
+  const MomValue unsafe_at(unsigned ix) const
+  {
+    return _nod_sons[ix];
+  };
 protected:
   ~MomNode() {};
   virtual void scan_gc(MomGC*) const ;
@@ -1801,6 +1818,7 @@ class MomEmitter 		// in file parsemit.cc
   std::ostream &_emout;
   std::ostream::pos_type _emlastnewline;
   int _emlinewidth;
+  bool _emnotransient;
 public:
   static constexpr int _default_line_width_ = 96;
   static constexpr int _min_line_width_ = 48;
@@ -1808,9 +1826,16 @@ public:
   MomEmitter(std::ostream&out)
     : _emout(out),
       _emlastnewline(out.tellp()),
-      _emlinewidth(_default_line_width_)
+      _emlinewidth(_default_line_width_),
+      _emnotransient(false)
   {
   }
+  virtual ~MomEmitter() {};
+  virtual bool skippable_object(const MomObject*pob) const;
+  virtual bool skippable_connective(const MomObject*pob) const
+  {
+    return skippable_object(pob);
+  };
   void emit_space(int depth)
   {
     if (column() >= _emlinewidth+1)
@@ -1825,6 +1850,7 @@ public:
   void emit_newline(int depth);
   void emit_raw_newline();
   void emit_value(const MomValue v, int depth=0);
+  void emit_objptr(const MomObject*pob, int depth=0);
   std::ostream &out()
   {
     return _emout;

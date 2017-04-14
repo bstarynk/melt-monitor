@@ -307,6 +307,12 @@ MomEmitter::emit_newline(int depth)
       _emout << ' ';
 } // end MomEmitter::emit_newline
 
+bool
+MomEmitter::skippable_object(const MomObject*pob) const
+{
+  return pob==nullptr;
+}
+
 void
 MomEmitter::emit_value(const MomValue v, int depth)
 {
@@ -323,6 +329,8 @@ MomEmitter::emit_value(const MomValue v, int depth)
     }
   else if (v.is_transient())
     {
+      if (_emnotransient)
+        return;
       _emout << "°";
       emit_value(MomValue{v.to_transient()}, depth);
     }
@@ -373,12 +381,28 @@ MomEmitter::emit_value(const MomValue v, int depth)
         break;
         case MomKind::TagNodeK:
         {
+          auto ndv = reinterpret_cast<const MomNode*>(vv);
+          auto co = ndv->conn();
+          if (skippable_connective(co))
+            return;
           _emout << "*";
-#warning should emit node content
+          emit_objptr(co, depth);
+          _emout << '(';
+          emit_maybe_newline(depth+1);
+          unsigned sz = ndv->sizew();
+          for (unsigned ix=0; ix<sz; ix++)
+            {
+              if (ix>0) emit_space(depth+1);
+              emit_value(ndv->unsafe_at(ix), depth+1);
+            }
+          _emout << ')';
         }
         break;
         case MomKind::TagObjectK:
         {
+          auto pob = reinterpret_cast<const MomObject*>(vv);
+          if (skippable_object(pob)) return;
+          emit_objptr(pob, depth);
         }
         break;
         case MomKind::TagIntK:
@@ -388,3 +412,11 @@ MomEmitter::emit_value(const MomValue v, int depth)
         }
     }
 } // end of MomEmitter::emit_value
+
+void
+MomEmitter::emit_objptr(const MomObject*pob, int depth MOM_UNUSED)
+{
+  if (skippable_object(pob)) return;
+#warning MomEmitter::emit_objptr should deal with named objects
+  out() << pob->id();
+} // end MomEmitter::emit_objptr
