@@ -290,13 +290,18 @@ failure:
 
 
 
+void
+MomEmitter::emit_raw_newline()
+{
+  _emout << std::endl;
+  _emlastnewline = _emout.tellp();
+}// end MomEmitter::emit_raw_newline
 
 
 void
 MomEmitter::emit_newline(int depth)
 {
-  _emout << std::endl;
-  _emlastnewline = _emout.tellp();
+  emit_raw_newline();
   if (depth>0)
     for (int ix=depth % _max_indent; ix>0; ix--)
       _emout << ' ';

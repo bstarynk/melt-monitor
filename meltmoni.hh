@@ -1823,6 +1823,7 @@ public:
     if (column() >= _emlinewidth) emit_newline(depth);
   }
   void emit_newline(int depth);
+  void emit_raw_newline();
   void emit_value(const MomValue v, int depth=0);
   std::ostream &out()
   {
