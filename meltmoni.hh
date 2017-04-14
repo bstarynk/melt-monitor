@@ -1792,14 +1792,34 @@ class MomEmitter 		// in file parsemit.cc
 {
   std::ostream &_emout;
   std::ostream::pos_type _emlastnewline;
+  int _emlinewidth;
 public:
+  static constexpr int _default_line_width_ = 96;
+  static constexpr int _min_line_width_ = 48;
+  static constexpr int _max_indent = 16;
   MomEmitter(std::ostream&out)
     : _emout(out),
-      _emlastnewline(out.tellp())
+      _emlastnewline(out.tellp()),
+      _emlinewidth(_default_line_width_)
   {
   }
-  void emit_space();
+  void emit_space(int depth)
+  {
+    if (column() >= _emlinewidth+1)
+      emit_newline(depth);
+    else
+      _emout << ' ';
+  }
+  void emit_maybe_newline(int depth)
+  {
+    if (column() >= _emlinewidth) emit_newline(depth);
+  }
+  void emit_newline(int depth);
   void emit_value(const MomValue v, int depth=0);
+  int column() const
+  {
+    return _emout.tellp() - _emlastnewline;
+  };
 };				// end class MomEmitter
 
 void

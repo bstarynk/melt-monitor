@@ -289,12 +289,18 @@ failure:
 
 
 
+
+
+
 void
-MomEmitter::emit_space()
+MomEmitter::emit_newline(int depth)
 {
-  MOM_FATAPRINTF("unimplemented MomEmitter::emit_space");
-#warning unimplemented MomEmitter::emit_space
-} // end MomEmitter::emit_space
+  if (depth<0) depth=0;
+  _emout << std::endl;
+  _emlastnewline = _emout.tellp();
+  for (int ix=depth % _max_indent; ix>0; ix--)
+    _emout << ' ';
+} // end MomEmitter::emit_newline
 
 void
 MomEmitter::emit_value(const MomValue v, int depth)
