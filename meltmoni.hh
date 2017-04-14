@@ -1313,6 +1313,14 @@ class MomString final : public MomAnyVal   // in scalarv.cc
   };
   static std::unordered_multimap<MomHash,const MomString*> _maparr_[_swidth_];
 public:
+  const char*cstr() const
+  {
+    return _bstr;
+  };
+  unsigned bytelen() const
+  {
+    return _bylen;
+  };
   static MomHash compute_hash_dim(const char*cstr, MomSize*psiz=nullptr, uint32_t*pbylen=nullptr);
   static const MomString* make_from_cstr(const char*cstr);
   static const MomString* make_from_string(const std::string&str)

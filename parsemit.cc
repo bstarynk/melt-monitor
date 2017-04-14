@@ -177,12 +177,13 @@ again:
       std::string restinline{peekchars()};
       std::istringstream ins{restinline};
       auto str = mom_input_quoted_utf8_string(ins);
-      consume(ins.tellp());
+      consume(ins.tellg());
       pc = peekbyte(0);
       if (pc != '"')
         MOM_PARSE_FAILURE(this, "expecting doublequote ending string, but got " << (char)pc);
       consume(1);
     }
+#warning we also want multi-line raw strings like `ab0|foobar\here|ab0`
   else if (pc=='*' && nc<127 && !(nc>0 && ispunct(nc))) // node
     {
       MomObject* connob = nullptr;
@@ -381,14 +382,57 @@ MomEmitter::emit_value(const MomValue v, int depth)
         break;
         case MomKind::TagStringK:
         {
+          auto strv = reinterpret_cast<const MomString*>(vv);
+          unsigned sz = strv->sizew();
+          emit_maybe_newline(depth);
+          out() << '"';
+          char *buf = nullptr;
+          size_t bsz = 0;
+          FILE* f = open_memstream(&buf, &bsz);
+          if (!f) MOM_FATAPRINTF("open_memstream failure");
+          mom_output_utf8_encoded (f, strv->cstr(), strv->bytelen());
+          fflush(f);
+          out().write(buf, bsz);
+          out() << '"';
+          fclose(f);
+          free (buf), buf=nullptr;
+#warning should probably emit long strings specifically, as raw strings
         }
         break;
         case MomKind::TagSetK:
         {
+          auto setv = reinterpret_cast<const MomSet*>(vv);
+          unsigned sz = setv->sizew();
+          emit_maybe_newline(depth);
+          _emout << "{";
+          int cnt=0;
+          for (unsigned ix=0; ix<sz; ix++)
+            {
+              auto elemob = setv->unsafe_at(ix);
+              if (skippable_object(elemob)) continue;
+              if (cnt>0) emit_space(depth+1);
+              cnt++;
+              emit_objptr(elemob, depth+1);
+            }
+          _emout << "}";
         }
         break;
         case MomKind::TagTupleK:
         {
+          auto tupv = reinterpret_cast<const MomTuple*>(vv);
+          unsigned sz = setv->sizew();
+          emit_maybe_newline(depth);
+          _emout << "[";
+          int cnt=0;
+          for (unsigned ix=0; ix<sz; ix++)
+            {
+              auto compob = tupv->unsafe_at(ix);
+              if (skippable_object(compob)) continue;
+              if (cnt>0) emit_space(depth+1);
+              cnt++;
+              emit_objptr(compob, depth+1);
+            }
+          _emout << "]";
         }
         break;
         case MomKind::TagNodeK:
