@@ -295,11 +295,11 @@ failure:
 void
 MomEmitter::emit_newline(int depth)
 {
-  if (depth<0) depth=0;
   _emout << std::endl;
   _emlastnewline = _emout.tellp();
-  for (int ix=depth % _max_indent; ix>0; ix--)
-    _emout << ' ';
+  if (depth>0)
+    for (int ix=depth % _max_indent; ix>0; ix--)
+      _emout << ' ';
 } // end MomEmitter::emit_newline
 
 void
@@ -328,15 +328,29 @@ MomEmitter::emit_value(const MomValue v, int depth)
         {
         case MomKind::TagIntSqK:
         {
+          auto isv = reinterpret_cast<const MomIntSq*>(vv);
+          unsigned sz = isv->sizew();
+          emit_maybe_newline(depth);
           _emout << "(#";
-#warning should emit integer sequence content
+          for (unsigned ix=0; ix<sz; ix++)
+            {
+              if (ix>0) emit_space(depth+1);
+              out() << isv->unsafe_at(ix);
+            }
           _emout << "#)";
         }
         break;
         case MomKind::TagDoubleSqK:
         {
+          auto dsv = reinterpret_cast<const MomDoubleSq*>(vv);
+          unsigned sz = dsv->sizew();
+          emit_maybe_newline(depth);
           _emout << "(:";
-#warning should emit double sequence content
+          for (unsigned ix=0; ix<sz; ix++)
+            {
+              if (ix>0) emit_space(depth+1);
+              out() << dsv->unsafe_at(ix);
+            }
           _emout << ":)";
         }
         break;
