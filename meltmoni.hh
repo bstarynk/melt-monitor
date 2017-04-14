@@ -950,8 +950,14 @@ public:
     else return def;
   }
   inline MomHash hash() const;
+  void output(std::ostream& out) const; /// in file parsemit.cc
 };				// end class MomValue
 
+inline std::ostream& operator << (std::ostream& out, const MomValue val)
+{
+  val.output(out);
+  return out;
+} // end operator << for MomValue
 
 typedef std::uint32_t MomSize; // sizes have 27 bits
 typedef std::uint8_t MomGCMark; // garbage collector marks have 2 bits

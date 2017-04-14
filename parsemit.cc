@@ -420,7 +420,7 @@ MomEmitter::emit_value(const MomValue v, int depth)
         case MomKind::TagTupleK:
         {
           auto tupv = reinterpret_cast<const MomTuple*>(vv);
-          unsigned sz = setv->sizew();
+          unsigned sz = tupv->sizew();
           emit_maybe_newline(depth);
           _emout << "[";
           int cnt=0;
@@ -476,3 +476,11 @@ MomEmitter::emit_objptr(const MomObject*pob, int depth MOM_UNUSED)
 #warning MomEmitter::emit_objptr should deal with named objects
   out() << pob->id();
 } // end MomEmitter::emit_objptr
+
+
+void
+MomValue::output(std::ostream& out) const
+{
+  MomEmitter em(out);
+  em.emit_value(*this);
+} // end MomValue::output

@@ -1312,6 +1312,9 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                         << "peekbyte(2)=" << pars.peekbyte(2) << ' '
                         << "peekbyte(3)=" << pars.peekbyte(3) << ' '
                         << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
+          bool gotval = false;
+          auto val = pars.parse_value(&gotval);
+          MOM_INFORMLOG("parse-val " << (gotval?"with":"without") << " value=" << val);
 #warning incomplete --parse-val
         }
         break;
