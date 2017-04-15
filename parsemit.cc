@@ -199,7 +199,7 @@ again:
       if (pgotval) *pgotval = true;
       return MomValue(MomDoubleSq::make_from_vector(v));
     }
-  else if (pc=='*' && nc<127 && !(nc>0 && ispunct(nc))) // node
+  else if (pc=='*' && nc<127 && !(nc>0 && nc!='_' && ispunct(nc))) // node
     {
       MomObject* connob = nullptr;
       bool gotconn = false;
