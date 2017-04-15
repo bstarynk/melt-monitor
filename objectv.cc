@@ -323,7 +323,7 @@ MomObject::find_object_of_id(const MomIdent id)
 
 
 MomObject::MomObject(const MomIdent id, MomHash h)
-  : MomAnyVal(MomKind::TagObjectK, h, 0),
+  : MomAnyVal(MomKind::TagObjectK, 0, h),
     _ob_id(id), _ob_shmtx(),
     _ob_attrs{},
     _ob_payl(nullptr)

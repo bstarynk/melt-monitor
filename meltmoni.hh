@@ -1713,13 +1713,14 @@ class MomParser			// in file parsemit.cc
   int _parcol;
   bool _parsilent;
   bool _parmakefromid;
+  std::string _parname;
 public:
   class Mom_parse_failure : public Mom_runtime_failure
   {
     const MomParser *_pars;
   public:
     Mom_parse_failure(const MomParser* pa, const char*fil, int lin, const std::string&msg)
-      : Mom_runtime_failure(fil,lin,msg), _pars(pa) {}
+      : Mom_runtime_failure(fil,lin,msg+"@"+pa->location_str()), _pars(pa) {}
     ~Mom_parse_failure() = default;
     const MomParser* parser() const
     {
@@ -1727,9 +1728,34 @@ public:
     };
   };
   MomParser(std::istream&inp, unsigned lincount=0)
-    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}, _parsilent{false}, _parmakefromid{false}
+    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}, _parsilent{false}, _parmakefromid{false}, _parname()
   {
   }
+  MomParser& set_name(const std::string&nam)
+  {
+    _parname=nam;
+    return *this;
+  };
+  MomParser& set_make_from_id(bool mf)
+  {
+    _parmakefromid=mf;
+    return *this;
+  };
+  std::string name() const
+  {
+    return _parname;
+  };
+  bool making_from_id() const
+  {
+    return _parmakefromid;
+  };
+  std::string location_str() const
+  {
+    char lbuf[48];
+    memset(lbuf, 0, sizeof(lbuf));
+    snprintf(lbuf, sizeof(lbuf), ":L%u,C%d", _parlincount, _parcol);
+    return _parname + lbuf;
+  };
   ~MomParser()
   {
   }
@@ -1786,19 +1812,20 @@ public:
       }
     _parcol = col;
   };
-  void skip_spaces()
+  MomParser& skip_spaces()
   {
     for (;;)
       {
         if (eol())
           {
-            if (!_parinp) return;
+            if (!_parinp) return *this;
             next_line();
           }
         else if (isspace(peekbyte()))
           _parcol++;
         else break;
       }
+    return *this;
   }
   void next_line()
   {

@@ -1315,6 +1315,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           std::string pstr{optarg};
           std::istringstream ins{pstr};
           MomParser pars(ins);
+          pars.set_name(std::string{"--parse-val"}).set_make_from_id(true);
           pars.skip_spaces();
           MOM_INFORMLOG("parse-val '" << optarg << "'" << std::endl
                         << "peekbyte(0)=" << pars.peekbyte(0) << ' '
