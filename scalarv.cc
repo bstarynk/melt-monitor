@@ -84,7 +84,7 @@ MomIntSq::make_from_array(const intptr_t* iarr, MomSize sz)
       if (MOM_UNLIKELY(isq->has_content(iarr, sz)))
         return isq;
     }
-  res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(intptr_t)) MomIntSq(iarr,sz,h);
+  res = new(mom_newtg, mom_align((sz-MOM_FLEXIBLE_DIM)*sizeof(intptr_t))) MomIntSq(iarr,sz,h);
   curmap.insert({h,res});
   if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
     {

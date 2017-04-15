@@ -970,6 +970,7 @@ struct MomNewTag
 constexpr const MomNewTag mom_newtg;
 #define mom_new(...) new(mom_newtg,__VA_ARGS__)
 
+inline size_t mom_align(size_t sz);
 //// abstract super-class of all boxed values
 class MomAnyVal
 {
@@ -1130,9 +1131,7 @@ protected:
   void* operator new (size_t sz) = delete;
   void* operator new (size_t sz, MomNewTag, size_t gap)
   {
-    MOM_ASSERT (sz % _alignment == 0, "MomAnyVal::new misaligned sz " << sz);
-    MOM_ASSERT (gap % _alignment == 0, "MomAnyVal::new misaligned gap " << gap);
-    return ::operator new(sz + gap);
+    return ::operator new(mom_align(sz) + mom_align(gap));
   }
   MomAnyVal(MomKind k, MomSize sz, MomHash h) :
     _headerw(((std::uint32_t)k)<<29 | std::uint32_t(sz & (_max_size-1))),
@@ -1147,6 +1146,12 @@ protected:
 public:
   virtual MomKind vkind() const =0;
 };				// end class MomAnyVal
+
+size_t mom_align(size_t sz)
+{
+  if (sz==0) return 0;
+  return ((sz-1)|(MomAnyVal::_alignment-1))+1;
+}
 
 MomHash
 MomValue::hash() const

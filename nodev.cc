@@ -83,7 +83,7 @@ MomNode::make_from_array(const MomObject*conn, const MomValue*varr, MomSize sz)
       if (MOM_UNLIKELY(ind->has_content(conn, varr, sz)))
         return ind;
     }
-  res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(MomValue)) MomNode(conn,varr,sz,h);
+  res = new(mom_newtg, mom_align((sz-MOM_FLEXIBLE_DIM)*sizeof(MomValue))) MomNode(conn,varr,sz,h);
   curmap.insert({h,res});
   if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
     {

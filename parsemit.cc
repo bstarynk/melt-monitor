@@ -183,6 +183,9 @@ again:
       if (pc != '"')
         MOM_PARSE_FAILURE(this, "expecting doublequote ending string, but got " << (char)pc);
       consume(1);
+      if (pgotval)
+        *pgotval = true;
+      return MomValue(MomString::make_from_string(str));
     }
 #warning we also want multi-line raw strings like `ab0|foobar\here|ab0`
   else if (pc=='*' && nc<127 && !(nc>0 && ispunct(nc))) // node

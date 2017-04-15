@@ -729,12 +729,10 @@ mom_input_quoted_utf8_string(std::istream&ins)
               bufzon[0] = nc;
               break;
             }
-          continue;
         }
       else // ordinary character
         {
           bufzon[0] = c;
-          continue;
         }
       if (failed)
         {
