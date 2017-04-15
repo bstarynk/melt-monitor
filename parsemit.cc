@@ -28,8 +28,18 @@ MomParser::parse_value(bool *pgotval)
   auto inilincnt = _parlincount;
   int pc = 0;
   int nc = 0;
+#define MOM_BORDER_SIZE 32
+#define MOM_BORDER_FORMAT "%30[A-Za-z0-9_]"
+  char border[MOM_BORDER_SIZE];
+  constexpr unsigned bordersize = sizeof(border);
+  int borderpos = 0;
+  memset (border, 0, bordersize);
 again:
+  border[0] = border[1] = (char)0;
   skip_spaces();
+  inioff = _parlinoffset;
+  inicol = _parcol;
+  inilincnt = _parlincount;
   if (eol())
     {
       skip_spaces();
@@ -137,6 +147,37 @@ again:
       return MomValue(MomString::make_from_string(str));
     }
 #warning we also want multi-line raw strings like `ab0|foobar\here|ab0`
+  else if (pc=='`' && (memset(border, 0, sizeof(border)), (borderpos=0), (nc=='_' || isalnum(nc)))
+           && sscanf(peekchars(0), "`" MOM_BORDER_FORMAT "|%n",
+                     border, &borderpos) >= 1 && borderpos>0 && border[0]>0)   // raw strings
+    {
+      /* the raw string may take many lines, it is ending with the |BORDER` */
+      std::string str;
+      consume(borderpos);
+      for (;;)
+        {
+          if (eol())
+            {
+              if (!_parinp) goto failure;
+              next_line();
+              continue;
+            }
+          pc = peekbyte(0);
+          if (pc == '|')
+            {
+              nc = peekbyte(1);
+              if (nc == border[0] && haskeyword(border, 1) && peekbyte(2+borderpos)=='`')
+                {
+                  consume(2+borderpos);
+                  break;
+                }
+            }
+          str.push_back(pc);
+        }
+      if (pgotval)
+        *pgotval = true;
+      return MomValue(MomString::make_from_string(str));
+    }
   else if (pc=='(' && nc=='#')	// (# integer sequence #)
     {
       std::vector<intptr_t> v;

@@ -83,6 +83,7 @@
 #include <unordered_map>
 #include <set>
 #include <sstream>
+#include <fstream>
 #include <random>
 #include <mutex>
 #include <shared_mutex>
@@ -1771,6 +1772,10 @@ public:
   {
     return _parcol >= (int)_parlinstr.size();
   };
+  bool eof() const
+  {
+    return eol() && !_parinp;
+  };
   static constexpr unsigned _maxpeek_ = 16;
   int peekbyte(unsigned off=0) const
   {
@@ -1787,6 +1792,30 @@ public:
   bool gotcstr (const char*str, unsigned off=0) const
   {
     return !strncmp(str, peekchars(off), strlen(str));
+  }
+  bool haskeyword(const char*str, unsigned off=0)
+  {
+    unsigned slen=strlen(str);
+    int nc=0;
+    if (!strncmp(str, peekchars(off), slen)
+        && ((nc=peekbyte(off+slen))<127 && !(nc=='_' || isalnum(nc))))
+      {
+        consume(off+slen);
+        return true;
+      }
+    return false;
+  }
+  bool hasdelim(const char*str, unsigned off=0)
+  {
+    unsigned slen=strlen(str);
+    int nc=0;
+    if (!strncmp(str, peekchars(off), slen)
+        && ((nc=peekbyte(off+slen))<127 && !(nc=='_' || ispunct(nc))))
+      {
+        consume(off+slen);
+        return true;
+      }
+    return false;
   }
   void consume(unsigned nbytes)
   {

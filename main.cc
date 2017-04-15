@@ -1062,6 +1062,7 @@ enum extraopt_en
   xtraopt_testid,
   xtraopt_parseid,
   xtraopt_parseval,
+  xtraopt_parsefile,
 };
 
 static const struct option mom_long_options[] =
@@ -1078,6 +1079,7 @@ static const struct option mom_long_options[] =
   {"test-id", no_argument, nullptr, xtraopt_testid},
   {"parse-id", required_argument, nullptr, xtraopt_parseid},
   {"parse-val", required_argument, nullptr, xtraopt_parseval},
+  {"parse-file", required_argument, nullptr, xtraopt_parsefile},
   /* Terminating nullptr placeholder.  */
   {nullptr, no_argument, nullptr, 0},
 };
@@ -1325,8 +1327,36 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                         << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
           bool gotval = false;
           auto val = pars.parse_value(&gotval);
-          MOM_INFORMLOG("parse-val " << (gotval?"with":"without") << " value=" << val);
-#warning incomplete --parse-val
+          pars.skip_spaces();
+          MOM_INFORMLOG("parse-val " << (gotval?"with":"without") << " value=" << val << std::endl << "...@ " << pars.location_str());
+        }
+        break;
+        case xtraopt_parsefile:
+        {
+          if (optarg == nullptr)
+            MOM_FATAPRINTF("missing filepath for --parse-file");
+          std::string pstr{optarg};
+          std::ifstream insf{pstr};
+          MomParser pars(insf);
+          pars.set_name(pstr).set_make_from_id(true);
+          MOM_INFORMLOG("parse-file '" << optarg << "'" << std::endl
+                        << "peekbyte(0)=" << pars.peekbyte(0) << ' '
+                        << "peekbyte(1)=" << pars.peekbyte(1) << ' '
+                        << "peekbyte(2)=" << pars.peekbyte(2) << ' '
+                        << "peekbyte(3)=" << pars.peekbyte(3) << ' '
+                        << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
+          for (;;)
+            {
+              pars.skip_spaces();
+              bool gotval = false;
+              auto val = pars.parse_value(&gotval);
+              pars.skip_spaces();
+              MOM_INFORMLOG("parse-file " << (gotval?"with":"without") << " value=" << val << std::endl << "...@ " << pars.location_str());
+              if (!gotval || pars.eof())
+                break;
+            }
+          if (pars.eof())
+            MOM_INFORMLOG("parse-file eof at " << pars.location_str());
         }
         break;
         default:
