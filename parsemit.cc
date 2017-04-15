@@ -71,6 +71,7 @@ again:
     {
       consume(1);
       MomObjptrVector vec;
+      int cnt=0;
       for (;;)
         {
           bool gotcurobj = false;
@@ -85,14 +86,18 @@ again:
           curob = parse_objptr(&gotcurobj);
           if (!curob || !gotcurobj)
             MOM_PARSE_FAILURE(this, "missing component object in vector");
+          vec.push_back(curob);
+          cnt++;
         }
       if (pgotval)
         *pgotval = true;
+      MOM_ASSERT(cnt == (int)vec.size(), "parsing tuple expecting " << cnt << " got " << vec.size());
       return MomValue(MomTuple::make_from_objptr_vector(vec));
     }
   else if (pc=='{') // set
     {
       MomObjptrSet set;
+      int cnt = 0;
       consume(1);
       for (;;)
         {
@@ -109,9 +114,11 @@ again:
           if (!curob || !gotcurobj)
             MOM_PARSE_FAILURE(this, "missing element object in set");
           set.insert(curob);
+          cnt++;
         }
       if (pgotval)
         *pgotval = true;
+      MOM_ASSERT(cnt >= (int)set.size(), "parsing set expecting at most " << cnt << " got " << set.size());
       return MomValue(MomSet::make_from_objptr_set(set));
     }
   else if (pc=='"')   // JSON encoded UTF8 string, on the same line
