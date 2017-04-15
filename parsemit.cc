@@ -63,67 +63,9 @@ again:
       consume(2);
       return MomValue{nullptr};
     }
-  else if (pc=='(' && nc=='#')	// (# integer sequence #)
+  else if (pc<127 && (isalpha(pc) || (pc=='_' && nc<127 && isdigit(nc))))
     {
-      std::vector<intptr_t> v;
-      for (;;)
-        {
-          skip_spaces();
-          pc = peekbyte(0);
-          nc = peekbyte(1);
-          if (pc==EOF)
-            {
-              goto failure;
-            }
-          else if (pc=='#' && nc==')')
-            {
-              consume(2);
-              break;
-            }
-          else if ((pc<127 && isdigit(pc)) || (nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
-            {
-              const char*curp = peekchars();
-              char*endp = nullptr;
-              long long ll = strtoll(curp, &endp, 0);
-              consume(endp-curp);
-              v.push_back(ll);
-            }
-          else
-            MOM_PARSE_FAILURE(this, "invalid integer sequence");
-        }
-      if (pgotval) *pgotval = true;
-      return MomValue(MomIntSq::make_from_vector(v));
-    }
-  else if (pc=='(' && nc==':')	// (: double sequence :)
-    {
-      std::vector<double> v;
-      for (;;)
-        {
-          skip_spaces();
-          pc = peekbyte(0);
-          nc = peekbyte(1);
-          if (pc==EOF)
-            {
-              goto failure;
-            }
-          else if (pc==':' && nc==')')
-            {
-              consume(2);
-              break;
-            }
-          else if ((pc<127 && isdigit(pc)) || (nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
-            {
-              const char*curp = peekchars();
-              char*endp = nullptr;
-              double x = strtod(curp, &endp);
-              consume(endp-curp);
-              v.push_back(x);
-            }
-          else
-            MOM_PARSE_FAILURE(this, "invalid double sequence");
-        }
-      if (pgotval) *pgotval = true;
-      return MomValue(MomDoubleSq::make_from_vector(v));
+      return MomValue(parse_objptr(pgotval));
     }
   else if (pc=='[') // tuple
     {
@@ -188,6 +130,68 @@ again:
       return MomValue(MomString::make_from_string(str));
     }
 #warning we also want multi-line raw strings like `ab0|foobar\here|ab0`
+  else if (pc=='(' && nc=='#')	// (# integer sequence #)
+    {
+      std::vector<intptr_t> v;
+      for (;;)
+        {
+          skip_spaces();
+          pc = peekbyte(0);
+          nc = peekbyte(1);
+          if (pc==EOF)
+            {
+              goto failure;
+            }
+          else if (pc=='#' && nc==')')
+            {
+              consume(2);
+              break;
+            }
+          else if ((pc<127 && isdigit(pc)) || (nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
+            {
+              const char*curp = peekchars();
+              char*endp = nullptr;
+              long long ll = strtoll(curp, &endp, 0);
+              consume(endp-curp);
+              v.push_back(ll);
+            }
+          else
+            MOM_PARSE_FAILURE(this, "invalid integer sequence");
+        }
+      if (pgotval) *pgotval = true;
+      return MomValue(MomIntSq::make_from_vector(v));
+    }
+  else if (pc=='(' && nc==':')	// (: double sequence :)
+    {
+      std::vector<double> v;
+      for (;;)
+        {
+          skip_spaces();
+          pc = peekbyte(0);
+          nc = peekbyte(1);
+          if (pc==EOF)
+            {
+              goto failure;
+            }
+          else if (pc==':' && nc==')')
+            {
+              consume(2);
+              break;
+            }
+          else if ((pc<127 && isdigit(pc)) || (nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
+            {
+              const char*curp = peekchars();
+              char*endp = nullptr;
+              double x = strtod(curp, &endp);
+              consume(endp-curp);
+              v.push_back(x);
+            }
+          else
+            MOM_PARSE_FAILURE(this, "invalid double sequence");
+        }
+      if (pgotval) *pgotval = true;
+      return MomValue(MomDoubleSq::make_from_vector(v));
+    }
   else if (pc=='*' && nc<127 && !(nc>0 && ispunct(nc))) // node
     {
       MomObject* connob = nullptr;
