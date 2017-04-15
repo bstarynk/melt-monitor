@@ -1272,6 +1272,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           auto id2 = MomIdent::make_random();
           auto id3 = MomIdent::make_random();
           auto id4 = MomIdent::make_random();
+          auto id5 = MomIdent::make_random();
+          auto id6 = MomIdent::make_random();
           MOM_INFORMLOG("test-id __cplusplus=" << __cplusplus);
           MOM_INFORMLOG("test-id:" << std::endl
                         << " .. id1= " << id1 << " =(" << id1.hi().serial() << "," << id1.lo().serial()
@@ -1285,6 +1287,15 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           MOM_INFORMLOG("test-id:" << std::endl
                         << " .. id4= " << id4 << " =(" << id4.hi().serial() << "," << id4.lo().serial()
                         << ")/h" << id4.hash() << ",b#" << id4.bucketnum());
+          MOM_INFORMLOG("test-id:" << std::endl
+                        << " .. id5= " << id5 << " =(" << id5.hi().serial() << "," << id5.lo().serial()
+                        << ")/h" << id5.hash() << ",b#" << id5.bucketnum());
+          MOM_INFORMLOG("test-id:" << std::endl
+                        << " .. id6= " << id6 << " =(" << id6.hi().serial() << "," << id6.lo().serial()
+                        << ")/h" << id6.hash() << ",b#" << id6.bucketnum());
+          MOM_INFORMLOG("test-id all "  << std::endl
+                        << "... " << id1 << " " << id2 << " " << id3 << std::endl
+                        << "... " << id4 << " " << id5 << " " << id6);
         }
         break;
         case xtraopt_parseid:
@@ -1350,10 +1361,6 @@ main (int argc_main, char **argv_main)
 
 #warning TODO: should code an explicit garbage collector
 
-#warning TODO: code a parser, usable from loader & elsewhere
-
 #warning TODO: code the loader using sqlite then several threads for parsing
-
-#warning TODO: code a printer, compatible with the parser
 
 #warning TODO: code the (multi-threaded) dumper using the printer & sqlite
