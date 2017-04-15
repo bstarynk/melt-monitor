@@ -135,7 +135,7 @@ again:
           MomObject* curob = nullptr;
           skip_spaces();
           pc = peekbyte(0);
-          if (pc == '}')
+          if (pc == ']')
             {
               consume(1);
               break;
