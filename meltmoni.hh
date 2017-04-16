@@ -1688,12 +1688,12 @@ MomObjptrHash::operator() (const MomObject*pob) const
 
 
 ////////////////
-struct MomVtablePayload_st
+typedef void MomPyv_destrsig(struct MomPayload*,MomObject*);
+struct MomVtablePayload_st // explicit "vtable-like" of payload
 {
   const char*pyv_name;
   const char*pyv_module;
-  typedef void pyv_destrsig(struct MomPayload*,MomObject*);
-  pyv_destrsig* pyv_destroy;
+  MomPyv_destrsig* pyv_destroy;
 };
 
 struct MomPayload
