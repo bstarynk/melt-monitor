@@ -770,7 +770,7 @@ class MomNode;		/* value, hash-consed node: the
  are values */
 ////
 class MomObject;
-class MomPayload;
+struct MomPayload;
 
 enum class MomKind : std::int8_t
 {
@@ -1603,7 +1603,7 @@ protected:
 
 class MomObject final : public MomAnyVal // in objectv.cc
 {
-  friend class MomPayload;
+  friend struct MomPayload;
   static std::mutex _bumtxarr_[MomSerial63::_maxbucket_];
   static std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _bumaparr_[MomSerial63::_maxbucket_];
   static constexpr unsigned _bumincount_ = 16;
@@ -1688,19 +1688,29 @@ MomObjptrHash::operator() (const MomObject*pob) const
 
 
 ////////////////
-class MomPayload
+struct MomVtablePayload_st
+{
+  const char*pyv_name;
+  const char*pyv_module;
+  typedef void pyv_destrsig(struct MomPayload*,MomObject*);
+  pyv_destrsig* pyv_destroy;
+};
+
+struct MomPayload
 {
   friend class MomObject;
-protected:
-  const MomObject* _py_owner;
-  virtual void scan_gc(MomGC*) const =0;
-  virtual ~MomPayload()
+  const struct MomVtablePayload_st* _py_vtbl;
+  MomObject* _py_owner;
+  ~MomPayload()
   {
     auto ownob = _py_owner;
     _py_owner = nullptr;
+    if (_py_vtbl->pyv_destroy)
+      _py_vtbl->pyv_destroy(this,ownob);
     if (ownob) const_cast<MomObject*>(ownob)->unsync_clear_payload();
   }
-  MomPayload(const MomObject* owner) :
+  MomPayload(const struct MomVtablePayload_st*vtbl, MomObject* owner) :
+    _py_vtbl(vtbl),
     _py_owner(owner) {};
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
