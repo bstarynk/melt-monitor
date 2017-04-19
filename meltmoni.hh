@@ -1688,12 +1688,18 @@ MomObjptrHash::operator() (const MomObject*pob) const
 
 
 ////////////////
-typedef void MomPyv_destrsig(struct MomPayload*,MomObject*);
+typedef void MomPyv_destr_sig(struct MomPayload*payl,MomObject*own);
+typedef void MomPyv_scangc_sig(const struct MomPayload*payl,MomObject*own,MomGC*gc);
+
+#define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
 struct MomVtablePayload_st // explicit "vtable-like" of payload
 {
+  const unsigned pyv_magic; // always MOM_PAYLOADVTBL_MAGIC
+  const unsigned pyv_size; // the actual sizeof the payload
   const char*pyv_name;
   const char*pyv_module;
-  MomPyv_destrsig* pyv_destroy;
+  const MomPyv_destr_sig* pyv_destroy;
+  const MomPyv_scangc_sig* pyv_scangc;
 };
 
 struct MomPayload
@@ -1711,7 +1717,22 @@ struct MomPayload
   }
   MomPayload(const struct MomVtablePayload_st*vtbl, MomObject* owner) :
     _py_vtbl(vtbl),
-    _py_owner(owner) {};
+    _py_owner(owner)
+  {
+    if (!vtbl)
+      MOM_FAILURE("missing vtbl in MomPayload");
+    if (vtbl->pyv_magic != MOM_PAYLOADVTBL_MAGIC)
+      MOM_FAILURE("bad magic in vtbl in MomPayload");
+    if (!owner)
+      MOM_FAILURE("missing owner in MomPayload");
+  };
+  void scan_gc_payl(MomGC*gc) const
+  {
+    auto ownob = _py_owner;
+    if (!ownob) return;
+    if (_py_vtbl->pyv_scangc)
+      _py_vtbl->pyv_scangc(this,ownob,gc);
+  }
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
 
