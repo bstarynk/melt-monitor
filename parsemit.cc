@@ -547,7 +547,7 @@ MomEmitter::emit_string_value(const MomString*strv, int depth, bool asraw)
       out() << '`' << border.substr(1) << '|';
       out().write(strv->cstr(),strv->bytelen());
       out() << border << '`';
-      emit_space(depth);
+      emit_newline(depth);
     }
   else
     {
