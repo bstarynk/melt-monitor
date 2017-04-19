@@ -1935,6 +1935,7 @@ public:
   void emit_newline(int depth);
   void emit_raw_newline();
   void emit_value(const MomValue v, int depth=0);
+  void emit_string_value(const MomString*strv, int depth=0, bool asraw=false);
   void emit_objptr(const MomObject*pob, int depth=0);
   std::ostream &out()
   {

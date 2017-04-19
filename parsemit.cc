@@ -146,7 +146,7 @@ again:
         *pgotval = true;
       return MomValue(MomString::make_from_string(str));
     }
-#warning we also want multi-line raw strings like `ab0|foobar\here|ab0`
+  // multi-line raw strings like `ab0|foobar\here|ab0`
   else if (pc=='`' && (memset(border, 0, sizeof(border)), (borderpos=0), (nc=='_' || isalnum(nc)))
            && sscanf(peekchars(0), "`" MOM_BORDER_FORMAT "|%n",
                      border, &borderpos) >= 1 && borderpos>0 && border[0]>0)   // raw strings
@@ -441,18 +441,7 @@ MomEmitter::emit_value(const MomValue v, int depth)
           auto strv = reinterpret_cast<const MomString*>(vv);
           unsigned sz = strv->sizew();
           emit_maybe_newline(depth);
-          out() << '"';
-          char *buf = nullptr;
-          size_t bsz = 0;
-          FILE* f = open_memstream(&buf, &bsz);
-          if (!f) MOM_FATAPRINTF("open_memstream failure");
-          mom_output_utf8_encoded (f, strv->cstr(), strv->bytelen());
-          fflush(f);
-          out().write(buf, bsz);
-          out() << '"';
-          fclose(f);
-          free (buf), buf=nullptr;
-#warning should probably emit long strings specifically, as raw strings
+          emit_string_value(strv, depth, sz>(unsigned)_emlinewidth);
         }
         break;
         case MomKind::TagSetK:
@@ -524,6 +513,58 @@ MomEmitter::emit_value(const MomValue v, int depth)
         }
     }
 } // end of MomEmitter::emit_value
+
+
+void
+MomEmitter::emit_string_value(const MomString*strv, int depth, bool asraw)
+{
+  if (asraw)
+    {
+      std::string border;
+      MomHash hs = strv->hash();
+      char prefbuf[16];
+      memset (prefbuf, 0, sizeof(prefbuf));
+      MomSerial63 sr {(hs & 0xfffff) +  MomSerial63::_minserial_};
+      sr.to_cbuf16(prefbuf);
+      prefbuf[0] = '|';
+      prefbuf[4] = 0;
+      if (!strstr(strv->cstr(),prefbuf))
+        border=prefbuf+1;
+      else
+        {
+          for (uint64_t n = (hs & 0xfffffff) + MomSerial63::_minserial_;
+               border.empty();
+               n++)
+            {
+              sr= n;
+              sr.to_cbuf16(prefbuf);
+              prefbuf[0] = '|';
+              prefbuf[8] = 0;
+              if (!strstr(strv->cstr(),prefbuf))
+                border=prefbuf+1;
+            }
+        }
+      out() << '`' << border.substr(1) << '|';
+      out().write(strv->cstr(),strv->bytelen());
+      out() << border << '`';
+      emit_space(depth);
+    }
+  else
+    {
+      out() << '"';
+      char *buf = nullptr;
+      size_t bsz = 0;
+      FILE* f = open_memstream(&buf, &bsz);
+      if (!f) MOM_FATAPRINTF("open_memstream failure");
+      mom_output_utf8_encoded (f, strv->cstr(), strv->bytelen());
+      fflush(f);
+      out().write(buf, bsz);
+      out() << '"';
+      fclose(f);
+      free (buf), buf=nullptr;
+    }
+} // end of MomEmitter::emit_string_value
+
 
 void
 MomEmitter::emit_objptr(const MomObject*pob, int depth MOM_UNUSED)
