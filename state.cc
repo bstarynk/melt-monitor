@@ -1,4 +1,4 @@
-// file state.cc - managing persistent state
+// file state.cc - managing persistent state, load & dump
 
 /**   Copyright (C)  2017  Basile Starynkevitch and later the FSF
     MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -19,3 +19,20 @@
 **/
 
 #include "meltmoni.hh"
+
+class MomLoader
+{
+  std::string _ld_dirname;
+#warning should add a lot more into MomLoader
+public:
+  MomLoader(const std::string&dirnam);
+};				// end class MomLoader
+
+
+class MomDumper
+{
+  std::string _du_dirname;
+public:
+  MomDumper(const std::string&dirnam);
+#warning should add a lot more into MomDumper
+};
