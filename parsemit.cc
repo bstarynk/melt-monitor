@@ -529,7 +529,7 @@ MomEmitter::emit_string_value(const MomString*strv, int depth, bool asraw)
       prefbuf[0] = '|';
       prefbuf[4] = 0;
       if (!strstr(strv->cstr(),prefbuf))
-        border=prefbuf+1;
+        border=prefbuf;
       else
         {
           for (uint64_t n = (hs & 0xfffffff) + MomSerial63::_minserial_;
@@ -541,7 +541,7 @@ MomEmitter::emit_string_value(const MomString*strv, int depth, bool asraw)
               prefbuf[0] = '|';
               prefbuf[8] = 0;
               if (!strstr(strv->cstr(),prefbuf))
-                border=prefbuf+1;
+                border=prefbuf;
             }
         }
       out() << '`' << border.substr(1) << '|';
