@@ -28,7 +28,9 @@ class MomLoader
   std::string _ld_dirname;
   std::unique_ptr<sqlite::database> _ld_globdbp;
   std::unique_ptr<sqlite::database> _ld_userdbp;
+  std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _ld_objmap;
   std::unique_ptr<sqlite::database> load_database(const char*dbradix);
+  long load_empty_objects_from_db(sqlite::database& db);
 #warning should add a lot more into MomLoader
 public:
   MomLoader(const std::string&dirnam);
@@ -53,6 +55,24 @@ MomLoader::load_database(const char*dbradix)
   dbconfig.flags = sqlite::OpenFlags::READONLY;
   return std::make_unique<sqlite::database>(dbpath, dbconfig);
 } // end MomLoader::load_database
+
+
+long MomLoader::load_empty_objects_from_db(sqlite::database& db)
+{
+  long obcnt = 0;
+  db << "SELECT ob_id FROM t_objects"
+     >> [&](std::string idstr)
+  {
+    auto id = MomIdent::make_from_cstr(idstr.c_str(),true);
+    auto pob = MomObject::make_object_of_id(id);
+    if (pob)
+      {
+        _ld_objmap.insert({id,pob});
+        obcnt++;
+      }
+  };
+  return obcnt;
+} // end MomLoader::load_empty_objects_from_db
 
 
 MomLoader::MomLoader(const std::string& dirnam)
