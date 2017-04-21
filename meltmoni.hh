@@ -740,10 +740,14 @@ inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
 
 ////////////////////////////////////////////////////////////////
 
-class MomLoader;
-class MomDumper;
-class MomParser;
-class MomEmitter;
+class MomLoader;		// in state.cc
+class MomDumper;		// in state.cc
+
+#define MOM_GLOBAL_DB "mom_global"
+#define MOM_USER_DB "mom_user"
+
+class MomParser;		// in parsemit.cc
+class MomEmitter;		// in parsemit.cc
 
 MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
 {
