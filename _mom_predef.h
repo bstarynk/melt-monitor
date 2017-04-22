@@ -1,5 +1,5 @@
-/// *** generated file _mom_predef.h - DO NOT EDIT 
-/// Copyright (C) 2015 - 2017 Free Software Foundation, Inc. 
+/// *** should be generated file _mom_predef.h - DO NOT EDIT 
+/// Copyright (C) 2017 Free Software Foundation, Inc. 
 /// MONIMELT is a monitor for MELT - see http://gcc-melt.org/ 
 /// This generated file _mom_predef.h is part of MONIMELT, part of GCC 
 ///

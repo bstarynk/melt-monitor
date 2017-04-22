@@ -106,14 +106,21 @@ MomLoader::MomLoader(const std::string& dirnam)
 
 
 
+
+//==============================================================
+////////////////////////////////////////////////////////////////
 class MomDumper
 {
   std::string _du_dirname;
   std::string _du_tempsuffix;
   std::set<std::string> _du_tempset;
-  std::string temporary_file_path(const std::string& path);
+  std::unique_ptr<sqlite::database> _du_globdbp;
+  std::unique_ptr<sqlite::database> _du_userdbp;
+  void initialize_db(sqlite::database &db);
 public:
+  std::string temporary_file_path(const std::string& path);
   MomDumper(const std::string&dirnam);
+  void open_databases(void);
   ~MomDumper();
 #warning should add a lot more into MomDumper
 };				// end class MomDumper
@@ -148,6 +155,7 @@ MomDumper::MomDumper(const std::string&dirnam)
   }
 } // end MomDumper::MomDumper
 
+
 std::string
 MomDumper::temporary_file_path(const std::string& path)
 {
@@ -156,3 +164,41 @@ MomDumper::temporary_file_path(const std::string& path)
   _du_tempset.insert(path);
   return path + _du_tempsuffix;
 } // end MomDumper::temporary_file_path
+
+void
+MomDumper::open_databases(void)
+{
+  auto globdbpath = temporary_file_path(_du_dirname + "/" +  MOM_GLOBAL_DB + ".sqlite");
+  auto userdbpath = temporary_file_path(_du_dirname + "/" +  MOM_USER_DB + ".sqlite");
+  sqlite::sqlite_config dbconfig;
+  dbconfig.flags = sqlite::OpenFlags::CREATE | sqlite::OpenFlags::READWRITE| sqlite::OpenFlags::NOMUTEX;
+  dbconfig.encoding = sqlite::Encoding::UTF8;
+  _du_globdbp = std::make_unique<sqlite::database>(globdbpath, dbconfig);
+  _du_userdbp = std::make_unique<sqlite::database>(userdbpath, dbconfig);
+  initialize_db(*_du_globdbp);
+  initialize_db(*_du_userdbp);
+} // end MomDumper::open_databases
+
+void
+MomDumper::initialize_db(sqlite::database &db)
+{
+  db << R"!*(
+CREATE TABLE IF NOT EXISTS t_objects
+ (ob_id VARCHAR(30) PRIMARY KEY ASC NOT NULL UNIQUE,
+  ob_mtim INT8 NOT NULL,
+  ob_content TEXT NOT NULL,
+  ob_paylkind VARCHAR(30) NOT NULL,
+  ob_paylinit TEXT NOT NULL,
+  ob_paylcontent TEXT NOT NULL)
+)!*";
+    db << R"!*(
+CREATE TABLE IF NOT EXISTS t_names
+ (nam_oid VARCHAR(30) NOT NULL UNIQUE,
+  nam_str TEXT PRIMARY KEY ASC NOT NULL UNIQUE)
+)!*";
+    db << R"!*(
+CREATE TABLE IF NOT EXISTS t_globals
+ (glob_namestr VARCHAR(80) NOT NULL UNIQUE,
+  glob_oid  VARCHAR(30) NOT NULL)
+)!*";
+  } // end MomDumper::initialize_db

@@ -23,6 +23,9 @@
 // libbacktrace from GCC 6, i.e. libgcc-6-dev package
 #include <backtrace.h>
 #include <cxxabi.h>
+
+#include <sqlite3.h>
+
 #define BASE_YEAR_MOM 2015
 
 static struct backtrace_state *btstate_mom;
@@ -1369,6 +1372,13 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
 } // end of parse_program_arguments_mom
 
 
+static void mom_sqlite_errlog(void*data, int errcode, const char*msg)
+{
+  MOM_BACKTRACELOG("SQLITE ERROR#" << errcode
+                   << " (" << sqlite3_errstr(errcode) << "):: "
+                   << msg << std::endl);
+} // end mom_sqlite_errlog
+
 int
 main (int argc_main, char **argv_main)
 {
@@ -1387,6 +1397,7 @@ main (int argc_main, char **argv_main)
   mom_prog_dlhandle = dlopen (nullptr, RTLD_NOW);
   if (MOM_UNLIKELY(!mom_prog_dlhandle))
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
+  sqlite3_config(SQLITE_CONFIG_LOG, mom_sqlite_errlog, NULL);
   parse_program_arguments_mom(&argc, &argv);
 } // end of main
 
