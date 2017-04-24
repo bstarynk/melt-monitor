@@ -133,8 +133,8 @@ class MomDumper
   std::set<std::string> _du_tempset;
   std::unique_ptr<sqlite::database> _du_globdbp;
   std::unique_ptr<sqlite::database> _du_userdbp;
-  std::unordered_set<MomObject*,MomObjptrHash> _du_setobj;
-  std::deque<MomObject*> _du_queobj;
+  std::unordered_set<const MomObject*,MomObjptrHash> _du_setobj;
+  std::deque<const MomObject*> _du_queobj;
   const MomSet* _du_predefvset;
   std::map<std::string,MomObject*> _du_globmap;
   void initialize_db(sqlite::database &db);
@@ -145,16 +145,24 @@ public:
   void scan_predefined(void);
   void scan_globdata(void);
   void scan_loop(void);
-  void add_scanned_object(MomObject*pob)
+  void scan_inside_object(MomObject*pob);
+  void add_scanned_object(const MomObject*pob)
   {
     MOM_ASSERT(pob != nullptr, "MomDumper::add_scanned_object null ptr");
     MOM_ASSERT(_du_state == dus_scan, "MomDumper::add_scanned_object not scanning");
     std::lock_guard<std::mutex> gu{_du_mtx};
     if (_du_setobj.find(pob) == _du_setobj.end())
       {
+        if (pob->space() == MomSpace::TransientSp)
+          return;
         _du_setobj.insert(pob);
         _du_queobj.push_back(pob);
       }
+  }
+  bool is_dumped(const MomObject*pob)
+  {
+    std::lock_guard<std::mutex> gu{_du_mtx};
+    return (_du_setobj.find(pob) != _du_setobj.end());
   }
   ~MomDumper();
 #warning should add a lot more into MomDumper
@@ -268,4 +276,63 @@ MomDumper::scan_globdata(void) {
   }							\
 } while(0)
 #include "_mom_globdata.h"
-} // end MomDumper::scan_globals
+} // end MomDumper::scan_globdata
+
+void
+MomDumper::scan_inside_object(MomObject*pob) {
+  MOM_ASSERT(pob != nullptr, "MomDumper::scan_inside_object null pob");
+  pob->scan_dump_content(this);
+} // end MomDumper::scan_inside_object
+
+
+void
+MomAnyObjSeq::scan_dump(MomDumper*du) const
+{
+  for (MomObject* pob : *this)
+    du->add_scanned_object(pob);
+} // end MomAnyObjSeq::scan_dump
+
+
+void
+MomNode::scan_dump(MomDumper*du) const
+{
+  du->add_scanned_object(conn());
+  if (du->is_dumped(conn()))
+    for (const MomValue v: *this) {
+      v.scan_dump(du);
+    }
+} // end MomNode::scan_dump
+
+void
+MomObject::scan_dump(MomDumper*du) const
+{
+  MOM_ASSERT(vkind() == MomKind::TagObjectK,
+	     "MomObject::scan_dump bad object@" << (const void*)this);
+  if (space()==MomSpace::TransientSp) return;
+  du->add_scanned_object(this);
+} // end MomObject::scan_dump
+
+
+void
+MomObject::scan_dump_content(MomDumper*du) const
+{
+  std::shared_lock<std::shared_mutex> gu{_ob_shmtx};
+  MOM_ASSERT(vkind() == MomKind::TagObjectK,
+	     "MomObject::scan_dump_content bad object@" << (const void*)this);
+  if (space()==MomSpace::TransientSp) return;
+  for (auto &p: _ob_attrs) {
+    const MomObject*pobattr = p.first;
+    if (!pobattr)
+      continue;
+    du->add_scanned_object(pobattr);
+    if (!du->is_dumped(pobattr))
+      continue;
+    const MomValue valattr = p.second;
+    valattr.scan_dump(du);
+  }
+  for (const MomValue valcomp : _ob_comps) {
+    valcomp.scan_dump(du);
+  }
+  if (_ob_payl)
+    _ob_payl->scan_dump_payl(du);
+} // end MomObject::scan_dump_content
