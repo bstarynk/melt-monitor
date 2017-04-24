@@ -1279,7 +1279,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           auto id4 = MomIdent::make_random();
           auto id5 = MomIdent::make_random();
           auto id6 = MomIdent::make_random();
-          MOM_INFORMLOG("test-id __cplusplus=" << __cplusplus);
+          MOM_INFORMLOG("test-id __cplusplus=" << __cplusplus << " sizeof(MomObject)=" << sizeof(MomObject));
           MOM_INFORMLOG("test-id:" << std::endl
                         << " .. id1= " << id1 << " =(" << id1.hi().serial() << "," << id1.lo().serial()
                         << ")/h" << id1.hash() << ",b#" << id1.bucketnum());
@@ -1408,6 +1408,8 @@ main (int argc_main, char **argv_main)
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
   sqlite3_config(SQLITE_CONFIG_LOG, mom_sqlite_errlog, NULL);
   parse_program_arguments_mom(&argc, &argv);
+  MomObject::initialize_predefined();
+#warning missing stuff in main
 } // end of main
 
 

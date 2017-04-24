@@ -1606,13 +1606,25 @@ protected:
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
 
+
+enum class MomSpace : std::uint8_t
+{
+  TransientSp = 0,
+  PredefSp,
+  GlobalSp,
+  UserSp
+};
+
 class MomObject final : public MomAnyVal // in objectv.cc
 {
   friend struct MomPayload;
   static std::mutex _bumtxarr_[MomSerial63::_maxbucket_];
   static std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _bumaparr_[MomSerial63::_maxbucket_];
+  static std::mutex _predefmtx_;
+  static MomObjptrSet _predefset_;
   static constexpr unsigned _bumincount_ = 16;
   const MomIdent _ob_id;
+  std::atomic<MomSpace> _ob_space;
   mutable std::shared_mutex _ob_shmtx;
   std::unordered_map<MomObject*,MomValue,MomObjptrHash> _ob_attrs;
   MomPayload* _ob_payl;
@@ -1622,6 +1634,13 @@ public:
   static MomObject*find_object_of_id(const MomIdent id);
   static MomObject*make_object_of_id(const MomIdent id);
   static MomObject*make_object(void); // of random id
+  static void initialize_predefined(void);
+  static const MomSet* predefined_set(void);
+  MomSpace space() const
+  {
+    return std::atomic_load(&_ob_space);
+  };
+  MomObject* set_space(MomSpace sp);
   bool same(const MomObject*ob) const
   {
     return this == ob;

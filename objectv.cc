@@ -308,6 +308,9 @@ failure:
 std::mutex MomObject::_bumtxarr_[MomSerial63::_maxbucket_];
 std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> MomObject::_bumaparr_[MomSerial63::_maxbucket_];
 
+std::mutex MomObject::_predefmtx_;
+MomObjptrSet MomObject::_predefset_;
+
 MomObject*
 MomObject::find_object_of_id(const MomIdent id)
 {
@@ -329,7 +332,8 @@ MomObject::MomObject(const MomIdent id, MomHash h)
   : MomAnyVal(MomKind::TagObjectK, 0, h),
     _ob_id(id), _ob_shmtx(),
     _ob_attrs{},
-    _ob_payl(nullptr)
+    _ob_payl(nullptr),
+    _ob_space(MomSpace::TransientSp)
 {
   MOM_ASSERT(h != 0 && id.hash() == h, "MomObject::MomObject corrupted h=" << h << " for id=" << id);
 } // end MomObject::MomObject
@@ -402,3 +406,39 @@ MomObject::scan_gc(MomGC*) const
   MOM_FATAPRINTF("unimplemented MomObject::scan_gc");
 } // end of MomObject::scan_gc
 
+MomObject*
+MomObject::set_space(MomSpace sp)
+{
+  auto oldsp = std::atomic_exchange(&_ob_space, sp);
+  if (oldsp == sp) return this;
+  if (sp == MomSpace::PredefSp)
+    {
+      // add predefined
+      std::lock_guard<std::mutex> _gu{_predefmtx_};
+      _predefset_.insert(this);
+    }
+  else if (oldsp == MomSpace::PredefSp)
+    {
+      // remove predefined
+      std::lock_guard<std::mutex> _gu{_predefmtx_};
+      _predefset_.erase(this);
+    }
+  return this;
+} // end MomObject::set_space
+
+const MomSet*
+MomObject::predefined_set(void)
+{
+  std::lock_guard<std::mutex> _gu{_predefmtx_};
+  return MomSet::make_from_objptr_set(_predefset_);
+} // end of MomObject::predefined_set
+
+void
+MomObject::initialize_predefined(void)
+{
+#define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) do {		\
+  MOM_PREDEF(Id) = make_object_of_id(MomIdent(Hi,Lo));	\
+  MOM_PREDEF(Id)->set_space(MomSpace::PredefSp);        \
+} while(0);
+#include "_mom_predef.h"
+} // end MomObject::initialize_predefined
