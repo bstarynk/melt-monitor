@@ -30,7 +30,7 @@ class MomLoader
   std::unique_ptr<sqlite::database> _ld_userdbp;
   std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _ld_objmap;
   std::unique_ptr<sqlite::database> load_database(const char*dbradix);
-  long load_empty_objects_from_db(sqlite::database& db);
+  long load_empty_objects_from_db(sqlite::database& db, bool user);
 #warning should add a lot more into MomLoader
 public:
   MomLoader(const std::string&dirnam);
@@ -57,7 +57,8 @@ MomLoader::load_database(const char*dbradix)
 } // end MomLoader::load_database
 
 
-long MomLoader::load_empty_objects_from_db(sqlite::database& db)
+long
+MomLoader::load_empty_objects_from_db(sqlite::database& db, bool user)
 {
   long obcnt = 0;
   db << "SELECT ob_id FROM t_objects"
@@ -68,6 +69,17 @@ long MomLoader::load_empty_objects_from_db(sqlite::database& db)
     if (pob)
       {
         _ld_objmap.insert({id,pob});
+        if (pob->space() == MomSpace::TransientSp)
+          {
+            if (user)
+              {
+                pob->set_space(MomSpace::UserSp);
+              }
+            else
+              {
+                pob->set_space(MomSpace::GlobalSp);
+              }
+          }
         obcnt++;
       }
   };
@@ -109,25 +121,50 @@ MomLoader::MomLoader(const std::string& dirnam)
 
 //==============================================================
 ////////////////////////////////////////////////////////////////
+
+enum MomDumpState { dus_none, dus_scan, dus_emit };
+
 class MomDumper
 {
+  std::mutex _du_mtx;
+  MomDumpState _du_state;
   std::string _du_dirname;
   std::string _du_tempsuffix;
   std::set<std::string> _du_tempset;
   std::unique_ptr<sqlite::database> _du_globdbp;
   std::unique_ptr<sqlite::database> _du_userdbp;
+  std::unordered_set<MomObject*,MomObjptrHash> _du_setobj;
+  std::deque<MomObject*> _du_queobj;
+  const MomSet* _du_predefvset;
+  std::map<std::string,MomObject*> _du_globmap;
   void initialize_db(sqlite::database &db);
 public:
   std::string temporary_file_path(const std::string& path);
   MomDumper(const std::string&dirnam);
   void open_databases(void);
+  void scan_predefined(void);
+  void scan_globdata(void);
+  void scan_loop(void);
+  void add_scanned_object(MomObject*pob)
+  {
+    MOM_ASSERT(pob != nullptr, "MomDumper::add_scanned_object null ptr");
+    MOM_ASSERT(_du_state == dus_scan, "MomDumper::add_scanned_object not scanning");
+    std::lock_guard<std::mutex> gu{_du_mtx};
+    if (_du_setobj.find(pob) == _du_setobj.end())
+      {
+        _du_setobj.insert(pob);
+        _du_queobj.push_back(pob);
+      }
+  }
   ~MomDumper();
 #warning should add a lot more into MomDumper
 };				// end class MomDumper
 
 
 MomDumper::MomDumper(const std::string&dirnam)
-  : _du_dirname(dirnam), _du_tempsuffix()
+  : _du_mtx(), _du_state{dus_none}, _du_dirname(dirnam), _du_tempsuffix(), _du_tempset(),
+    _du_globdbp(), _du_userdbp(),
+    _du_setobj(), _du_queobj(), _du_predefvset(nullptr), _du_globmap{}
 {
   struct stat dirstat;
   memset (&dirstat, 0, sizeof(dirstat));
@@ -202,3 +239,33 @@ CREATE TABLE IF NOT EXISTS t_globals
   glob_oid  VARCHAR(30) NOT NULL)
 )!*";
   } // end MomDumper::initialize_db
+
+
+
+
+void
+MomDumper::scan_predefined(void) {
+  _du_state = dus_scan;
+  auto predset = MomObject::predefined_set();
+  for (MomObject* pob : *predset) {
+    add_scanned_object(pob);
+  }
+  std::lock_guard<std::mutex> gu{_du_mtx};
+  _du_predefvset = predset;
+} // end MomDumper::scan_predefined
+
+
+
+
+void
+MomDumper::scan_globdata(void) {
+#define MOM_HAS_GLOBDATA(Nam) do {			\
+  MomObject* gpob##Nam = MOM_LOAD_GLOBDATA(Nam);	\
+  if (gpob##Nam != nullptr) {				\
+    add_scanned_object(gpob##Nam);			\
+    std::lock_guard<std::mutex> gu{_du_mtx};		\
+    _du_globmap.insert(#Nam,gpob);			\
+  }							\
+} while(0)
+#include "_mom_globdata.h"
+} // end MomDumper::scan_globals

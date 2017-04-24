@@ -82,6 +82,8 @@
 #include <map>
 #include <unordered_map>
 #include <set>
+#include <unordered_set>
+#include <deque>
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -747,6 +749,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
 
 class MomLoader;		// in state.cc
 class MomDumper;		// in state.cc
+extern "C" void mom_dump_into_directory(const char*dirnam);
 
 #define MOM_GLOBAL_DB "mom_global"
 #define MOM_USER_DB "mom_user"
@@ -1390,7 +1393,7 @@ struct MomIdentBucketHash
 struct MomObjptrHash
 {
   inline size_t operator() (const MomObject*pob) const;
-};				// en MomObjptrHash
+};				// end MomObjptrHash
 
 typedef std::set<MomObject*,MomObjptrLess> MomObjptrSet;
 typedef std::vector<MomObject*> MomObjptrVector;
@@ -1720,12 +1723,12 @@ MomObjptrHash::operator() (const MomObject*pob) const
 #define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) extern "C" MomObject*MOM_PREDEF(Id);
 #include "_mom_predef.h"
 
-#define MOM_GLOBAL_VAR(Nam) momglobal_##Nam
-#define MOM_LOAD_GLOBAL(Nam) (MOM_GLOBAL_VAR(Nam).load())
-#define MOM_STORE_GLOBAL(Nam,Obp) (MOM_GLOBAL_VAR(Nam).store(Obp))
-#define MOM_XCHG_GLOBAL(Nam,Obp) (MOM_GLOBAL_VAR(Nam).exchange(Obp))
-#define MOM_HAS_GLOBAL(Nam) extern "C" std::atomic<MomObject*> MOM_GLOBAL_VAR(Nam);
-#include "_mom_global.h"
+#define MOM_GLOBDATA_VAR(Nam) momgdata_##Nam
+#define MOM_LOAD_GLOBDATA(Nam) (MOM_GLOBDATA_VAR(Nam).load())
+#define MOM_STORE_GLOBDATA(Nam,Obp) (MOM_GLOBDATA_VAR(Nam).store(Obp))
+#define MOM_XCHG_GLOBDATA(Nam,Obp) (MOM_GLOBDATA_VAR(Nam).exchange(Obp))
+#define MOM_HAS_GLOBDATA(Nam) extern "C" std::atomic<MomObject*> MOM_GLOBDATA_VAR(Nam);
+#include "_mom_globdata.h"
 
 ////////////////
 typedef void MomPyv_destr_sig(struct MomPayload*payl,MomObject*own);

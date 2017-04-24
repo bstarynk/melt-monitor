@@ -25,9 +25,9 @@
 #define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) MomObject*MOM_PREDEF(Id);
 #include "_mom_predef.h"
 
-#define MOM_HAS_GLOBAL(Nam) std::atomic<MomObject*> MOM_GLOBAL_VAR(Nam) \
+#define MOM_HAS_GLOBDATA(Nam) std::atomic<MomObject*> MOM_GLOBDATA_VAR(Nam) \
   = ATOMIC_VAR_INIT(nullptr);
-#include "_mom_global.h"
+#include "_mom_globdata.h"
 
 bool
 mom_valid_name_radix_len (const char *str, int len)
