@@ -1301,6 +1301,15 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           MOM_INFORMLOG("test-id all "  << std::endl
                         << "... " << id1 << " " << id2 << " " << id3 << std::endl
                         << "... " << id4 << " " << id5 << " " << id6);
+          std::cout << std::endl
+                    << "/// for _mom_predef.h id1 id2 id3" << std::endl;
+          std::cout << "MOM_HAS_PREDEF("<< id1 << "," << id1.hi().serial()
+                    << "," << id1.lo().serial() << "," << id1.hash() << ")" << std::endl;
+          std::cout << "MOM_HAS_PREDEF("<< id2 << "," << id2.hi().serial()
+                    << "," << id2.lo().serial() << "," << id2.hash() << ")" << std::endl;
+          std::cout << "MOM_HAS_PREDEF("<< id3 << "," << id3.hi().serial()
+                    << "," << id3.lo().serial() << "," << id3.hash() << ")" << std::endl;
+          std::cout << std::endl;
         }
         break;
         case xtraopt_parseid:
