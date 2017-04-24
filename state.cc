@@ -133,6 +133,7 @@ class MomDumper
   std::set<std::string> _du_tempset;
   std::unique_ptr<sqlite::database> _du_globdbp;
   std::unique_ptr<sqlite::database> _du_userdbp;
+  std::condition_variable _du_addedcondvar;
   std::unordered_set<const MomObject*,MomObjptrHash> _du_setobj;
   std::deque<const MomObject*> _du_queobj;
   const MomSet* _du_predefvset;
@@ -150,14 +151,20 @@ public:
   {
     MOM_ASSERT(pob != nullptr, "MomDumper::add_scanned_object null ptr");
     MOM_ASSERT(_du_state == dus_scan, "MomDumper::add_scanned_object not scanning");
-    std::lock_guard<std::mutex> gu{_du_mtx};
-    if (_du_setobj.find(pob) == _du_setobj.end())
-      {
-        if (pob->space() == MomSpace::TransientSp)
-          return;
-        _du_setobj.insert(pob);
-        _du_queobj.push_back(pob);
-      }
+    bool added = false;
+    {
+      std::lock_guard<std::mutex> gu{_du_mtx};
+      if (_du_setobj.find(pob) == _du_setobj.end())
+        {
+          if (pob->space() == MomSpace::TransientSp)
+            return;
+          _du_setobj.insert(pob);
+          _du_queobj.push_back(pob);
+          added = true;
+        }
+    }
+    if (added)
+      _du_addedcondvar.notify_all();
   }
   bool is_dumped(const MomObject*pob)
   {
@@ -172,6 +179,7 @@ public:
 MomDumper::MomDumper(const std::string&dirnam)
   : _du_mtx(), _du_state{dus_none}, _du_dirname(dirnam), _du_tempsuffix(), _du_tempset(),
     _du_globdbp(), _du_userdbp(),
+    _du_addedcondvar(),
     _du_setobj(), _du_queobj(), _du_predefvset(nullptr), _du_globmap{}
 {
   struct stat dirstat;
