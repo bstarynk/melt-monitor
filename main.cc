@@ -28,9 +28,10 @@
 
 #define BASE_YEAR_MOM 2015
 
+
 static struct backtrace_state *btstate_mom;
 static bool syslogging_mom;
-static bool should_dump_mom;
+static const char* dump_dir_mom;
 static const char*load_state_mom;
 thread_local MomRandom MomRandom::_rand_thr_;
 
@@ -39,6 +40,7 @@ static std::vector<todo_t> todo_after_load_mom;
 
 
 unsigned mom_debugflags;
+unsigned mom_nb_jobs;
 mom_atomic_int mom_nb_warnings;
 
 static char hostname_mom[80];
@@ -1075,6 +1077,7 @@ static const struct option mom_long_options[] =
   {"debug", required_argument, nullptr, 'D'},
   {"dump", no_argument, nullptr, 'd'},
   {"load", required_argument, nullptr, 'L'},
+  {"jobs", required_argument, nullptr, 'J'},
   {"chdir-first", required_argument, nullptr, xtraopt_chdir_first},
   {"chdir-after-load", required_argument, nullptr, xtraopt_chdir_after_load},
   {"add-predefined", required_argument, nullptr, xtraopt_addpredef},
@@ -1094,12 +1097,13 @@ usage_mom (const char *argv0)
   printf ("Usage: %s\n", argv0);
   printf ("\t -h | --help " " \t# Give this help.\n");
   printf ("\t -V | --version " " \t# Give version information.\n");
+  printf ("\t -J | --jobs " " <nb-jobs> \t# Give number of jobs (working threads), default %u.\n", mom_nb_jobs);
   printf ("\t -D | --debug <debug-features>"
           " \t# Debugging comma separated features\n\t\t##");
   for (unsigned ix = 1; ix < momdbg__last; ix++)
     printf (" %s", mom_debug_names[ix]);
   putchar ('\n');
-  printf ("\t -d | --dump " " \t# Dump the state.\n");
+  printf ("\t -d | --dump <dumpdir>" " \t# Dump the state.\n");
   printf ("\t --chdir-first dirpath" " \t#Change directory at first \n");
   printf ("\t --chdir-after-load dirpath"
           " \t#Change directory after load\n");
@@ -1109,6 +1113,7 @@ usage_mom (const char *argv0)
   printf ("\t --test-id" " \t#generate a few random ids\n");
   printf ("\t --parse-id id" " \t#parse an id\n");
   printf ("\t --parse-val <val>" " \t#parse some value\n");
+  printf ("\t --parse-file <file-path>" " \t#parse several values from file\n");
 }
 
 
@@ -1184,7 +1189,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   char **argv = *pargv;
   int opt = -1;
   char *commentstr = nullptr;
-  while ((opt = getopt_long (argc, argv, "hVdsD:L:",
+  while ((opt = getopt_long (argc, argv, "hVd:sD:L:J:",
                              mom_long_options, nullptr)) >= 0)
     {
       switch (opt)
@@ -1201,10 +1206,21 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           exit (EXIT_SUCCESS);
           return;
         case 'd':              /* --dump */
-          should_dump_mom = true;
+          dump_dir_mom = optarg;
           break;
         case 'D':              /* --debug debugopt */
           mom_set_debugging (optarg);
+          break;
+        case 'J':		// --jobs nb-jobs
+          if (optarg && isdigit(optarg[0]))
+            {
+              mom_nb_jobs = atoi(optarg);
+              if (mom_nb_jobs<MOM_MIN_JOBS)
+                mom_nb_jobs = MOM_MIN_JOBS;
+              if (mom_nb_jobs>MOM_MAX_JOBS)
+                mom_nb_jobs = MOM_MAX_JOBS;
+            }
+          MOM_INFORMPRINTF("with %d jobs (working threads)", mom_nb_jobs);
           break;
         case 'L': /* --load filepath */
           if (!optarg || access (optarg, R_OK))
@@ -1227,7 +1243,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                 create_predefined_mom(namestr,commstr);
               });
               commentstr=nullptr;
-              should_dump_mom = true;
+              if (!dump_dir_mom)
+                MOM_WARNPRINTF("add predefined %s without dumping!", optarg);
             }
           else
             MOM_FATAPRINTF("--add-predefined option requires a valid item name");
@@ -1280,6 +1297,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           auto id5 = MomIdent::make_random();
           auto id6 = MomIdent::make_random();
           MOM_INFORMLOG("test-id __cplusplus=" << __cplusplus << " sizeof(MomObject)=" << sizeof(MomObject));
+          MOM_INFORMLOG("test-id hardware_concurrency=" << std::thread::hardware_concurrency());
           MOM_INFORMLOG("test-id:" << std::endl
                         << " .. id1= " << id1 << " =(" << id1.hi().serial() << "," << id1.lo().serial()
                         << ")/h" << id1.hash() << ",b#" << id1.bucketnum());
@@ -1407,6 +1425,9 @@ main (int argc_main, char **argv_main)
   if (MOM_UNLIKELY(!mom_prog_dlhandle))
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
   sqlite3_config(SQLITE_CONFIG_LOG, mom_sqlite_errlog, NULL);
+  mom_nb_jobs = (3*std::thread::hardware_concurrency())/4;
+  if (mom_nb_jobs<MOM_MIN_JOBS) mom_nb_jobs = MOM_MIN_JOBS;
+  if (mom_nb_jobs>MOM_MAX_JOBS) mom_nb_jobs = MOM_MAX_JOBS;
   parse_program_arguments_mom(&argc, &argv);
   MomObject::initialize_predefined();
 #warning missing stuff in main

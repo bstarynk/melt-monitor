@@ -406,9 +406,13 @@ static inline struct timespec mom_timespec (double t)
 }
 
 
-double mom_elapsed_real_time (void);  /* relative to start of program */
-double mom_process_cpu_time (void);
-double mom_thread_cpu_time (void);
+extern "C" unsigned mom_nb_jobs;
+#define MOM_MIN_JOBS 2
+#define MOM_MAX_JOBS 16
+
+extern "C" double mom_elapsed_real_time (void);  /* relative to start of program */
+extern "C" double mom_process_cpu_time (void);
+extern "C" double mom_thread_cpu_time (void);
 
 // call strftime on ti, but replace .__ with centiseconds for ti
 char *mom_strftime_centi (char *buf, size_t len, const char *fmt, double ti)
