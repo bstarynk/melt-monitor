@@ -1716,6 +1716,13 @@ MomObjptrHash::operator() (const MomObject*pob) const
 #define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) extern "C" MomObject*MOM_PREDEF(Id);
 #include "_mom_predef.h"
 
+#define MOM_GLOBAL_VAR(Nam) momglobal_##Nam
+#define MOM_LOAD_GLOBAL(Nam) (MOM_GLOBAL_VAR(Nam).load())
+#define MOM_STORE_GLOBAL(Nam,Obp) (MOM_GLOBAL_VAR(Nam).store(Obp))
+#define MOM_XCHG_GLOBAL(Nam,Obp) (MOM_GLOBAL_VAR(Nam).exchange(Obp))
+#define MOM_HAS_GLOBAL(Nam) extern "C" std::atomic<MomObject*> MOM_GLOBAL_VAR(Nam);
+#include "_mom_global.h"
+
 ////////////////
 typedef void MomPyv_destr_sig(struct MomPayload*payl,MomObject*own);
 typedef void MomPyv_scangc_sig(const struct MomPayload*payl,MomObject*own,MomGC*gc);
