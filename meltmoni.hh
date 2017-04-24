@@ -1692,6 +1692,11 @@ MomObjptrHash::operator() (const MomObject*pob) const
 }
 
 
+#define MOM_PREDEF(Id) mompredef##Id
+
+#define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) extern "C" MomObject*MOM_PREDEF(Id);
+#include "_mom_predef.h"
+
 ////////////////
 typedef void MomPyv_destr_sig(struct MomPayload*payl,MomObject*own);
 typedef void MomPyv_scangc_sig(const struct MomPayload*payl,MomObject*own,MomGC*gc);

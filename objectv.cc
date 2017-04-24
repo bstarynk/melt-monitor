@@ -21,6 +21,10 @@
 #include "meltmoni.hh"
 
 
+
+#define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) MomObject*MOM_PREDEF(Id);
+#include "_mom_predef.h"
+
 bool
 mom_valid_name_radix_len (const char *str, int len)
 {
@@ -310,7 +314,6 @@ MomObject::find_object_of_id(const MomIdent id)
   if (id.is_null()) return nullptr;
   unsigned buix = id.bucketnum();
   std::lock_guard<std::mutex> _gu(_bumtxarr_[buix]);
-  constexpr unsigned minbuckcount = 16;
   auto& curmap = _bumaparr_[buix];
   if (MOM_UNLIKELY(curmap.bucket_count() < _bumincount_))
     curmap.rehash(_bumincount_);
@@ -349,7 +352,6 @@ MomObject::make_object_of_id(const MomIdent id)
   if (id.is_null()) return nullptr;
   unsigned buix = id.bucketnum();
   std::lock_guard<std::mutex> _gu(_bumtxarr_[buix]);
-  constexpr unsigned minbuckcount = 16;
   auto& curmap = _bumaparr_[buix];
   if (MOM_UNLIKELY(curmap.bucket_count() < _bumincount_))
     curmap.rehash(_bumincount_);
