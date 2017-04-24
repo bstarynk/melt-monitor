@@ -749,6 +749,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
 
 class MomLoader;		// in state.cc
 class MomDumper;		// in state.cc
+class MomGC;
 extern "C" void mom_dump_into_directory(const char*dirnam);
 
 #define MOM_GLOBAL_DB "mom_global"
@@ -920,6 +921,7 @@ public:
       return (const MomAnyVal*)(_v & ~7);
     else return def;
   }
+  inline void scan_gc(MomGC*gc) const;
   // transient value
   MomValue(const MomAnyVal*p, MomTransientTag) : _v(((uintptr_t)p) | 2)
   {
@@ -962,6 +964,7 @@ public:
       return (const MomAnyVal*)(_v & ~7);
     else return def;
   }
+  inline void scan_dump(MomDumper*du) const;
   inline MomHash hash() const;
   void output(std::ostream& out) const; /// in file parsemit.cc
 };				// end class MomValue
@@ -974,7 +977,7 @@ inline std::ostream& operator << (std::ostream& out, const MomValue val)
 
 typedef std::uint32_t MomSize; // sizes have 27 bits
 typedef std::uint8_t MomGCMark; // garbage collector marks have 2 bits
-class MomGC;
+
 
 struct MomNewTag
 {
@@ -1155,8 +1158,9 @@ protected:
     MOM_ASSERT(sz<_max_size, "MomAnyVal huge size " << sz);
   };
   virtual ~MomAnyVal() {};
-  virtual void scan_gc(MomGC*) const =0;
 public:
+  virtual void scan_gc(MomGC*) const =0;
+  virtual void scan_dump(MomDumper*du) const =0;
   virtual MomKind vkind() const =0;
 };				// end class MomAnyVal
 
@@ -1254,6 +1258,7 @@ public:
     return MomKind::TagIntSqK;
   };
   virtual void scan_gc(MomGC*) const {};
+  virtual void scan_dump(MomDumper*) const {};
 };				// end class MomIntSq
 
 
@@ -1315,6 +1320,7 @@ public:
     return MomKind::TagDoubleSqK;
   };
   virtual void scan_gc(MomGC*) const {};
+  virtual void scan_dump(MomDumper*) const {};
 };				// end class MomDoubleSq
 
 
@@ -1370,6 +1376,7 @@ public:
     return MomKind::TagStringK;
   };
   virtual void scan_gc(MomGC*) const {};
+  virtual void scan_dump(MomDumper*) const {};
 };				// end class MomString
 
 ////////////////////////////////////////////////////////////////
@@ -1417,6 +1424,7 @@ protected:
     return true;
   }
   virtual void scan_gc(MomGC*) const;
+  virtual void scan_dump(MomDumper*) const;
 public:
   typedef MomObject*const* iterator;
   iterator begin() const
@@ -1608,11 +1616,14 @@ public:
 protected:
   ~MomNode() {};
   virtual void scan_gc(MomGC*) const ;
+  virtual void scan_dump(MomDumper*) const;
 };    // end class MomNode
 
-////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////
 
+
+
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
 
 enum class MomSpace : std::uint8_t
 {
@@ -1622,6 +1633,8 @@ enum class MomSpace : std::uint8_t
   UserSp
 };
 
+
+////////////////@@@@@@@@@@
 class MomObject final : public MomAnyVal // in objectv.cc
 {
   friend struct MomPayload;
@@ -1634,6 +1647,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   std::atomic<MomSpace> _ob_space;
   mutable std::shared_mutex _ob_shmtx;
   std::unordered_map<MomObject*,MomValue,MomObjptrHash> _ob_attrs;
+  std::vector<MomValue> _ob_comps;
   MomPayload* _ob_payl;
   MomObject(const MomIdent id, MomHash h);
 public:
@@ -1698,6 +1712,8 @@ public:
     return MomKind::TagObjectK;
   };
   virtual void scan_gc(MomGC*) const;
+  virtual void scan_dump(MomDumper*du) const; // in state.cc
+  virtual void scan_dump_content(MomDumper*du) const; // in state.cc
   inline void unsync_clear_payload();
   void unsync_clear_all();
 }; // end class MomObject
@@ -1733,6 +1749,7 @@ MomObjptrHash::operator() (const MomObject*pob) const
 ////////////////
 typedef void MomPyv_destr_sig(struct MomPayload*payl,MomObject*own);
 typedef void MomPyv_scangc_sig(const struct MomPayload*payl,MomObject*own,MomGC*gc);
+typedef void MomPyv_scandump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du);
 
 #define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
 struct MomVtablePayload_st // explicit "vtable-like" of payload
@@ -1743,6 +1760,7 @@ struct MomVtablePayload_st // explicit "vtable-like" of payload
   const char*pyv_module;
   const MomPyv_destr_sig* pyv_destroy;
   const MomPyv_scangc_sig* pyv_scangc;
+  const MomPyv_scandump_sig* pyv_scandump;
 };
 
 struct MomPayload
@@ -1775,6 +1793,13 @@ struct MomPayload
     if (!ownob) return;
     if (_py_vtbl->pyv_scangc)
       _py_vtbl->pyv_scangc(this,ownob,gc);
+  }
+  void scan_dump_payl(MomDumper*du) const
+  {
+    auto ownob = _py_owner;
+    if (!ownob) return;
+    if (_py_vtbl->pyv_scandump)
+      _py_vtbl->pyv_scandump(this,ownob,du);
   }
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
@@ -2024,4 +2049,19 @@ MomObject::unsync_clear_payload()
     delete py;
 }
 
+void
+MomValue::scan_gc(MomGC*gc) const
+{
+  auto pv = to_val();
+  if (pv)
+    pv->scan_gc(gc);
+} // end MomValue::scan_gc
+
+void
+MomValue::scan_dump(MomDumper*du) const
+{
+  auto pv = to_persistent();
+  if (pv)
+    pv->scan_dump(du);
+}      // end MomValue::scan_dump
 #endif /*MONIMELT_INCLUDED_ */
