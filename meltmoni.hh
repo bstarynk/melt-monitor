@@ -2065,4 +2065,7 @@ MomValue::scan_dump(MomDumper*du) const
   if (pv)
     pv->scan_dump(du);
 }      // end MomValue::scan_dump
+
+extern "C" void mom_dump_in_directory(const char*dirname);
+
 #endif /*MONIMELT_INCLUDED_ */

@@ -293,6 +293,12 @@ MomDumper::scan_inside_object(MomObject*pob) {
 } // end MomDumper::scan_inside_object
 
 
+
+MomDumper::~MomDumper() {
+  #warning incomplete MomDumper destructor
+  MOM_FATALOG("incomplete MomDumper destructor");
+}
+
 void
 MomAnyObjSeq::scan_dump(MomDumper*du) const
 {
@@ -344,3 +350,15 @@ MomObject::scan_dump_content(MomDumper*du) const
   if (_ob_payl)
     _ob_payl->scan_dump_payl(du);
 } // end MomObject::scan_dump_content
+
+
+void
+mom_dump_in_directory(const char*dirname)
+{
+  MomDumper dumper(dirname);
+  dumper.open_databases();
+  dumper.scan_predefined();
+  dumper.scan_globdata();
+  // should run the scan_loop in several threads....
+#warning incomplete mom_dump_in_directory
+} // end mom_dump_in_directory
