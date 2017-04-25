@@ -371,9 +371,13 @@ MomDumper::dump_emit_object(MomObject*pob, int thix)
 {
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
 	     "MomDumper::dump_emit_object bad pob");
-  MOM_ASSERT(thix > 0 && thix <= mom_nb_jobs, "MomDumper::dump_emit_object bad thix:" << thix);
+  MOM_ASSERT(thix > 0 && thix <= (int)mom_nb_jobs, "MomDumper::dump_emit_object bad thix:" << thix);
   bool isglobal = false;
   bool isuser = false;
+  std::string contentstr;
+  MomObject::PayloadEmission pyem;
+  double obmtime=0.0;
+  bool haspayload = false;
   {
     std::shared_lock<std::shared_mutex> gu{pob->_ob_shmtx};
     auto sp = pob->space();
@@ -386,7 +390,7 @@ MomDumper::dump_emit_object(MomObject*pob, int thix)
 		       << " with strange space#" << (int)sp);
       return;
     }
-    std::string contentstr;
+    obmtime = pob->_ob_mtime;
     {
       std::ostringstream outcontent;
       MomDumpEmitter emitcontent(outcontent, this);
@@ -394,9 +398,19 @@ MomDumper::dump_emit_object(MomObject*pob, int thix)
       outcontent << std::endl;
       contentstr = outcontent.str();
     }
-    MomObject::PayloadEmission pyem;
-    if (pob->_ob_payl) 
+    if (pob->_ob_payl) {
      pob->unsync_emit_dump_payload(this,pyem);
+     haspayload = true;
+    }
+  }
+  // lock the relevant database mutex and insert into it
+  if (isglobal) {
+    std::lock_guard<std::mutex> glg(_du_globdbmtx);
+    //_du_globdbp
+  }
+  else if (isuser) {
+    std::lock_guard<std::mutex> glg(_du_userdbmtx);
+    //_du_userdbp
   }
 #warning MomDumper::dump_emit_object incomplete
 } // end MomDumper::dump_emit_object
@@ -531,7 +545,21 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
 } // end MomObject::unsync_emit_dump_content
 
 void 
-MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pyem) const {
+MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pyem) const
+{  
+  if (_ob_payl->_py_vtbl->pyv_emitdump) {
+    std::ostringstream outinit;
+    MomDumpEmitter emitinit(outinit, du);
+    std::ostringstream outcontent;
+    MomDumpEmitter emitcontent(outcontent, du);
+    _ob_payl->_py_vtbl->pyv_emitdump(_ob_payl,const_cast<MomObject*>(this),du,&emitinit,&emitcontent);
+    pyem.pye_kind = _ob_payl->_py_vtbl->pyv_name;
+    pyem.pye_module = _ob_payl->_py_vtbl->pyv_module;
+    outinit<<std::flush;
+    pyem.pye_init = outinit.str();
+    outcontent<<std::endl;
+    pyem.pye_content = outcontent.str();
+  }
 #warning missing MomObject::unsync_emit_dump_payload
 } // end MomObject::unsync_emit_dump_content
 

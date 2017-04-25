@@ -334,10 +334,13 @@ MomObject::find_object_of_id(const MomIdent id)
 
 MomObject::MomObject(const MomIdent id, MomHash h)
   : MomAnyVal(MomKind::TagObjectK, 0, h),
-    _ob_id(id), _ob_shmtx(),
+    _ob_id(id),
+    _ob_space(ATOMIC_VAR_INIT(MomSpace::TransientSp)),
+    _ob_mtime(0.0),
+    _ob_shmtx(),
     _ob_attrs{},
-    _ob_payl(nullptr),
-    _ob_space(MomSpace::TransientSp)
+    _ob_comps(),
+    _ob_payl(nullptr)
 {
   MOM_ASSERT(h != 0 && id.hash() == h, "MomObject::MomObject corrupted h=" << h << " for id=" << id);
 } // end MomObject::MomObject

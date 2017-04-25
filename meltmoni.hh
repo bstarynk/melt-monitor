@@ -1649,6 +1649,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   static constexpr unsigned _bumincount_ = 16;
   const MomIdent _ob_id;
   std::atomic<MomSpace> _ob_space;
+  double _ob_mtime;
   mutable std::shared_mutex _ob_shmtx;
   std::unordered_map<MomObject*,MomValue,MomObjptrHash> _ob_attrs;
   std::vector<MomValue> _ob_comps;
@@ -1658,6 +1659,7 @@ public:
   struct PayloadEmission
   {
     std::string pye_kind;
+    std::string pye_module;
     std::string pye_init;
     std::string pye_content;
   };
@@ -1762,6 +1764,7 @@ MomObjptrHash::operator() (const MomObject*pob) const
 typedef void MomPyv_destr_sig(struct MomPayload*payl,MomObject*own);
 typedef void MomPyv_scangc_sig(const struct MomPayload*payl,MomObject*own,MomGC*gc);
 typedef void MomPyv_scandump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du);
+typedef void MomPyv_emitdump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont);
 
 #define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
 struct MomVtablePayload_st // explicit "vtable-like" of payload
@@ -1773,6 +1776,7 @@ struct MomVtablePayload_st // explicit "vtable-like" of payload
   const MomPyv_destr_sig* pyv_destroy;
   const MomPyv_scangc_sig* pyv_scangc;
   const MomPyv_scandump_sig* pyv_scandump;
+  const MomPyv_emitdump_sig* pyv_emitdump;
 };
 
 struct MomPayload
