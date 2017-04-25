@@ -30,10 +30,13 @@ class MomLoader
   std::unique_ptr<sqlite::database> _ld_userdbp;
   std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _ld_objmap;
   std::unique_ptr<sqlite::database> load_database(const char*dbradix);
-  long load_empty_objects_from_db(sqlite::database& db, bool user);
+  long load_empty_objects_from_db(sqlite::database* pdb, bool user);
 #warning should add a lot more into MomLoader
 public:
   MomLoader(const std::string&dirnam);
+  static constexpr bool IS_USER= true;
+  static constexpr bool IS_GLOBAL= false;
+  void load(void);
 };				// end class MomLoader
 
 
@@ -58,11 +61,11 @@ MomLoader::load_database(const char*dbradix)
 
 
 long
-MomLoader::load_empty_objects_from_db(sqlite::database& db, bool user)
+MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
 {
   long obcnt = 0;
-  db << "SELECT ob_id FROM t_objects"
-     >> [&](std::string idstr)
+  *pdb << "SELECT ob_id FROM t_objects"
+       >> [&](std::string idstr)
   {
     auto id = MomIdent::make_from_cstr(idstr.c_str(),true);
     auto pob = MomObject::make_object_of_id(id);
@@ -116,7 +119,21 @@ MomLoader::MomLoader(const std::string& dirnam)
     }
 } // end MomLoader::MomLoader
 
+void
+MomLoader::load(void)
+{
+  load_empty_objects_from_db(_ld_globdbp.get(),IS_GLOBAL);
+  if (_ld_userdbp)
+    load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
+#warning MomLoader::load should do things in parallel
+} // end MomLoader::load
 
+void
+mom_load_from_directory(const char*dirname)
+{
+  MomLoader ld(dirname);
+  ld.load();
+} // end mom_load_from_directory
 
 
 //==============================================================
