@@ -133,6 +133,8 @@ class MomDumper
   std::set<std::string> _du_tempset;
   std::unique_ptr<sqlite::database> _du_globdbp;
   std::unique_ptr<sqlite::database> _du_userdbp;
+  std::mutex _du_globdbmtx;
+  std::mutex _du_userdbmtx;
   std::condition_variable _du_addedcondvar;
   std::unordered_set<const MomObject*,MomObjptrHash> _du_setobj;
   std::deque<const MomObject*> _du_queobj;
@@ -141,7 +143,7 @@ class MomDumper
   std::map<std::string,MomObject*> _du_globmap;
   void initialize_db(sqlite::database &db);
   static void dump_scan_thread(MomDumper*du, int ix);
-  static void dump_emit_thread(MomDumper*du, int ix);
+  static void dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec);
 public:
   std::string temporary_file_path(const std::string& path);
   MomDumper(const std::string&dirnam);
@@ -183,6 +185,7 @@ public:
 MomDumper::MomDumper(const std::string&dirnam)
   : _du_mtx(), _du_state{dus_none}, _du_dirname(dirnam), _du_tempsuffix(), _du_tempset(),
     _du_globdbp(), _du_userdbp(),
+    _du_globdbmtx(), _du_userdbmtx(),
     _du_addedcondvar(),
     _du_setobj(), _du_queobj(), _du_scancount(ATOMIC_VAR_INIT(0ul)), _du_predefvset(nullptr), _du_globmap{}
 {
@@ -339,19 +342,49 @@ void
 MomDumper::dump_scan_loop(void) {
   MOM_ASSERT(_du_state == dus_scan, "MomDumper::dump_scan_loop bad state");
   std::vector<std::thread> vecthr(mom_nb_jobs);
-  for (int ix=1; ix<=mom_nb_jobs; ix++)
+  for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
     vecthr[ix-1] = std::thread(dump_scan_thread, this, ix);
   std::this_thread::yield();
   std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
-  for (int ix=1; ix<=mom_nb_jobs; ix++)
+  for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
     vecthr[ix-1].join();
 } // end MomDumper::dump_scan_loop
+
+
+void
+MomDumper::dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec)
+{
+  std::sort(pvec->begin(), pvec->end(), MomObjptrLess{});
+#warning MomDumper::dump_emit_thread very incomplete
+} // end MomDumper::dump_emit_thread
 
 void
 MomDumper::dump_emit_loop(void) {
   MOM_ASSERT(_du_state == dus_scan, "MomDumper::dump_emit_loop bad start state");
   _du_state = dus_emit;
-#warning dump_emit_loop should probably create threads using std::future & std::promise
+  std::vector<std::vector<MomObject*>> vecobjob(mom_nb_jobs);
+  std::vector<std::thread> vecthr(mom_nb_jobs);
+  {
+      std::lock_guard<std::mutex> gu{_du_mtx};
+      auto nbobj = _du_setobj.size();
+      for (unsigned ix=0; ix<mom_nb_jobs; ix++)
+	vecobjob[ix].reserve(nbobj/mom_nb_jobs+5);
+      unsigned long cnt = 0;
+      for (const MomObject*pob : _du_setobj) {
+	MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
+		   "MomDumper::dump_emit_loop bad pob");
+	vecobjob[cnt % mom_nb_jobs].push_back(const_cast<MomObject*>(pob));
+	cnt++;
+      }
+  }
+  for (unsigned ix=1; ix<=mom_nb_jobs; ix++) {
+#warning something wrong here in MomDumper::dump_emit_loop
+    vecthr[ix-1] = std::thread(dump_emit_thread, this, ix, &vecobjob[ix-1]);
+  }
+  std::this_thread::yield();
+  std::this_thread::sleep_for(std::chrono::milliseconds(50+20*mom_nb_jobs));
+  for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
+    vecthr[ix-1].join();
 } // end MomDumper::dump_emit_loop
 
 
