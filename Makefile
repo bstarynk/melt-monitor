@@ -83,7 +83,7 @@ _timestamp.c: Makefile
 
 $(OBJECTS): meltmoni.hh.gch $(GENERATED_HEADERS)
 
-meltmoni.hh.gch: meltmoni.hh _mom_predef.h 
+meltmoni.hh.gch: meltmoni.hh $(GENERATED_HEADERS)
 	$(COMPILE.cc) $(CXXFLAGS) -c $< -o $@
 
 monimelt: $(OBJECTS) 
