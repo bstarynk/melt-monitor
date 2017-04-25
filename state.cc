@@ -144,6 +144,7 @@ class MomDumper
   void initialize_db(sqlite::database &db);
   static void dump_scan_thread(MomDumper*du, int ix);
   static void dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec);
+  void dump_emit_object(MomObject*pob, int thix);
 public:
   std::string temporary_file_path(const std::string& path);
   MomDumper(const std::string&dirnam);
@@ -352,9 +353,33 @@ MomDumper::dump_scan_loop(void) {
 
 
 void
+MomDumper::dump_emit_object(MomObject*pob, int thix)
+{
+  MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
+	     "MomDumper::dump_emit_object bad pob");
+  MOM_ASSERT(thix > 0 && thix <= mom_nb_jobs, "MomDumper::dump_emit_object bad thix:" << thix);
+  bool isglobal = false;
+  bool isuser = false;
+  auto sp = pob->space();
+  if (sp == MomSpace::PredefSp || sp == MomSpace::GlobalSp) isglobal = true;
+  else if (sp == MomSpace::UserSp) isuser = true;
+  else {
+    MOM_BACKTRACELOG("MomDumper::dump_emit_object pob=" << pob
+		     << " with strange space#" << (int)sp);
+    return;
+  }
+#warning MomDumper::dump_emit_object incomplete
+} // end MomDumper::dump_emit_object
+
+
+
+void
 MomDumper::dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec)
 {
   std::sort(pvec->begin(), pvec->end(), MomObjptrLess{});
+  for (MomObject*pob : *pvec) {
+    du->dump_emit_object(pob, ix);
+  }
 #warning MomDumper::dump_emit_thread very incomplete
 } // end MomDumper::dump_emit_thread
 
