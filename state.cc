@@ -374,21 +374,29 @@ MomDumper::dump_emit_object(MomObject*pob, int thix)
   MOM_ASSERT(thix > 0 && thix <= mom_nb_jobs, "MomDumper::dump_emit_object bad thix:" << thix);
   bool isglobal = false;
   bool isuser = false;
-  auto sp = pob->space();
-  if (sp == MomSpace::PredefSp || sp == MomSpace::GlobalSp)
-    isglobal = true;
-  else if (sp == MomSpace::UserSp)
-    isuser = true;
-  else {
-    MOM_BACKTRACELOG("MomDumper::dump_emit_object pob=" << pob
-		     << " with strange space#" << (int)sp);
-    return;
-  }
-  std::string contentstr;
   {
-    std::ostringstream outcontent;
-    MomDumpEmitter emitcontent(outcontent, this);
-    pob->emit_dump_content(this, emitcontent);
+    std::shared_lock<std::shared_mutex> gu{pob->_ob_shmtx};
+    auto sp = pob->space();
+    if (sp == MomSpace::PredefSp || sp == MomSpace::GlobalSp)
+      isglobal = true;
+    else if (sp == MomSpace::UserSp)
+      isuser = true;
+    else {
+      MOM_BACKTRACELOG("MomDumper::dump_emit_object pob=" << pob
+		       << " with strange space#" << (int)sp);
+      return;
+    }
+    std::string contentstr;
+    {
+      std::ostringstream outcontent;
+      MomDumpEmitter emitcontent(outcontent, this);
+      pob->unsync_emit_dump_content(this, emitcontent);
+      outcontent << std::endl;
+      contentstr = outcontent.str();
+    }
+    MomObject::PayloadEmission pyem;
+    if (pob->_ob_payl) 
+     pob->unsync_emit_dump_payload(this,pyem);
   }
 #warning MomDumper::dump_emit_object incomplete
 } // end MomDumper::dump_emit_object
@@ -494,11 +502,10 @@ MomObject::scan_dump_content(MomDumper*du) const
 
 
 void
-MomObject::emit_dump_content(MomDumper*du, MomEmitter&em) const
+MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
 {
-  std::shared_lock<std::shared_mutex> gu{_ob_shmtx};
   MOM_ASSERT(vkind() == MomKind::TagObjectK,
-	     "MomObject::emit_dump_content bad object@" << (const void*)this);
+	     "MomObject::unsync_emit_dump_content bad object@" << (const void*)this);
   if (space()==MomSpace::TransientSp) return;
   em.emit_newline(0);
   for (auto &p: _ob_attrs) {
@@ -508,7 +515,7 @@ MomObject::emit_dump_content(MomDumper*du, MomEmitter&em) const
     if (!du->is_dumped(pobattr))
       continue;
     const MomValue valattr = p.second;
-    if (!valattr)
+    if (!valattr || valattr.is_transient())
       continue;
     em.out() << "@@ ";
     em.emit_objptr(pobattr);
@@ -521,7 +528,12 @@ MomObject::emit_dump_content(MomDumper*du, MomEmitter&em) const
     em.emit_value(vcomp);
     em.emit_newline(0);
   }
-} // end MomObject::emit_dump_content
+} // end MomObject::unsync_emit_dump_content
+
+void 
+MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pyem) const {
+#warning missing MomObject::unsync_emit_dump_payload
+} // end MomObject::unsync_emit_dump_content
 
 void
 mom_dump_in_directory(const char*dirname)

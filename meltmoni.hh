@@ -1641,6 +1641,7 @@ enum class MomSpace : std::uint8_t
 class MomObject final : public MomAnyVal // in objectv.cc
 {
   friend struct MomPayload;
+  friend MomDumper;
   static std::mutex _bumtxarr_[MomSerial63::_maxbucket_];
   static std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _bumaparr_[MomSerial63::_maxbucket_];
   static std::mutex _predefmtx_;
@@ -1654,6 +1655,12 @@ class MomObject final : public MomAnyVal // in objectv.cc
   MomPayload* _ob_payl;
   MomObject(const MomIdent id, MomHash h);
 public:
+  struct PayloadEmission
+  {
+    std::string pye_kind;
+    std::string pye_init;
+    std::string pye_content;
+  };
   ~MomObject();
   static MomObject*find_object_of_id(const MomIdent id);
   static MomObject*make_object_of_id(const MomIdent id);
@@ -1717,7 +1724,8 @@ public:
   virtual void scan_gc(MomGC*) const;
   virtual void scan_dump(MomDumper*du) const; // in state.cc
   virtual void scan_dump_content(MomDumper*du) const; // in state.cc
-  void emit_dump_content(MomDumper*du, MomEmitter&em) const; // in state.cc
+  void unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const; // in state.cc
+  void unsync_emit_dump_payload(MomDumper*du, PayloadEmission&) const; // in state.cc
   inline void unsync_clear_payload();
   void unsync_clear_all();
 }; // end class MomObject
