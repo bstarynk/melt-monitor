@@ -141,6 +141,7 @@ class MomDumper
   std::map<std::string,MomObject*> _du_globmap;
   void initialize_db(sqlite::database &db);
   static void dump_scan_thread(MomDumper*du, int ix);
+  static void dump_emit_thread(MomDumper*du, int ix);
 public:
   std::string temporary_file_path(const std::string& path);
   MomDumper(const std::string&dirnam);
@@ -148,6 +149,7 @@ public:
   void scan_predefined(void);
   void scan_globdata(void);
   void dump_scan_loop(void);
+  void dump_emit_loop(void);
   void scan_inside_object(MomObject*pob);
   void add_scanned_object(const MomObject*pob)
   {
@@ -335,6 +337,7 @@ MomDumper::dump_scan_thread(MomDumper*du, int ix)
 
 void
 MomDumper::dump_scan_loop(void) {
+  MOM_ASSERT(_du_state == dus_scan, "MomDumper::dump_scan_loop bad state");
   std::vector<std::thread> vecthr(mom_nb_jobs);
   for (int ix=1; ix<=mom_nb_jobs; ix++)
     vecthr[ix-1] = std::thread(dump_scan_thread, this, ix);
@@ -343,6 +346,14 @@ MomDumper::dump_scan_loop(void) {
   for (int ix=1; ix<=mom_nb_jobs; ix++)
     vecthr[ix-1].join();
 } // end MomDumper::dump_scan_loop
+
+void
+MomDumper::dump_emit_loop(void) {
+  MOM_ASSERT(_du_state == dus_scan, "MomDumper::dump_emit_loop bad start state");
+  _du_state = dus_emit;
+#warning dump_emit_loop should probably create threads using std::future & std::promise
+} // end MomDumper::dump_emit_loop
+
 
 MomDumper::~MomDumper() {
   #warning incomplete MomDumper destructor
@@ -409,6 +420,7 @@ mom_dump_in_directory(const char*dirname)
   dumper.open_databases();
   dumper.scan_predefined();
   dumper.scan_globdata();
-  dumper.dump_scan_loop();
+  dumper.dump_scan_loop();	// multi-threaded
+  dumper.dump_emit_loop();	// multi-threaded
 #warning incomplete mom_dump_in_directory
 } // end mom_dump_in_directory

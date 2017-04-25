@@ -92,6 +92,7 @@
 #include <shared_mutex>
 #include <condition_variable>
 #include <thread>
+#include <future>
 #include <functional>
 #include <algorithm>
 #include <new>
