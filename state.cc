@@ -139,13 +139,14 @@ class MomDumper
   const MomSet* _du_predefvset;
   std::map<std::string,MomObject*> _du_globmap;
   void initialize_db(sqlite::database &db);
+  static void dump_scan_thread(MomDumper*du, int ix);
 public:
   std::string temporary_file_path(const std::string& path);
   MomDumper(const std::string&dirnam);
   void open_databases(void);
   void scan_predefined(void);
   void scan_globdata(void);
-  void scan_loop(void);
+  void dump_scan_loop(void);
   void scan_inside_object(MomObject*pob);
   void add_scanned_object(const MomObject*pob)
   {
@@ -293,6 +294,46 @@ MomDumper::scan_inside_object(MomObject*pob) {
 } // end MomDumper::scan_inside_object
 
 
+void 
+MomDumper::dump_scan_thread(MomDumper*du, int ix)
+{
+  MOM_ASSERT(du != nullptr, "MomDumper::dump_scan_thread null dumper");
+  MOM_ASSERT(du->_du_state == dus_scan,
+	     "MomDumper::dump_scan_thread bad state#" << (int)du->_du_state);
+  MOM_ASSERT(ix>0 && ix<=(int)mom_nb_jobs, "MomDumper::dump_scan_thread bad ix="<< ix);
+  bool endedscan = false;
+  while (!endedscan) {
+    const MomObject* ob1 = nullptr;
+    const MomObject* ob2 = nullptr;
+    {
+      std::lock_guard<std::mutex> gu{du->_du_mtx};
+      if (!du->_du_queobj.empty()) {
+	ob1 = du->_du_queobj.front();
+	du->_du_queobj.pop_front();
+      }
+      if (!du->_du_queobj.empty()) {
+	ob2 = du->_du_queobj.front();
+	du->_du_queobj.pop_front();
+      }
+    }
+    if (ob1)
+      ob1->scan_dump_content(du);
+    if (ob2)
+      ob2->scan_dump_content(du);
+    #warning MomDumper::dump_scan_thread incomplete
+  }
+} // end dump_scan_thread
+
+void
+MomDumper::dump_scan_loop(void) {
+  std::vector<std::thread> vecthr(mom_nb_jobs);
+  for (int ix=1; ix<=mom_nb_jobs; ix++)
+    vecthr[ix-1] = std::thread(dump_scan_thread, this, ix);
+  std::this_thread::yield();
+  std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
+  for (int ix=1; ix<=mom_nb_jobs; ix++)
+    vecthr[ix-1].join();
+} // end MomDumper::dump_scan_loop
 
 MomDumper::~MomDumper() {
   #warning incomplete MomDumper destructor
@@ -359,6 +400,6 @@ mom_dump_in_directory(const char*dirname)
   dumper.open_databases();
   dumper.scan_predefined();
   dumper.scan_globdata();
-  // should run the scan_loop in several threads....
+  dumper.dump_scan_loop();
 #warning incomplete mom_dump_in_directory
 } // end mom_dump_in_directory
