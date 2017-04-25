@@ -28,9 +28,14 @@ class MomLoader
   std::string _ld_dirname;
   std::unique_ptr<sqlite::database> _ld_globdbp;
   std::unique_ptr<sqlite::database> _ld_userdbp;
+  std::mutex _ld_mtxglobdb;
+  std::mutex _ld_mtxuserdb;
   std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _ld_objmap;
+  std::mutex _ld_mtxobjmap;
   std::unique_ptr<sqlite::database> load_database(const char*dbradix);
   long load_empty_objects_from_db(sqlite::database* pdb, bool user);
+  void load_all_globdata(void);
+  void load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob);
 #warning should add a lot more into MomLoader
 public:
   MomLoader(const std::string&dirnam);
@@ -64,6 +69,7 @@ long
 MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
 {
   long obcnt = 0;
+  std::lock_guard<std::mutex> gu (*(user?(&_ld_mtxuserdb):(&_ld_mtxglobdb)));
   *pdb << "SELECT ob_id FROM t_objects"
        >> [&](std::string idstr)
   {
@@ -71,7 +77,10 @@ MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
     auto pob = MomObject::make_object_of_id(id);
     if (pob)
       {
-        _ld_objmap.insert({id,pob});
+        {
+          std::lock_guard<std::mutex> gu(_ld_mtxobjmap);
+          _ld_objmap.insert({id,pob});
+        }
         if (pob->space() == MomSpace::TransientSp)
           {
             if (user)
@@ -122,11 +131,57 @@ MomLoader::MomLoader(const std::string& dirnam)
 void
 MomLoader::load(void)
 {
-  load_empty_objects_from_db(_ld_globdbp.get(),IS_GLOBAL);
-  if (_ld_userdbp)
-    load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
+  long nbglobob = 0;
+  long nbuserob = 0;
+  {
+    auto globthr = std::thread([&](void)
+    {
+      nbglobob = load_empty_objects_from_db(_ld_globdbp.get(),IS_GLOBAL);
+    });
+    if (_ld_userdbp)
+      {
+        nbuserob = load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
+      }
+    globthr.join();
+  }
+  load_all_globdata();
 #warning MomLoader::load should do things in parallel
 } // end MomLoader::load
+
+void
+MomLoader::load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob)
+{
+  MomObject*globpob = nullptr;
+  {
+    std::lock_guard<std::mutex> gu{_ld_mtxglobdb};
+    *_ld_globdbp << "SELECT glob_oid FROM t_globals WHERE glob_namestr = ?;"
+                 << globnam >> [&](const std::string &idstr)
+    {
+      globpob = MomObject::find_object_of_id(MomIdent::make_from_cstr(idstr.c_str()));
+    };
+  }
+  if (!globpob && _ld_userdbp)
+    {
+      std::lock_guard<std::mutex> gu{_ld_mtxuserdb};
+      *_ld_userdbp << "SELECT glob_oid FROM t_globals WHERE glob_namestr = ?;"
+                   << globnam >> [&](const std::string &idstr)
+      {
+        globpob = MomObject::find_object_of_id(MomIdent::make_from_cstr(idstr.c_str()));
+      };
+    }
+  if (globpob)
+    {
+      pglob->store(globpob);
+    }
+} // end MomLoader::load_cold_globdata
+
+void
+MomLoader::load_all_globdata(void)
+{
+#define MOM_HAS_GLOBDATA(Nam) \
+  load_cold_globdata(#Nam,&MOM_GLOBDATA_VAR(Nam));
+#include "_mom_globdata.h"
+} // end MomLoader::load_all_globdata
 
 void
 mom_load_from_directory(const char*dirname)
@@ -319,9 +374,9 @@ MomDumper::scan_globdata(void) {
   if (gpob##Nam != nullptr) {				\
     add_scanned_object(gpob##Nam);			\
     std::lock_guard<std::mutex> gu{_du_mtx};		\
-    _du_globmap.insert(#Nam,gpob);			\
+    _du_globmap.insert({std::string{#Nam},gpob##Nam});	\
   }							\
-} while(0)
+  } while(0);
 #include "_mom_globdata.h"
 } // end MomDumper::scan_globdata
 
