@@ -182,6 +182,20 @@ public:
 #warning should add a lot more into MomDumper
 };				// end class MomDumper
 
+class MomDumpEmitter final : public MomEmitter
+{
+  MomDumper*_de_dumper;
+public:
+  MomDumpEmitter(std::ostringstream& outs, MomDumper*dum)
+    : MomEmitter(outs), _de_dumper(dum)
+  {
+    set_line_width(88).show_transient(false);
+  };
+  virtual bool skippable_object(const MomObject*pob) const
+  {
+    return !_de_dumper->is_dumped(pob);
+  }
+};				// end MomDumpEmitter
 
 MomDumper::MomDumper(const std::string&dirnam)
   : _du_mtx(), _du_state{dus_none}, _du_dirname(dirnam), _du_tempsuffix(), _du_tempset(),
@@ -361,12 +375,20 @@ MomDumper::dump_emit_object(MomObject*pob, int thix)
   bool isglobal = false;
   bool isuser = false;
   auto sp = pob->space();
-  if (sp == MomSpace::PredefSp || sp == MomSpace::GlobalSp) isglobal = true;
-  else if (sp == MomSpace::UserSp) isuser = true;
+  if (sp == MomSpace::PredefSp || sp == MomSpace::GlobalSp)
+    isglobal = true;
+  else if (sp == MomSpace::UserSp)
+    isuser = true;
   else {
     MOM_BACKTRACELOG("MomDumper::dump_emit_object pob=" << pob
 		     << " with strange space#" << (int)sp);
     return;
+  }
+  std::string contentstr;
+  {
+    std::ostringstream outcontent;
+    MomDumpEmitter emitcontent(outcontent, this);
+    pob->emit_dump_content(this, emitcontent);
   }
 #warning MomDumper::dump_emit_object incomplete
 } // end MomDumper::dump_emit_object
@@ -470,6 +492,36 @@ MomObject::scan_dump_content(MomDumper*du) const
     _ob_payl->scan_dump_payl(du);
 } // end MomObject::scan_dump_content
 
+
+void
+MomObject::emit_dump_content(MomDumper*du, MomEmitter&em) const
+{
+  std::shared_lock<std::shared_mutex> gu{_ob_shmtx};
+  MOM_ASSERT(vkind() == MomKind::TagObjectK,
+	     "MomObject::emit_dump_content bad object@" << (const void*)this);
+  if (space()==MomSpace::TransientSp) return;
+  em.emit_newline(0);
+  for (auto &p: _ob_attrs) {
+    const MomObject*pobattr = p.first;
+    if (!pobattr)
+      continue;
+    if (!du->is_dumped(pobattr))
+      continue;
+    const MomValue valattr = p.second;
+    if (!valattr)
+      continue;
+    em.out() << "@@ ";
+    em.emit_objptr(pobattr);
+    em.emit_space(1);
+    em.emit_value(valattr);
+    em.emit_newline(0);
+  }
+  for (const MomValue vcomp : _ob_comps) {
+    em.out() << "&& ";
+    em.emit_value(vcomp);
+    em.emit_newline(0);
+  }
+} // end MomObject::emit_dump_content
 
 void
 mom_dump_in_directory(const char*dirname)

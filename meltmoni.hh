@@ -785,6 +785,7 @@ class MomNode;		/* value, hash-consed node: the
  are values */
 ////
 class MomObject;
+class MomEmitter;
 struct MomPayload;
 
 enum class MomKind : std::int8_t
@@ -1716,6 +1717,7 @@ public:
   virtual void scan_gc(MomGC*) const;
   virtual void scan_dump(MomDumper*du) const; // in state.cc
   virtual void scan_dump_content(MomDumper*du) const; // in state.cc
+  void emit_dump_content(MomDumper*du, MomEmitter&em) const; // in state.cc
   inline void unsync_clear_payload();
   void unsync_clear_all();
 }; // end class MomObject
@@ -2006,6 +2008,18 @@ public:
       _emnotransient(false)
   {
   }
+  MomEmitter& set_line_width(int lw)
+  {
+    if (lw < _min_line_width_)
+      lw = _min_line_width_;
+    _emlinewidth = lw;
+    return *this;
+  };
+  MomEmitter& show_transient(bool show=true)
+  {
+    _emnotransient = !show;
+    return *this;
+  };
   virtual ~MomEmitter() {};
   virtual bool skippable_object(const MomObject*pob) const;
   virtual bool skippable_connective(const MomObject*pob) const
