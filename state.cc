@@ -136,6 +136,7 @@ class MomDumper
   std::condition_variable _du_addedcondvar;
   std::unordered_set<const MomObject*,MomObjptrHash> _du_setobj;
   std::deque<const MomObject*> _du_queobj;
+  std::atomic_ulong _du_scancount;
   const MomSet* _du_predefvset;
   std::map<std::string,MomObject*> _du_globmap;
   void initialize_db(sqlite::database &db);
@@ -181,7 +182,7 @@ MomDumper::MomDumper(const std::string&dirnam)
   : _du_mtx(), _du_state{dus_none}, _du_dirname(dirnam), _du_tempsuffix(), _du_tempset(),
     _du_globdbp(), _du_userdbp(),
     _du_addedcondvar(),
-    _du_setobj(), _du_queobj(), _du_predefvset(nullptr), _du_globmap{}
+    _du_setobj(), _du_queobj(), _du_scancount(ATOMIC_VAR_INIT(0ul)), _du_predefvset(nullptr), _du_globmap{}
 {
   struct stat dirstat;
   memset (&dirstat, 0, sizeof(dirstat));
@@ -316,11 +317,19 @@ MomDumper::dump_scan_thread(MomDumper*du, int ix)
 	du->_du_queobj.pop_front();
       }
     }
-    if (ob1)
+    if (ob1) {
       ob1->scan_dump_content(du);
-    if (ob2)
+      std::atomic_fetch_add(&du->_du_scancount,1UL);
+    }
+    if (ob2) {
       ob2->scan_dump_content(du);
-    #warning MomDumper::dump_scan_thread incomplete
+      std::atomic_fetch_add(&du->_du_scancount,1UL);
+    }
+    if (!ob1 && !ob2) {
+      std::unique_lock<std::mutex> lk(du->_du_mtx);
+      du->_du_addedcondvar.wait_for(lk,std::chrono::milliseconds(80));
+      endedscan = du->_du_queobj.empty();
+    }
   }
 } // end dump_scan_thread
 
