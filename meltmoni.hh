@@ -1777,6 +1777,14 @@ public:
       return;
     _ob_attrs.erase(const_cast<MomObject*>(pobattr));
   }
+  void unsync_append_comp(const MomValue vcomp)
+  {
+    _ob_comps.push_back(vcomp);
+  }
+  void unsync_reserve_more_comp(unsigned n)
+  {
+    _ob_comps.reserve(_ob_comps.size()+n);
+  }
 }; // end class MomObject
 
 
