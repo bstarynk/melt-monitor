@@ -233,7 +233,7 @@ MomLoader::load_all_objects_content(void)
       }
   }
   std::vector<std::thread> vecthr(mom_nb_jobs);
-  for (int ix=1; ix<=mom_nb_jobs; ix++)
+  for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
     vecthr[ix-1] = std::thread(thread_load_content_objects, this, ix, &vecobjque[ix], getglobfun, getuserfun);
   std::this_thread::yield();
   std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
@@ -284,6 +284,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   contpars.set_name(std::string{title}).set_make_from_id(true);
   contpars.next_line();
   int nbcomp = 0;
+  int nbattr = 0;
   for (;;)
     {
       contpars.skip_spaces();
@@ -298,16 +299,25 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           MomValue valattr = contpars.parse_value(&gotval);
           if (!gotval)
             MOM_PARSE_FAILURE(&contpars, "missing value for attribute " << pobattr);
-          /// should add the attribute
+          pob->locked_modify([=](MomObject* pthisob)
+          {
+            pthisob->unsync_put_phys_attr(pobattr, valattr);
+            return;
+          });
+          nbattr++;
         }
       else if (contpars.hasdelim("&&"))
         {
           bool gotcomp = false;
-          MomValue valattr = contpars.parse_value(&gotcomp);
+          MomValue valcomp = contpars.parse_value(&gotcomp);
           if (!gotcomp)
             MOM_PARSE_FAILURE(&contpars, "missing component#" << nbcomp);
+          pob->locked_modify([=](MomObject* pthisob)
+          {
+            pthisob->unsync_append_comp(valcomp);
+            return;
+          });
           nbcomp++;
-          /// should append the value
         }
     }
 #warning incomplete MomLoader::load_object_content
