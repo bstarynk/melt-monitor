@@ -1665,6 +1665,28 @@ public:
     std::string pye_content;
   };
   ~MomObject();
+  template<typename ResType>
+  ResType locked_access(std::function<ResType(MomObject const*)>fun) const
+  {
+    std::shared_lock<std::shared_mutex> lk(_ob_shmtx);
+    return fun(this);
+  }
+  void locked_access(std::function<void(MomObject const*)>fun) const
+  {
+    std::shared_lock<std::shared_mutex> lk(_ob_shmtx);
+    fun(this);
+  }
+  template<typename ResType>
+  ResType locked_modify(std::function<ResType(MomObject*)>fun)
+  {
+    std::unique_lock<std::shared_mutex> lk(_ob_shmtx);
+    return fun(this);
+  }
+  void locked_modify(std::function<void(MomObject*)>fun)
+  {
+    std::unique_lock<std::shared_mutex> lk(_ob_shmtx);
+    fun(this);
+  }
   static MomObject*find_object_of_id(const MomIdent id);
   static MomObject*make_object_of_id(const MomIdent id);
   static MomObject*make_object(void); // of random id
@@ -1731,6 +1753,30 @@ public:
   void unsync_emit_dump_payload(MomDumper*du, PayloadEmission&) const; // in state.cc
   inline void unsync_clear_payload();
   void unsync_clear_all();
+  MomValue unsync_get_phys_attr(const MomObject*pobattr) const
+  {
+    if (!pobattr)
+      return MomValue{nullptr};
+    auto it = _ob_attrs.find(const_cast<MomObject*>(pobattr));
+    if (it != _ob_attrs.end())
+      return it->second;
+    return MomValue{nullptr};
+  }
+  void unsync_put_phys_attr(const MomObject*pobattr, const MomValue valattr)
+  {
+    if (!pobattr)
+      return;
+    if (!valattr)
+      _ob_attrs.erase(const_cast<MomObject*>(pobattr));
+    else
+      _ob_attrs.insert({const_cast<MomObject*>(pobattr),valattr});
+  }
+  void unsync_remove_phys_attr(const MomObject*pobattr)
+  {
+    if (!pobattr)
+      return;
+    _ob_attrs.erase(const_cast<MomObject*>(pobattr));
+  }
 }; // end class MomObject
 
 
