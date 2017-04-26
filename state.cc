@@ -263,7 +263,8 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
         strcont = getuserfun(pob);
       else
         strcont = getglobfun(pob);
-      ld->load_object_content(pob, thix, strcont);
+      if (!strcont.empty())
+        ld->load_object_content(pob, thix, strcont);
     };
 } // end MomLoader::thread_load_content_objects
 
@@ -272,6 +273,43 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
 void
 MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcont)
 {
+  std::istringstream incont(strcont);
+  MomParser contpars(incont);
+  char title[80];
+  memset(title,0,sizeof(title));
+  char idbuf[32];
+  memset(idbuf, 0, sizeof(idbuf));
+  pob->id().to_cbuf32(idbuf);
+  snprintf(title, sizeof(title), "*content %s*", idbuf);
+  contpars.set_name(std::string{title}).set_make_from_id(true);
+  contpars.next_line();
+  int nbcomp = 0;
+  for (;;)
+    {
+      contpars.skip_spaces();
+      if (contpars.eof()) break;
+      if (contpars.hasdelim("@@"))
+        {
+          bool gotattr = false;
+          MomObject*pobattr = contpars.parse_objptr(&gotattr);
+          if (!pobattr || !gotattr)
+            MOM_PARSE_FAILURE(&contpars, "missing attribute after @@");
+          bool gotval = false;
+          MomValue valattr = contpars.parse_value(&gotval);
+          if (!gotval)
+            MOM_PARSE_FAILURE(&contpars, "missing value for attribute " << pobattr);
+          /// should add the attribute
+        }
+      else if (contpars.hasdelim("&&"))
+        {
+          bool gotcomp = false;
+          MomValue valattr = contpars.parse_value(&gotcomp);
+          if (!gotcomp)
+            MOM_PARSE_FAILURE(&contpars, "missing component#" << nbcomp);
+          nbcomp++;
+          /// should append the value
+        }
+    }
 #warning incomplete MomLoader::load_object_content
   /// should create a parser
 } // end MomLoader::load_object_content
