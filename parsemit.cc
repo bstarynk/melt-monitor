@@ -349,6 +349,23 @@ again:
         *pgotob = true;
       return nullptr;
     }
+  else if (isalpha(pc))
+    {
+      const char*begnamp = peekchars();
+      const char*endnamp = begnamp;
+      while (isalnum(*endnamp) || (*endnamp == '_' && isalnum(endnamp[-1])))
+        endnamp++;
+      std::string namstr(begnamp, endnamp-begnamp);
+      MomObject* ob = fetch_named_object(namstr);
+      if (ob)
+        {
+          consume(endnamp-begnamp);
+          if (pgotob)
+            *pgotob = true;
+          return ob;
+        }
+      else goto failure;
+    }
 failure:
   if (pgotob)
     *pgotob = false;
