@@ -1982,6 +1982,10 @@ public:
   }
   MomValue parse_value(bool* pgotval);
   MomObject* parse_objptr(bool* pgotob);
+  virtual MomObject* fetch_named_object(const std::string&)
+  {
+    return nullptr;
+  };
 };				// end class MomParser
 
 #define MOM_PARSE_FAILURE_AT(Par,Fil,Lin,Log) do {		\
