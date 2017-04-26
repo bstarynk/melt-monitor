@@ -35,7 +35,10 @@ class MomLoader
   std::unique_ptr<sqlite::database> load_database(const char*dbradix);
   long load_empty_objects_from_db(sqlite::database* pdb, bool user);
   void load_all_globdata(void);
+  void load_all_objects_content(void);
+  void load_object_content(MomObject*pob, int thix, const std::string&strcont);
   void load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob);
+  static void thread_load_content_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&getglobfun,const std::function<std::string(MomObject*)>&getuserfun);
 #warning should add a lot more into MomLoader
 public:
   MomLoader(const std::string&dirnam);
@@ -100,7 +103,9 @@ MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
 
 
 MomLoader::MomLoader(const std::string& dirnam)
-  : _ld_dirname(dirnam), _ld_globdbp(nullptr), _ld_userdbp(nullptr)
+  : _ld_dirname(dirnam), _ld_globdbp(nullptr), _ld_userdbp(nullptr),
+    _ld_mtxglobdb(), _ld_mtxuserdb(),
+    _ld_objmap(), _ld_mtxobjmap()
 {
   struct stat dirstat;
   memset (&dirstat, 0, sizeof(dirstat));
@@ -145,8 +150,11 @@ MomLoader::load(void)
     globthr.join();
   }
   load_all_globdata();
+  load_all_objects_content();
 #warning MomLoader::load should do things in parallel
 } // end MomLoader::load
+
+
 
 void
 MomLoader::load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob)
@@ -182,6 +190,91 @@ MomLoader::load_all_globdata(void)
   load_cold_globdata(#Nam,&MOM_GLOBDATA_VAR(Nam));
 #include "_mom_globdata.h"
 } // end MomLoader::load_all_globdata
+
+
+void
+MomLoader::load_all_objects_content(void)
+{
+  /// prepare the object loading statements
+  auto globstmt = ((*_ld_globdbp) << "SELECT ob_content FROM t_objects WHERE ob_id = ?;");
+  std::function<std::string(MomObject*)> getglobfun =
+    [&](MomObject*pob)
+  {
+    std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
+    std::string res;
+    globstmt << pob->id().to_string() >> res;
+    return res;
+  };
+  std::function<std::string(MomObject*)> getuserfun;
+  auto userstmt = ((*(_ld_userdbp?:_ld_globdbp)) << "SELECT ob_content FROM t_objects WHERE ob_id = ?;");
+  if (_ld_userdbp)
+    {
+      getuserfun =
+        [&](MomObject*pob)
+      {
+        std::lock_guard<std::mutex> gu(_ld_mtxuserdb);
+        std::string res;
+        userstmt << pob->id().to_string() >> res;
+        return res;
+      };
+    }
+  /// build a vector of queue of objects to be loaded
+  std::vector<std::deque<MomObject*>> vecobjque(mom_nb_jobs);
+  unsigned long obcnt = 0;
+  {
+    std::lock_guard<std::mutex> gu{_ld_mtxobjmap};
+    for (auto p : _ld_objmap)
+      {
+        MomObject* pob = p.second;
+        MOM_ASSERT(pob != nullptr && pob->id() == p.first,
+                   "MomLoader::load_all_objects_content bad id");
+        vecobjque[obcnt % mom_nb_jobs].push_back(pob);
+        obcnt++;
+      }
+  }
+  std::vector<std::thread> vecthr(mom_nb_jobs);
+  for (int ix=1; ix<=mom_nb_jobs; ix++)
+    vecthr[ix-1] = std::thread(thread_load_content_objects, this, ix, &vecobjque[ix], getglobfun, getuserfun);
+  std::this_thread::yield();
+  std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
+  for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
+    vecthr[ix-1].join();
+} // end MomLoader::load_all_objects_content
+
+
+void
+MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObject*>*obpqu,
+                                       const std::function<std::string(MomObject*)>&getglobfun,
+                                       const std::function<std::string(MomObject*)>&getuserfun)
+{
+  MOM_ASSERT(ld != nullptr,
+             "MomLoader::thread_load_content_objects null ld");
+  MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
+             "MomLoader::thread_load_content_objects bad thix=" << thix);
+  MOM_ASSERT(obpqu != nullptr, "MomLoader::thread_load_content_objects null obpqu");
+  while (!obpqu->empty())
+    {
+      MomObject*pob = obpqu->front();
+      obpqu->pop_front();
+      MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
+                 "MomLoader::thread_load_content_objects bad pob");
+      std::string strcont;
+      if (pob->space() == MomSpace::UserSp)
+        strcont = getuserfun(pob);
+      else
+        strcont = getglobfun(pob);
+      ld->load_object_content(pob, thix, strcont);
+    };
+} // end MomLoader::thread_load_content_objects
+
+
+
+void
+MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcont)
+{
+#warning incomplete MomLoader::load_object_content
+  /// should create a parser
+} // end MomLoader::load_object_content
 
 void
 mom_load_from_directory(const char*dirname)
