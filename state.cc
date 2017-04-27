@@ -342,6 +342,8 @@ typedef std::function<void(MomObject*pob,int thix,double mtim,const std::string&
 class MomDumper
 {
   std::mutex _du_mtx;
+  const double _du_startrealtime;
+  const double _du_startcputime;
   MomDumpState _du_state;
   std::string _du_dirname;
   std::string _du_tempsuffix;
@@ -366,6 +368,11 @@ public:
   void rename_temporary_files(void);
   MomDumper(const std::string&dirnam);
   void open_databases(void);
+  long nb_objects(void)
+  {
+    std::lock_guard<std::mutex> gu(_du_mtx);
+    return _du_setobj.size();
+  }
   void close_and_dump_databases(void);
   pid_t fork_dump_database(const std::string&dbpath, const std::string&sqlpath, const std::string& basepath);
   void scan_predefined(void);
@@ -400,6 +407,14 @@ public:
     return (_du_setobj.find(pob) != _du_setobj.end());
   }
   ~MomDumper();
+  double dump_real_time()
+  {
+    return mom_elapsed_real_time() - _du_startrealtime;
+  };
+  double dump_cpu_time()
+  {
+    return mom_process_cpu_time() - _du_startcputime;
+  };
 #warning should add a lot more into MomDumper
 };				// end class MomDumper
 
@@ -419,7 +434,10 @@ public:
 };				// end MomDumpEmitter
 
 MomDumper::MomDumper(const std::string&dirnam)
-  : _du_mtx(), _du_state{dus_none}, _du_dirname(dirnam), _du_tempsuffix(), _du_tempset(),
+  : _du_mtx(),
+    _du_startrealtime(mom_elapsed_real_time()),
+    _du_startcputime(mom_process_cpu_time()),
+    _du_state{dus_none}, _du_dirname(dirnam), _du_tempsuffix(), _du_tempset(),
     _du_globdbp(), _du_userdbp(),
     _du_globdbmtx(), _du_userdbmtx(),
     _du_addedcondvar(),
@@ -434,6 +452,8 @@ MomDumper::MomDumper(const std::string&dirnam)
     {
       if (mkdir(dirnam.c_str(), 0750))
         MOM_FAILURE("MomDumper fail to mkdir " << dirnam << " : " << strerror(errno));
+      else
+        MOM_INFORMPRINTF("made dump directory %s", dirnam.c_str());
     }
   if (stat(dirnam.c_str(), &dirstat)
       || (!S_ISDIR(dirstat.st_mode) && (errno=ENOTDIR)!=0))
@@ -458,14 +478,14 @@ MomDumper::temporary_file_path(const std::string& path)
   if (path.empty() || path[0] == '.' || path[0] == '/' || path.find("..") != std::string::npos)
     MOM_FAILURE("MomDumper (in " << _du_dirname << " directory) with bad temporal path " << path);
   _du_tempset.insert(path);
-  return path + _du_tempsuffix;
+  return _du_dirname + path + _du_tempsuffix;
 } // end MomDumper::temporary_file_path
 
 void
 MomDumper::open_databases(void)
 {
-  auto globdbpath = temporary_file_path(_du_dirname + "/" +  MOM_GLOBAL_DB + ".sqlite");
-  auto userdbpath = temporary_file_path(_du_dirname + "/" +  MOM_USER_DB + ".sqlite");
+  auto globdbpath = temporary_file_path(MOM_GLOBAL_DB ".sqlite");
+  auto userdbpath = temporary_file_path(MOM_USER_DB ".sqlite");
   sqlite::sqlite_config dbconfig;
   dbconfig.flags = sqlite::OpenFlags::CREATE | sqlite::OpenFlags::READWRITE| sqlite::OpenFlags::NOMUTEX;
   dbconfig.encoding = sqlite::Encoding::UTF8;
@@ -511,10 +531,10 @@ MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpat
 void
 MomDumper::close_and_dump_databases(void)
 {
-  auto globdbpath = temporary_file_path(_du_dirname + "/" +  MOM_GLOBAL_DB + ".sqlite");
-  auto userdbpath = temporary_file_path(_du_dirname + "/" +  MOM_USER_DB + ".sqlite");
-  auto globsqlpath = temporary_file_path(_du_dirname + "/" +  MOM_GLOBAL_DB + ".sql");
-  auto usersqlpath = temporary_file_path(_du_dirname + "/" +  MOM_USER_DB + ".sql");
+  auto globdbpath = temporary_file_path(MOM_GLOBAL_DB ".sqlite");
+  auto userdbpath = temporary_file_path(MOM_USER_DB ".sqlite");
+  auto globsqlpath = temporary_file_path(MOM_GLOBAL_DB ".sql");
+  auto usersqlpath = temporary_file_path(MOM_USER_DB ".sql");
   _du_globdbp.reset();
   _du_userdbp.reset();
   pid_t globpid = fork_dump_database(globdbpath, globsqlpath, MOM_GLOBAL_DB);
@@ -942,4 +962,9 @@ mom_dump_in_directory(const char*dirname)
   dumper.dump_emit_globdata();
   dumper.close_and_dump_databases(); // forks two sqlite3 processes
   dumper.rename_temporary_files();
+  long nbob = dumper.nb_objects();
+  double rt = dumper.dump_real_time();
+  double cpu = dumper.dump_cpu_time();
+  MOM_INFORMPRINTF("dumped %d objects in directory %s in %.2f real, %.3f cpu seconds",
+		   nbob, dirname, rt, cpu);
 } // end mom_dump_in_directory
