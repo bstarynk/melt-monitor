@@ -1,6 +1,6 @@
 // file main.cc - main program and utilities
 
-/**   Copyright (C)  2015 - 2016  Basile Starynkevitch and later the FSF
+/**   Copyright (C)  2015 - 2017  Basile Starynkevitch and later the FSF
     MONIMELT is a monitor for MELT - see http://gcc-melt.org/
     This file is part of GCC.
 
@@ -1431,6 +1431,8 @@ main (int argc_main, char **argv_main)
   parse_program_arguments_mom(&argc, &argv);
   MomObject::initialize_predefined();
 #warning missing stuff in main
+  if (dump_dir_mom)
+    mom_dump_in_directory(dump_dir_mom);
 } // end of main
 
 
