@@ -362,6 +362,8 @@ class MomDumper
   void dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
 public:
   std::string temporary_file_path(const std::string& path);
+  static bool rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc=false); // return true if same files
+  void rename_temporary_files(void);
   MomDumper(const std::string&dirnam);
   void open_databases(void);
   void close_and_dump_databases(void);
@@ -527,6 +529,66 @@ MomDumper::close_and_dump_databases(void)
     MOM_FAILURE("MomDumper::close_and_dump_databases in " << _du_dirname << " failed to dump user");
 } // end MomDumper::close_and_dump_databases
 
+
+bool
+MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc)
+{
+  FILE*srcf = fopen(srcpath.c_str(), "r");
+  if (!srcf)
+    MOM_FAILURE("rename_file_if_changed fail to open src " << srcpath
+                << " (" << strerror(errno) << ")");
+  if (access(dstpath.c_str(), F_OK) && errno==ENOENT)
+    {
+      fclose(srcf);
+      if (::rename(srcpath.c_str(), dstpath.c_str()))
+        MOM_FATALOG("rename_file_if_changed failed to rename " << srcpath << " -> " << dstpath
+                    << " (" << strerror(errno) << ")");
+      return false;
+    }
+  FILE*dstf = fopen(dstpath.c_str(), "r");
+  struct stat srcstat = { };
+  struct stat dststat = { };
+  if (fstat (fileno (srcf), &srcstat))
+    MOM_FATALOG("rename_file_if_changed fstat#" << fileno(srcf) << ":" << srcpath << " failed"
+                << " (" << strerror(errno) << ")");
+  if (fstat (fileno (dstf), &dststat))
+    MOM_FATALOG("rename_file_if_changed fstat#" << fileno(dstf) << ":" << dstpath << " failed"
+                << " (" << strerror(errno) << ")");
+  bool samefilecontent = srcstat.st_size == dststat.st_size;
+  while (samefilecontent)
+    {
+      int srcc = fgetc (srcf);
+      int dstc = fgetc (dstf);
+      if (srcc != dstc)
+        samefilecontent = false;
+      else if (srcc == EOF) break;
+    }
+  fclose(srcf), srcf=nullptr;
+  fclose(dstf), dstf=nullptr;
+  if (samefilecontent)
+    {
+      if (!keepsamesrc)
+        remove(srcpath.c_str());
+      return true;
+    }
+  std::string backupath = dstpath + "~";
+  (void) ::rename(dstpath.c_str(), backupath.c_str());
+  if (::rename(srcpath.c_str(), dstpath.c_str()))
+    MOM_FATALOG("rename_file_if_changed " << srcpath
+                << " -> " << dstpath << " failed"
+                << " (" << strerror(errno) << ")");
+  return false;
+} // end of MomDumper::rename_file_if_changed
+
+void
+MomDumper::rename_temporary_files(void)
+{
+  for (std::string path : _du_tempset)
+    {
+      std::string tmpath = path + _du_tempsuffix;
+      rename_file_if_changed(tmpath, path);
+    }
+} // end MomDumper::rename_temporary_files
 
 void
 MomDumper::initialize_db(sqlite::database &db)
@@ -878,5 +940,6 @@ mom_dump_in_directory(const char*dirname)
   dumper.dump_scan_loop();	// multi-threaded
   dumper.dump_emit_loop();	// multi-threaded
   dumper.dump_emit_globdata();
-#warning incomplete mom_dump_in_directory
+  dumper.close_and_dump_databases(); // forks two sqlite3 processes
+  dumper.rename_temporary_files();
 } // end mom_dump_in_directory
