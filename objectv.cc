@@ -29,6 +29,12 @@
   = ATOMIC_VAR_INIT(nullptr);
 #include "_mom_globdata.h"
 
+#define MOM_HAS_GLOBDATA(Nam) MomRegisterGlobData momreglobdata_##Nam(#Nam,MOM_GLOBDATA_VAR(Nam));
+#include "_mom_globdata.h"
+
+std::mutex MomRegisterGlobData::_gd_mtx_;
+std::map<std::string,std::atomic<MomObject*>*> MomRegisterGlobData::_gd_dict_;
+
 bool
 mom_valid_name_radix_len (const char *str, int len)
 {

@@ -1815,6 +1815,52 @@ MomObjptrHash::operator() (const MomObject*pob) const
 #define MOM_HAS_GLOBDATA(Nam) extern "C" std::atomic<MomObject*> MOM_GLOBDATA_VAR(Nam);
 #include "_mom_globdata.h"
 
+class MomRegisterGlobData
+{
+  static std::mutex _gd_mtx_;
+  static std::map<std::string,std::atomic<MomObject*>*> _gd_dict_;
+  std::string _gd_name;
+public:
+  static void register_globdata(const std::string&nam,std::atomic<MomObject*>&gdata)
+  {
+    if (!mom_valid_name_radix_len(nam.c_str(), nam.size()))
+      MOM_FAILURE("register_globdata bad name:" << nam);
+    std::lock_guard<std::mutex> gu(_gd_mtx_);
+    _gd_dict_.insert({nam,&gdata});
+  }
+  static void forget_globdata(const std::string&nam)
+  {
+    std::lock_guard<std::mutex> gu(_gd_mtx_);
+    _gd_dict_.erase(nam);
+  }
+  static std::atomic<MomObject*>*find_globdata(const std::string&nam)
+  {
+    std::lock_guard<std::mutex> gu(_gd_mtx_);
+    auto it = _gd_dict_.find(nam);
+    if (it != _gd_dict_.end())
+      return it->second;
+    return nullptr;
+  };
+  static void every_globdata(std::function<bool(const std::string&nam,std::atomic<MomObject*>*pdata)> f)
+  {
+    std::lock_guard<std::mutex> gu(_gd_mtx_);
+    for (auto p : _gd_dict_)
+      if (f(p.first,p.second))
+        return;
+  }
+  MomRegisterGlobData(const std::string&nam,std::atomic<MomObject*>&gdata)
+    : _gd_name(nam)
+  {
+    register_globdata(nam,gdata);
+  }
+  ~MomRegisterGlobData()
+  {
+    forget_globdata(_gd_name);
+  };
+  MomRegisterGlobData(const MomRegisterGlobData&) = delete;
+  MomRegisterGlobData(MomRegisterGlobData&&) = delete;
+};				// end MomRegisterGlobData
+
 ////////////////
 typedef void MomPyv_destr_sig(struct MomPayload*payl,MomObject*own);
 typedef void MomPyv_scangc_sig(const struct MomPayload*payl,MomObject*own,MomGC*gc);
