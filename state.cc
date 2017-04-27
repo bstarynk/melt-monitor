@@ -478,7 +478,7 @@ MomDumper::temporary_file_path(const std::string& path)
   if (path.empty() || path[0] == '.' || path[0] == '/' || path.find("..") != std::string::npos)
     MOM_FAILURE("MomDumper (in " << _du_dirname << " directory) with bad temporal path " << path);
   _du_tempset.insert(path);
-  return _du_dirname + path + _du_tempsuffix;
+  return _du_dirname + "/" + path + _du_tempsuffix;
 } // end MomDumper::temporary_file_path
 
 void
