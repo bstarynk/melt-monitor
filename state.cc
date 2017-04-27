@@ -337,7 +337,7 @@ mom_load_from_directory(const char*dirname)
 
 enum MomDumpState { dus_none, dus_scan, dus_emit };
 
-typedef std::function<void(MomObject*pob,int thix,double mtim,const std::string&contentstr,MomObject::PayloadEmission pyem)> momdumpinsertfunction_t;
+typedef std::function<void(MomObject*pob,int thix,double mtim,const std::string&contentstr,const MomObject::PayloadEmission& pyem)> momdumpinsertfunction_t;
 class MomDumper
 {
   std::mutex _du_mtx;
@@ -617,14 +617,11 @@ MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dum
      haspayload = true;
     }
   }
-  // lock the relevant database mutex and insert into it
   if (isglobal) {
-    std::lock_guard<std::mutex> glg(_du_globdbmtx);
-    //_du_globdbp
+    (*dumpglobf)(pob,thix,obmtime,contentstr,pyem);
   }
   else if (isuser) {
-    std::lock_guard<std::mutex> glg(_du_userdbmtx);
-    //_du_userdbp
+    (*dumpuserf)(pob,thix,obmtime,contentstr,pyem);
   }
 #warning MomDumper::dump_emit_object incomplete
 } // end MomDumper::dump_emit_object
@@ -648,7 +645,23 @@ MomDumper::dump_emit_loop(void) {
   _du_state = dus_emit;
   momdumpinsertfunction_t dumpglobf;
   momdumpinsertfunction_t dumpuserf;
-#warning MomDumper::dump_emit_loop should compute dumpglobf & dumpuserf
+  auto globstmt = (*_du_globdbp) << "INSERT INTO t_objects VALUES(?,?,?,?,?,?);";
+  
+  dumpglobf = [&] (MomObject*pob,int thix,double mtim,
+		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
+    std::lock_guard<std::mutex> gu(_du_globdbmtx);
+    globstmt << pob->id().to_string() << mtim << contentstr
+    << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
+  };
+  auto userstmt = *(_du_userdbp?_du_userdbp:_du_globdbp)  << "INSERT INTO t_objects VALUES(?,?,?,?,?,?);";
+  if (_du_userdbp) {
+    dumpuserf = [&] (MomObject*pob,int thix,double mtim,
+		     const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
+      std::lock_guard<std::mutex> gu(_du_userdbmtx);
+      userstmt << pob->id().to_string() << mtim << contentstr
+      << pyem.pye_kind << pyem.pye_init<< pyem.pye_content;
+    };
+  }
   std::vector<std::vector<MomObject*>> vecobjob(mom_nb_jobs);
   std::vector<std::thread> vecthr(mom_nb_jobs);
   {
