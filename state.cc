@@ -337,6 +337,7 @@ mom_load_from_directory(const char*dirname)
 
 enum MomDumpState { dus_none, dus_scan, dus_emit };
 
+typedef std::function<void(MomObject*pob,int thix,double mtim,const std::string&contentstr,MomObject::PayloadEmission pyem)> momdumpinsertfunction_t;
 class MomDumper
 {
   std::mutex _du_mtx;
@@ -356,8 +357,8 @@ class MomDumper
   std::map<std::string,MomObject*> _du_globmap;
   void initialize_db(sqlite::database &db);
   static void dump_scan_thread(MomDumper*du, int ix);
-  static void dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec);
-  void dump_emit_object(MomObject*pob, int thix);
+  static void dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
+  void dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
 public:
   std::string temporary_file_path(const std::string& path);
   MomDumper(const std::string&dirnam);
@@ -580,7 +581,7 @@ MomDumper::dump_scan_loop(void) {
 
 
 void
-MomDumper::dump_emit_object(MomObject*pob, int thix)
+MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf)
 {
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
 	     "MomDumper::dump_emit_object bad pob");
@@ -631,19 +632,23 @@ MomDumper::dump_emit_object(MomObject*pob, int thix)
 
 
 void
-MomDumper::dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec)
+MomDumper::dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf)
 {
   std::sort(pvec->begin(), pvec->end(), MomObjptrLess{});
   for (MomObject*pob : *pvec) {
-    du->dump_emit_object(pob, ix);
+    du->dump_emit_object(pob, ix, dumpglobf,dumpuserf);
   }
 #warning MomDumper::dump_emit_thread very incomplete
 } // end MomDumper::dump_emit_thread
+
 
 void
 MomDumper::dump_emit_loop(void) {
   MOM_ASSERT(_du_state == dus_scan, "MomDumper::dump_emit_loop bad start state");
   _du_state = dus_emit;
+  momdumpinsertfunction_t dumpglobf;
+  momdumpinsertfunction_t dumpuserf;
+#warning MomDumper::dump_emit_loop should compute dumpglobf & dumpuserf
   std::vector<std::vector<MomObject*>> vecobjob(mom_nb_jobs);
   std::vector<std::thread> vecthr(mom_nb_jobs);
   {
@@ -661,7 +666,7 @@ MomDumper::dump_emit_loop(void) {
   }
   for (unsigned ix=1; ix<=mom_nb_jobs; ix++) {
 #warning something wrong here in MomDumper::dump_emit_loop
-    vecthr[ix-1] = std::thread(dump_emit_thread, this, ix, &vecobjob[ix-1]);
+    vecthr[ix-1] = std::thread(dump_emit_thread, this, ix, &vecobjob[ix-1], &dumpglobf, &dumpuserf);
   }
   std::this_thread::yield();
   std::this_thread::sleep_for(std::chrono::milliseconds(50+20*mom_nb_jobs));
