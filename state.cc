@@ -285,6 +285,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   contpars.next_line();
   int nbcomp = 0;
   int nbattr = 0;
+  MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs, "MomLoader::load_object_content bad thix#" << thix);
   for (;;)
     {
       contpars.skip_spaces();
@@ -363,10 +364,13 @@ public:
   std::string temporary_file_path(const std::string& path);
   MomDumper(const std::string&dirnam);
   void open_databases(void);
+  void close_and_dump_databases(void);
+  pid_t fork_dump_database(const std::string&dbpath, const std::string&sqlpath, const std::string& basepath);
   void scan_predefined(void);
   void scan_globdata(void);
   void dump_scan_loop(void);
   void dump_emit_loop(void);
+  void dump_emit_globdata(void);
   void scan_inside_object(MomObject*pob);
   void add_scanned_object(const MomObject*pob)
   {
@@ -389,6 +393,7 @@ public:
   }
   bool is_dumped(const MomObject*pob)
   {
+    if (!pob) return false;
     std::lock_guard<std::mutex> gu{_du_mtx};
     return (_du_setobj.find(pob) != _du_setobj.end());
   }
@@ -468,6 +473,61 @@ MomDumper::open_databases(void)
   initialize_db(*_du_userdbp);
 } // end MomDumper::open_databases
 
+
+pid_t
+MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpath, const std::string& basepath)
+{
+  FILE *f = fopen(sqlpath.c_str(), "w");
+  if (!f)
+    MOM_FATALOG("MomDumper::fork_dump_database failed to open " << sqlpath
+                << " (" << strerror(errno) << ")");
+  fprintf(f, "-- generated MONIMELT dump %s ** DONT EDIT\n", basepath.c_str());
+  fflush(f);
+  fflush(nullptr);
+  pid_t p = fork();
+  if (p==0)
+    {
+      close(STDIN_FILENO);
+      int nfd = open("/dev/null", O_RDONLY);
+      if (nfd>0) dup2(nfd, STDIN_FILENO);
+      for (int ix=3; ix<128; ix++) if (ix != fileno(f)) (void) close(ix);
+      dup2(fileno(f), STDOUT_FILENO);
+      nice(1);
+      for (int sig=1; sig<SIGRTMIN; sig++) signal(sig, SIG_DFL);
+      execlp(monimelt_sqliteprog, monimelt_sqliteprog, dbpath.c_str(), ".dump", nullptr);
+      perror("execlp sqlite3");
+      _exit(EXIT_FAILURE);
+    }
+  else if (p<0)
+    MOM_FATALOG("MomDumper::fork_dump_database failed to fork for " << basepath
+                << " (" << strerror(errno) << ")");
+  fclose(f);
+  return p;
+} // end MomDumper::fork_dump_database
+
+
+void
+MomDumper::close_and_dump_databases(void)
+{
+  auto globdbpath = temporary_file_path(_du_dirname + "/" +  MOM_GLOBAL_DB + ".sqlite");
+  auto userdbpath = temporary_file_path(_du_dirname + "/" +  MOM_USER_DB + ".sqlite");
+  auto globsqlpath = temporary_file_path(_du_dirname + "/" +  MOM_GLOBAL_DB + ".sql");
+  auto usersqlpath = temporary_file_path(_du_dirname + "/" +  MOM_USER_DB + ".sql");
+  _du_globdbp.reset();
+  _du_userdbp.reset();
+  pid_t globpid = fork_dump_database(globdbpath, globsqlpath, MOM_GLOBAL_DB);
+  std::this_thread::sleep_for(std::chrono::milliseconds(15+2*mom_nb_jobs));
+  pid_t userpid = fork_dump_database(userdbpath, usersqlpath, MOM_USER_DB);
+  std::this_thread::sleep_for(std::chrono::milliseconds(35+4*mom_nb_jobs));
+  int globstatus = 0;
+  int userstatus = 0;
+  if (waitpid(globpid, &globstatus, 0) < 0 || !WIFEXITED(globstatus) || WEXITSTATUS(globstatus)>0)
+    MOM_FAILURE("MomDumper::close_and_dump_databases in " << _du_dirname << " failed to dump global");
+  if (waitpid(userpid, &userstatus, 0) < 0 || !WIFEXITED(userstatus) || WEXITSTATUS(userstatus)>0)
+    MOM_FAILURE("MomDumper::close_and_dump_databases in " << _du_dirname << " failed to dump user");
+} // end MomDumper::close_and_dump_databases
+
+
 void
 MomDumper::initialize_db(sqlite::database &db)
 {
@@ -511,16 +571,34 @@ MomDumper::scan_predefined(void) {
 
 void
 MomDumper::scan_globdata(void) {
-#define MOM_HAS_GLOBDATA(Nam) do {			\
-  MomObject* gpob##Nam = MOM_LOAD_GLOBDATA(Nam);	\
-  if (gpob##Nam != nullptr) {				\
-    add_scanned_object(gpob##Nam);			\
-    std::lock_guard<std::mutex> gu{_du_mtx};		\
-    _du_globmap.insert({std::string{#Nam},gpob##Nam});	\
-  }							\
-  } while(0);
-#include "_mom_globdata.h"
+  auto du = this;
+  MomRegisterGlobData::every_globdata([&,du](const std::string&, std::atomic<MomObject*>*pglob) {
+      MomObject*pob = pglob->load();
+      if (pob)
+	du->add_scanned_object(pob);
+      return false;
+    });
 } // end MomDumper::scan_globdata
+
+void
+MomDumper::dump_emit_globdata(void) {
+  auto du = this;
+  std::lock_guard<std::mutex> gu_g{_du_globdbmtx};
+  std::lock_guard<std::mutex> gu_u{_du_userdbmtx};
+  sqlite::database_binder globstmt = (*_du_globdbp) << "INSERT INTO t_globals VALUES(?,?);";
+  sqlite::database_binder userstmt = (*_du_userdbp) << "INSERT INTO t_globals VALUES(?,?);";
+  MomRegisterGlobData::every_globdata([&,du](const std::string&nam, std::atomic<MomObject*>*pglob) {
+      MomObject*pob = pglob->load();
+      if (pob && du->is_dumped(pob)) {
+	if (pob->space()!=MomSpace::UserSp)
+	  globstmt << nam << pob->id().to_string();
+	else
+	  userstmt << nam << pob->id().to_string();
+      }
+      return false;
+    });
+} // end MomDumper::dump_emit_globdata
+
 
 void
 MomDumper::scan_inside_object(MomObject*pob) {
@@ -653,15 +731,13 @@ MomDumper::dump_emit_loop(void) {
     globstmt << pob->id().to_string() << mtim << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
   };
-  auto userstmt = *(_du_userdbp?_du_userdbp:_du_globdbp)  << "INSERT INTO t_objects VALUES(?,?,?,?,?,?);";
-  if (_du_userdbp) {
-    dumpuserf = [&] (MomObject*pob,int thix,double mtim,
-		     const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
-      std::lock_guard<std::mutex> gu(_du_userdbmtx);
-      userstmt << pob->id().to_string() << mtim << contentstr
-      << pyem.pye_kind << pyem.pye_init<< pyem.pye_content;
-    };
-  }
+  auto userstmt = *_du_userdbp  << "INSERT INTO t_objects VALUES(?,?,?,?,?,?);";
+  dumpuserf = [&] (MomObject*pob,int thix,double mtim,
+		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
+    std::lock_guard<std::mutex> gu(_du_userdbmtx);
+    userstmt << pob->id().to_string() << mtim << contentstr
+    << pyem.pye_kind << pyem.pye_init<< pyem.pye_content;
+  };
   std::vector<std::vector<MomObject*>> vecobjob(mom_nb_jobs);
   std::vector<std::thread> vecthr(mom_nb_jobs);
   {
@@ -678,7 +754,6 @@ MomDumper::dump_emit_loop(void) {
       }
   }
   for (unsigned ix=1; ix<=mom_nb_jobs; ix++) {
-#warning something wrong here in MomDumper::dump_emit_loop
     vecthr[ix-1] = std::thread(dump_emit_thread, this, ix, &vecobjob[ix-1], &dumpglobf, &dumpuserf);
   }
   std::this_thread::yield();
@@ -791,8 +866,7 @@ MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pye
     outcontent<<std::endl;
     pyem.pye_content = outcontent.str();
   }
-#warning missing MomObject::unsync_emit_dump_payload
-} // end MomObject::unsync_emit_dump_content
+} // end MomObject::unsync_emit_dump_payload
 
 void
 mom_dump_in_directory(const char*dirname)
@@ -803,5 +877,6 @@ mom_dump_in_directory(const char*dirname)
   dumper.scan_globdata();
   dumper.dump_scan_loop();	// multi-threaded
   dumper.dump_emit_loop();	// multi-threaded
+  dumper.dump_emit_globdata();
 #warning incomplete mom_dump_in_directory
 } // end mom_dump_in_directory
