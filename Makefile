@@ -33,6 +33,7 @@ PACKAGES= sqlite_modern_cpp glib-2.0 sqlite3 jansson
 PKGCONFIG= pkg-config
 PREPROFLAGS= -I. -I/usr/local/include $(shell $(PKGCONFIG) --cflags $(PACKAGES))
 OPTIMFLAGS= -Og -g3
+SQLITE3=sqlite3
 
 LIBES= -L/usr/local/lib $(shell $(PKGCONFIG) --libs $(PACKAGES)) \
 	$(shell $(CXX) -print-file-name=libbacktrace.a) \
@@ -80,6 +81,7 @@ _timestamp.c: Makefile
 	@(echo -n 'const char monimelt_checksum[]="'; cat meltmoni.hh $(GENERATED_HEADERS) $(SOURCES) | $(MD5SUM) | cut -d' ' -f1 | tr -d '\n\r\f\"\\' ; echo '";') >> _timestamp.tmp
 	@(echo -n 'const char monimelt_directory[]="'; /bin/pwd | tr -d '\n\\"' ; echo '";') >> _timestamp.tmp
 	@(echo -n 'const char monimelt_makefile[]="'; echo -n  $(realpath $(lastword $(MAKEFILE_LIST))); echo '";') >> _timestamp.tmp
+	@(echo -n 'const char monimelt_sqliteprog[]="'; echo -n  $(shell which $(SQLITE3)); echo '";') >> _timestamp.tmp
 	@mv _timestamp.tmp _timestamp.c
 
 $(OBJECTS): meltmoni.hh.gch $(GENERATED_HEADERS)

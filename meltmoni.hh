@@ -110,6 +110,7 @@ extern "C" const char monimelt_optimflags[];
 extern "C" const char monimelt_checksum[];
 extern "C" const char monimelt_directory[];
 extern "C" const char monimelt_makefile[];
+extern "C" const char monimelt_sqliteprog[];
 
 
 // increasing array of primes and its size
