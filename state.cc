@@ -203,6 +203,7 @@ MomLoader::load_all_objects_content(void)
     std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
     std::string res;
     globstmt << pob->id().to_string() >> res;
+    globstmt.reset();
     return res;
   };
   std::function<std::string(MomObject*)> getuserfun;
@@ -215,6 +216,7 @@ MomLoader::load_all_objects_content(void)
         std::lock_guard<std::mutex> gu(_ld_mtxuserdb);
         std::string res;
         userstmt << pob->id().to_string() >> res;
+        userstmt.reset();
         return res;
       };
     }
@@ -750,6 +752,9 @@ MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dum
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
 	     "MomDumper::dump_emit_object bad pob");
   MOM_ASSERT(thix > 0 && thix <= (int)mom_nb_jobs, "MomDumper::dump_emit_object bad thix:" << thix);
+  MOM_DEBUGLOG(dump,"dump_emit_object pob=" << pob << " thix=" << thix
+	       << " dumpglobf=" << dumpglobf
+	       << " dumpuserf=" << dumpuserf);
   bool isglobal = false;
   bool isuser = false;
   std::string contentstr;
@@ -814,26 +819,36 @@ MomDumper::dump_emit_loop(void) {
   momdumpinsertfunction_t dumpglobf;
   momdumpinsertfunction_t dumpuserf;
   auto globstmt = (*_du_globdbp) << "INSERT INTO t_objects VALUES(?,?,?,?,?,?);";
+  MOM_DEBUGLOG(dump,"dump_emit_loop globstmt=" << globstmt.sql());
   dumpglobf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
     std::lock_guard<std::mutex> gu(_du_globdbmtx);
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpglobf thix#" << thix << " pob=" << pob << " mtim=" << mtim
 		 << " contentstr=" << contentstr
 		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
-		 << ", content=" << pyem.pye_content << ")");
+		 << ", content=" << pyem.pye_content << ")"
+		 << std::endl << " globstmt=" << globstmt.sql());
     globstmt << pob->id().to_string() << mtim << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
+    globstmt.execute();
+    globstmt.reset();
+    MOM_DEBUGLOG(dump,"dump_emit_loop dumpglobf did thix#" << thix << " pob=" << pob);
   };
   auto userstmt = *_du_userdbp  << "INSERT INTO t_objects VALUES(?,?,?,?,?,?);";
+  MOM_DEBUGLOG(dump,"dump_emit_loop userstmt=" << userstmt.sql());
   dumpuserf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
     std::lock_guard<std::mutex> gu(_du_userdbmtx);
     MOM_DEBUGLOG(dump,"dump_emit_loop userglobf thix#" << thix << " pob=" << pob << " mtim=" << mtim
 		 << " contentstr=" << contentstr
 		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
-		 << ", content=" << pyem.pye_content << ")");
+		 << ", content=" << pyem.pye_content << ")"
+		 << std::endl << " userstmt=" << userstmt.sql());
     userstmt << pob->id().to_string() << mtim << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
+    userstmt.execute();
+    userstmt.reset();
+    MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf did thix#" << thix << " pob=" << pob);
   };
   std::vector<std::vector<MomObject*>> vecobjob(mom_nb_jobs);
   std::vector<std::thread> vecthr(mom_nb_jobs);
