@@ -120,7 +120,7 @@ dumpstate:
 	echo "-- generated MONIMELT dump mom_global.sql ** DONT EDIT" > mom_global.sql-tmp
 	$(SQLITE3) mom_global.sqlite .dump >> mom_global.sql-tmp
 	mv --backup  mom_global.sql-tmp mom_global.sql
-	touch -f mom_global.sqlite mom_global.sql
+	touch -r mom_global.sqlite mom_global.sql
 	echo "-- generated MONIMELT dump mom_user.sql ** DONT EDIT" > mom_user.sql-tmp
 	$(SQLITE3) mom_user.sqlite .dump >> mom_user.sql-tmp
 	mv --backup  mom_user.sql-tmp mom_user.sql
