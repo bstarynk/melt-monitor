@@ -16,3 +16,6 @@ _timestamp.*
 ## core dumps
 core*
 vgcore*
+
+## sqlite db
+*.sqlite
