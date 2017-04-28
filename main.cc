@@ -1424,6 +1424,7 @@ main (int argc_main, char **argv_main)
   mom_prog_dlhandle = dlopen (nullptr, RTLD_NOW);
   if (MOM_UNLIKELY(!mom_prog_dlhandle))
     MOM_FATAPRINTF ("failed to dlopen program (%s)", dlerror ());
+  sqlite3_initialize();		// explicit initialization is needed before sqlite3_config
   sqlite3_config(SQLITE_CONFIG_LOG, mom_sqlite_errlog, NULL);
   mom_nb_jobs = (3*std::thread::hardware_concurrency())/4;
   if (mom_nb_jobs<MOM_MIN_JOBS) mom_nb_jobs = MOM_MIN_JOBS;
