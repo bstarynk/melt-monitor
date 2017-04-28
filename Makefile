@@ -50,8 +50,8 @@ CSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.c)))
 CXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.cc)))
 OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES)) 
 RM= rm -fv
-.PHONY: all tags modules plugins clean tests 
-all: monimelt
+.PHONY: all checkgithooks installgithooks dumpstate restorestate tags modules plugins clean tests 
+all: checkgithooks monimelt
 
 
 clean:
@@ -61,6 +61,15 @@ clean:
 	$(RM) core*
 	$(RM) *memo*
 
+checkgithooks:
+	@for hf in *-githook.sh ; do \
+	  [ ! -d .git -o -L .git/hooks/$$(basename $$hf "-githook.sh") ] \
+	    || (echo uninstalled git hook $$hf "(run: make installgithooks)" >&2 ; exit 1) ; \
+	done
+installgithooks:
+	for hf in *-githook.sh ; do \
+	  ln -sv  "../../$$hf" .git/hooks/$$(basename $$hf "-githook.sh") ; \
+	done
 
 
 ## we could use git rev-parse HEAD for the lastgitcommit, but it does
@@ -107,6 +116,25 @@ indent: .indent.pro
 	  $(ASTYLE)  $(ASTYLEFLAGS) $$g ; \
 	done
 
+dumpstate:
+	echo "-- generated MONIMELT dump mom_global.sql ** DONT EDIT" > mom_global.sql-tmp
+	$(SQLITE3) mom_global.sqlite .dump >> mom_global.sql-tmp
+	mv --backup  mom_global.sql-tmp mom_global.sql
+	touch -f mom_global.sqlite mom_global.sql
+	echo "-- generated MONIMELT dump mom_user.sql ** DONT EDIT" > mom_user.sql-tmp
+	$(SQLITE3) mom_user.sqlite .dump >> mom_user.sql-tmp
+	mv --backup  mom_user.sql-tmp mom_user.sql
+	touch -r mom_user.sqlite mom_user.sql
+
+restorestate: |  mom_global.sql  mom_user.sql
+	@if [ -f mom_global.sqlite ]; then \
+	  echo makebackup old: ' ' ; mv -v --backup mom_global.sqlite  mom_global.sqlite~ ; fi
+	$(SQLITE3) mom_global.sqlite < mom_global.sql
+	touch -r  mom_global.sql  mom_global.sqlite
+	@if [ -f mom_user.sqlite ]; then \
+	  echo makebackup old: ' ' ; mv -v --backup mom_user.sqlite  mom_user.sqlite~ ; fi
+	$(SQLITE3) mom_user.sqlite < mom_user.sql
+	touch -r  mom_user.sql  mom_user.sqlite
 
 
 modules/momg_%.so: modules/momg_%.cc $(OBJECTS)
