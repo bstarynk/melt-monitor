@@ -1456,6 +1456,3 @@ main (int argc_main, char **argv_main)
 
 #warning TODO: should code an explicit garbage collector
 
-#warning TODO: code the loader using sqlite then several threads for parsing
-
-#warning TODO: code the (multi-threaded) dumper using the printer & sqlite
