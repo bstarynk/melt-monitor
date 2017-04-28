@@ -1068,6 +1068,7 @@ enum extraopt_en
   xtraopt_parseid,
   xtraopt_parseval,
   xtraopt_parsefile,
+  xtraopt_runcmd,
 };
 
 static const struct option mom_long_options[] =
@@ -1086,6 +1087,7 @@ static const struct option mom_long_options[] =
   {"parse-id", required_argument, nullptr, xtraopt_parseid},
   {"parse-val", required_argument, nullptr, xtraopt_parseval},
   {"parse-file", required_argument, nullptr, xtraopt_parsefile},
+  {"run-cmd", required_argument, nullptr, xtraopt_runcmd},
   /* Terminating nullptr placeholder.  */
   {nullptr, no_argument, nullptr, 0},
 };
@@ -1114,6 +1116,7 @@ usage_mom (const char *argv0)
   printf ("\t --parse-id id" " \t#parse an id\n");
   printf ("\t --parse-val <val>" " \t#parse some value\n");
   printf ("\t --parse-file <file-path>" " \t#parse several values from file\n");
+  printf ("\t --run-cmd <command>" " \t#run that command\n");
 }
 
 
@@ -1264,6 +1267,20 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             }
           else
             MOM_FATAPRINTF("missing argument to --chdir-first");
+          break;
+        case xtraopt_runcmd: /* --run-cmd command */
+          if (optarg)
+            {
+              MOM_INFORMPRINTF("running command: %s\n", optarg);
+              fflush(nullptr);
+              int cmdres = system(optarg);
+              if (cmdres)
+                MOM_WARNPRINTF("command '%s' failed with %d", optarg, cmdres);
+              else
+                MOM_INFORMPRINTF("command '%s' run successfully", optarg);
+            }
+          else
+            MOM_FATAPRINTF("missing argument to --run-cmd");
           break;
         case xtraopt_chdir_after_load:
           if (optarg != nullptr)
