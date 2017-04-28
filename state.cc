@@ -558,6 +558,8 @@ MomDumper::close_and_dump_databases(void)
 bool
 MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc)
 {
+  MOM_DEBUGLOG(dump,"rename_file_if_changed srcpath=" << srcpath << " dstpath=" << dstpath
+               << " keepsamesrc=" << (keepsamesrc?"true":"false"));
   FILE*srcf = fopen(srcpath.c_str(), "r");
   if (!srcf)
     MOM_FAILURE("rename_file_if_changed fail to open src " << srcpath
@@ -608,11 +610,14 @@ MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string&
 void
 MomDumper::rename_temporary_files(void)
 {
+  MOM_DEBUGLOG(dump,"rename_temporary_files start");
   for (std::string path : _du_tempset)
     {
-      std::string tmpath = path + _du_tempsuffix;
-      rename_file_if_changed(tmpath, path);
+      std::string tmpath = _du_dirname + "/" + path + _du_tempsuffix;
+      MOM_DEBUGLOG(dump, "rename_temporary_files path=" << path << " tmpath=" << path);
+      rename_file_if_changed(tmpath, _du_dirname + "/" + path);
     }
+  MOM_DEBUGLOG(dump,"rename_temporary_files end");
 } // end MomDumper::rename_temporary_files
 
 void
@@ -677,7 +682,7 @@ MomDumper::dump_emit_globdata(void) {
   MOM_DEBUGLOG(dump, "dump_emit_globdata start");
   MomRegisterGlobData::every_globdata([&,du](const std::string&nam, std::atomic<MomObject*>*pglob) {
       MomObject*pob = pglob->load();
-      MOM_DEBUGLOG(dump, "dump_emit_globdata nam=" << nam << " pob=" << pob << ", sp#" << (int)pob->space());
+      MOM_DEBUGLOG(dump, "dump_emit_globdata nam=" << nam << " pob=" << pob << ", sp#" << (pob?((int)pob->space()):0));
       if (pob && du->is_dumped(pob)) {
 	if (pob->space()!=MomSpace::UserSp) {
 	  globstmt.reset();
@@ -695,8 +700,8 @@ MomDumper::dump_emit_globdata(void) {
       MOM_DEBUGLOG(dump, "dump_emit_globdata done nam=" << nam << " pob=" << pob);
       return false;
     });
-  globstmt.used(false);
-  userstmt.used(false);
+  globstmt.used(true);
+  userstmt.used(true);
   MOM_DEBUGLOG(dump, "dump_emit_globdata done");
 } // end MomDumper::dump_emit_globdata
 
@@ -892,15 +897,14 @@ MomDumper::dump_emit_loop(void) {
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
     vecthr[ix-1].join();
   /// we don't want the destructor of statements to run any Sqlite request
-  globstmt.used(false);
-  userstmt.used(false);
+  globstmt.used(true);
+  userstmt.used(true);
   MOM_DEBUGLOG(dump,"dump_emit_loop done");
 } // end MomDumper::dump_emit_loop
 
 
 MomDumper::~MomDumper() {
-  #warning incomplete MomDumper destructor
-  MOM_FATALOG("incomplete MomDumper destructor");
+  MOM_DEBUGLOG(dump,"~MomDumper " << _du_dirname);
 }
 
 void
