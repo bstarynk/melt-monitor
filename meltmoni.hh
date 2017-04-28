@@ -311,6 +311,21 @@ __attribute__ ((format (printf, 4, 5)));
 			 ##__VA_ARGS__)
 
 
+#define MOM_DEBUGLOG_AT(Fil,Lin,Dbg,Log) do {		\
+    if (MOM_IS_DEBUGGING(Dbg))	{			\
+  std::ostringstream _olog_##Lin;			\
+  _olog_##Lin << Log << std::flush;			\
+  mom_debugprintf_at (Fil,Lin,momdbg_##Dbg,"%s",	\
+		     _olog_##Lin.str().c_str());	\
+    } } while(0)
+
+#define MOM_DEBUGLOG_AT_BIS(Fil,Lin,Dbg,Log)	\
+  MOM_DEBUGLOG_AT(Fil,Lin,Dbg,Log)
+
+#define MOM_DEBUGLOG(Dbg,Log)				\
+  MOM_DEBUGLOG_AT_BIS(__FILE__,__LINE__,Dbg,Log)
+
+
 ////////////////
 
 void
@@ -979,6 +994,7 @@ inline std::ostream& operator << (std::ostream& out, const MomValue val)
   val.output(out);
   return out;
 } // end operator << for MomValue
+
 
 typedef std::uint32_t MomSize; // sizes have 27 bits
 typedef std::uint8_t MomGCMark; // garbage collector marks have 2 bits
@@ -1788,6 +1804,15 @@ public:
   }
 }; // end class MomObject
 
+
+inline std::ostream& operator << (std::ostream& out, const MomObject*pob)
+{
+  if (pob)
+    out << pob->id();
+  else
+    out << "__";
+  return out;
+} // end operator << for MomObject*
 
 bool
 MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2)
