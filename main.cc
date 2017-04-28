@@ -1075,7 +1075,7 @@ static const struct option mom_long_options[] =
   {"help", no_argument, nullptr, 'h'},
   {"version", no_argument, nullptr, 'V'},
   {"debug", required_argument, nullptr, 'D'},
-  {"dump", no_argument, nullptr, 'd'},
+  {"dump", required_argument, nullptr, 'd'},
   {"load", required_argument, nullptr, 'L'},
   {"jobs", required_argument, nullptr, 'J'},
   {"chdir-first", required_argument, nullptr, xtraopt_chdir_first},
