@@ -162,7 +162,7 @@ MomLoader::load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob)
   MomObject*globpob = nullptr;
   {
     std::lock_guard<std::mutex> gu{_ld_mtxglobdb};
-    *_ld_globdbp << "SELECT glob_oid FROM t_globals WHERE glob_namestr = ?;"
+    *_ld_globdbp << "SELECT glob_oid FROM t_globdata WHERE glob_namestr = ?;"
                  << globnam >> [&](const std::string &idstr)
     {
       globpob = MomObject::find_object_of_id(MomIdent::make_from_cstr(idstr.c_str()));
@@ -171,7 +171,7 @@ MomLoader::load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob)
   if (!globpob && _ld_userdbp)
     {
       std::lock_guard<std::mutex> gu{_ld_mtxuserdb};
-      *_ld_userdbp << "SELECT glob_oid FROM t_globals WHERE glob_namestr = ?;"
+      *_ld_userdbp << "SELECT glob_oid FROM t_globdata WHERE glob_namestr = ?;"
                    << globnam >> [&](const std::string &idstr)
       {
         globpob = MomObject::find_object_of_id(MomIdent::make_from_cstr(idstr.c_str()));
@@ -196,7 +196,8 @@ void
 MomLoader::load_all_objects_content(void)
 {
   /// prepare the object loading statements
-  auto globstmt = ((*_ld_globdbp) << "SELECT ob_content FROM t_objects WHERE ob_id = ?;");
+  auto globstmt = ((*_ld_globdbp)
+                   << "SELECT ob_content FROM t_objects WHERE ob_id = ?; /*globaldb*/");
   std::function<std::string(MomObject*)> getglobfun =
     [&](MomObject*pob)
   {
@@ -207,7 +208,8 @@ MomLoader::load_all_objects_content(void)
     return res;
   };
   std::function<std::string(MomObject*)> getuserfun;
-  auto userstmt = ((*(_ld_userdbp?:_ld_globdbp)) << "SELECT ob_content FROM t_objects WHERE ob_id = ?;");
+  auto userstmt = ((*(_ld_userdbp?:_ld_globdbp))
+                   << "SELECT ob_content FROM t_objects WHERE ob_id = ?; /*userdb*/");
   if (_ld_userdbp)
     {
       getuserfun =
@@ -631,7 +633,7 @@ CREATE TABLE IF NOT EXISTS t_names
   nam_str TEXT PRIMARY KEY ASC NOT NULL UNIQUE)
 )!*";
     db << R"!*(
-CREATE TABLE IF NOT EXISTS t_globals
+CREATE TABLE IF NOT EXISTS t_globdata
  (glob_namestr VARCHAR(80) NOT NULL UNIQUE,
   glob_oid  VARCHAR(30) NOT NULL)
 )!*";
@@ -670,20 +672,31 @@ MomDumper::dump_emit_globdata(void) {
   auto du = this;
   std::lock_guard<std::mutex> gu_g{_du_globdbmtx};
   std::lock_guard<std::mutex> gu_u{_du_userdbmtx};
-  sqlite::database_binder globstmt = (*_du_globdbp) << "INSERT INTO t_globals VALUES(?,?);";
-  sqlite::database_binder userstmt = (*_du_userdbp) << "INSERT INTO t_globals VALUES(?,?);";
+  sqlite::database_binder globstmt = (*_du_globdbp) << "INSERT INTO t_globdata VALUES(?,?); /*globaldb*/";
+  sqlite::database_binder userstmt = (*_du_userdbp) << "INSERT INTO t_globdata VALUES(?,?); /*userdb*/";
   MOM_DEBUGLOG(dump, "dump_emit_globdata start");
   MomRegisterGlobData::every_globdata([&,du](const std::string&nam, std::atomic<MomObject*>*pglob) {
       MomObject*pob = pglob->load();
       MOM_DEBUGLOG(dump, "dump_emit_globdata nam=" << nam << " pob=" << pob << ", sp#" << (int)pob->space());
       if (pob && du->is_dumped(pob)) {
-	if (pob->space()!=MomSpace::UserSp)
+	if (pob->space()!=MomSpace::UserSp) {
+	  globstmt.reset();
 	  globstmt << nam << pob->id().to_string();
-	else
+	  MOM_DEBUGLOG(dump, "dump_emit_globdata globstmt="<< globstmt.sql());
+	  globstmt.execute();
+	}
+	else {
+	  userstmt.reset();
 	  userstmt << nam << pob->id().to_string();
+	  MOM_DEBUGLOG(dump, "dump_emit_globdata userstmt="<< userstmt.sql());
+	  userstmt.execute();
+	}
       }
+      MOM_DEBUGLOG(dump, "dump_emit_globdata done nam=" << nam << " pob=" << pob);
       return false;
     });
+  globstmt.used(false);
+  userstmt.used(false);
   MOM_DEBUGLOG(dump, "dump_emit_globdata done");
 } // end MomDumper::dump_emit_globdata
 
@@ -803,8 +816,9 @@ MomDumper::dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec,
   MOM_DEBUGLOG(dump,"dump_emit_thread start ix#" << ix);
   std::sort(pvec->begin(), pvec->end(), MomObjptrLess{});
   for (MomObject*pob : *pvec) {
-    MOM_DEBUGLOG(dump,"dump_emit_thread pob=" << pob << " ix#" << ix);
+    MOM_DEBUGLOG(dump,"dump_emit_thread emitting pob=" << pob << " ix#" << ix);
     du->dump_emit_object(pob, ix, dumpglobf,dumpuserf);
+    MOM_DEBUGLOG(dump,"dump_emit_thread did emit pob=" << pob << " ix#" << ix);
   }
   MOM_DEBUGLOG(dump,"dump_emit_thread end ix#" << ix);
 #warning MomDumper::dump_emit_thread very incomplete
@@ -818,7 +832,7 @@ MomDumper::dump_emit_loop(void) {
   MOM_DEBUGLOG(dump,"dump_emit_loop start");
   momdumpinsertfunction_t dumpglobf;
   momdumpinsertfunction_t dumpuserf;
-  auto globstmt = (*_du_globdbp) << "INSERT INTO t_objects VALUES(?,?,?,?,?,?);";
+  auto globstmt = (*_du_globdbp) << "INSERT INTO t_objects VALUES(?,?,?,?,?,?); /*globaldb*/";
   MOM_DEBUGLOG(dump,"dump_emit_loop globstmt=" << globstmt.sql());
   dumpglobf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
@@ -828,24 +842,28 @@ MomDumper::dump_emit_loop(void) {
 		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
 		 << ", content=" << pyem.pye_content << ")"
 		 << std::endl << " globstmt=" << globstmt.sql());
+    globstmt.reset();
     globstmt << pob->id().to_string() << mtim << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
+    MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf pob=" << pob << " globstmt=" << globstmt.sql());
     globstmt.execute();
     globstmt.reset();
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpglobf did thix#" << thix << " pob=" << pob);
   };
-  auto userstmt = *_du_userdbp  << "INSERT INTO t_objects VALUES(?,?,?,?,?,?);";
+  auto userstmt = *_du_userdbp  << "INSERT INTO t_objects VALUES(?,?,?,?,?,?); /*userdb*/";
   MOM_DEBUGLOG(dump,"dump_emit_loop userstmt=" << userstmt.sql());
   dumpuserf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
     std::lock_guard<std::mutex> gu(_du_userdbmtx);
-    MOM_DEBUGLOG(dump,"dump_emit_loop userglobf thix#" << thix << " pob=" << pob << " mtim=" << mtim
+    MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf thix#" << thix << " pob=" << pob << " mtim=" << mtim
 		 << " contentstr=" << contentstr
 		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
 		 << ", content=" << pyem.pye_content << ")"
 		 << std::endl << " userstmt=" << userstmt.sql());
+    userstmt.reset();
     userstmt << pob->id().to_string() << mtim << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
+    MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf pob=" << pob << " userstmt=" << userstmt.sql());
     userstmt.execute();
     userstmt.reset();
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf did thix#" << thix << " pob=" << pob);
@@ -873,6 +891,9 @@ MomDumper::dump_emit_loop(void) {
   std::this_thread::sleep_for(std::chrono::milliseconds(50+20*mom_nb_jobs));
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
     vecthr[ix-1].join();
+  /// we don't want the destructor of statements to run any Sqlite request
+  globstmt.used(false);
+  userstmt.used(false);
   MOM_DEBUGLOG(dump,"dump_emit_loop done");
 } // end MomDumper::dump_emit_loop
 
