@@ -672,8 +672,8 @@ MomDumper::dump_emit_globdata(void) {
   auto du = this;
   std::lock_guard<std::mutex> gu_g{_du_globdbmtx};
   std::lock_guard<std::mutex> gu_u{_du_userdbmtx};
-  sqlite::database_binder globstmt = (*_du_globdbp) << "INSERT INTO t_globdata VALUES(?,?); /*globaldb*/";
-  sqlite::database_binder userstmt = (*_du_userdbp) << "INSERT INTO t_globdata VALUES(?,?); /*userdb*/";
+  sqlite::database_binder globstmt = (*_du_globdbp) << "INSERT /*globaldb*/ INTO t_globdata VALUES(?,?)";
+  sqlite::database_binder userstmt = (*_du_userdbp) << "INSERT /*userdb*/ INTO t_globdata VALUES(?,?)";
   MOM_DEBUGLOG(dump, "dump_emit_globdata start");
   MomRegisterGlobData::every_globdata([&,du](const std::string&nam, std::atomic<MomObject*>*pglob) {
       MomObject*pob = pglob->load();
@@ -832,7 +832,7 @@ MomDumper::dump_emit_loop(void) {
   MOM_DEBUGLOG(dump,"dump_emit_loop start");
   momdumpinsertfunction_t dumpglobf;
   momdumpinsertfunction_t dumpuserf;
-  auto globstmt = (*_du_globdbp) << "INSERT INTO t_objects VALUES(?,?,?,?,?,?); /*globaldb*/";
+  auto globstmt = (*_du_globdbp) << "INSERT /*globaldb*/ INTO t_objects VALUES(?,?,?,?,?,?)";
   MOM_DEBUGLOG(dump,"dump_emit_loop globstmt=" << globstmt.sql());
   dumpglobf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
@@ -850,7 +850,7 @@ MomDumper::dump_emit_loop(void) {
     globstmt.reset();
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpglobf did thix#" << thix << " pob=" << pob);
   };
-  auto userstmt = *_du_userdbp  << "INSERT INTO t_objects VALUES(?,?,?,?,?,?); /*userdb*/";
+  auto userstmt = *_du_userdbp  << "INSERT /*userdb*/ INTO t_objects VALUES(?,?,?,?,?,?)";
   MOM_DEBUGLOG(dump,"dump_emit_loop userstmt=" << userstmt.sql());
   dumpuserf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
