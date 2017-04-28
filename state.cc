@@ -394,6 +394,7 @@ public:
             return;
           _du_setobj.insert(pob);
           _du_queobj.push_back(pob);
+          MOM_DEBUGLOG(dump, "MomDumper::add_scanned_object added pob=" << pob);
           added = true;
         }
     }
@@ -466,7 +467,7 @@ MomDumper::MomDumper(const std::string&dirnam)
     memset(sbuf16, 0, sizeof(sbuf16));
     rs.to_cbuf16(sbuf16);
     sbuf16[0] = '+';
-    snprintf(tempbuf, sizeof(tempbuf), "%sp%d-", sbuf16, (int)getpid());
+    snprintf(tempbuf, sizeof(tempbuf), "%s_p%d-", sbuf16, (int)getpid());
     _du_tempsuffix.assign(tempbuf);
   }
 } // end MomDumper::MomDumper
@@ -669,8 +670,10 @@ MomDumper::dump_emit_globdata(void) {
   std::lock_guard<std::mutex> gu_u{_du_userdbmtx};
   sqlite::database_binder globstmt = (*_du_globdbp) << "INSERT INTO t_globals VALUES(?,?);";
   sqlite::database_binder userstmt = (*_du_userdbp) << "INSERT INTO t_globals VALUES(?,?);";
+  MOM_DEBUGLOG(dump, "dump_emit_globdata start");
   MomRegisterGlobData::every_globdata([&,du](const std::string&nam, std::atomic<MomObject*>*pglob) {
       MomObject*pob = pglob->load();
+      MOM_DEBUGLOG(dump, "dump_emit_globdata nam=" << nam << " pob=" << pob << ", sp#" << (int)pob->space());
       if (pob && du->is_dumped(pob)) {
 	if (pob->space()!=MomSpace::UserSp)
 	  globstmt << nam << pob->id().to_string();
@@ -679,6 +682,7 @@ MomDumper::dump_emit_globdata(void) {
       }
       return false;
     });
+  MOM_DEBUGLOG(dump, "dump_emit_globdata done");
 } // end MomDumper::dump_emit_globdata
 
 
@@ -791,10 +795,13 @@ MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dum
 void
 MomDumper::dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf)
 {
+  MOM_DEBUGLOG(dump,"dump_emit_thread start ix#" << ix);
   std::sort(pvec->begin(), pvec->end(), MomObjptrLess{});
   for (MomObject*pob : *pvec) {
+    MOM_DEBUGLOG(dump,"dump_emit_thread pob=" << pob << " ix#" << ix);
     du->dump_emit_object(pob, ix, dumpglobf,dumpuserf);
   }
+  MOM_DEBUGLOG(dump,"dump_emit_thread end ix#" << ix);
 #warning MomDumper::dump_emit_thread very incomplete
 } // end MomDumper::dump_emit_thread
 
@@ -803,13 +810,17 @@ void
 MomDumper::dump_emit_loop(void) {
   MOM_ASSERT(_du_state == dus_scan, "MomDumper::dump_emit_loop bad start state");
   _du_state = dus_emit;
+  MOM_DEBUGLOG(dump,"dump_emit_loop start");
   momdumpinsertfunction_t dumpglobf;
   momdumpinsertfunction_t dumpuserf;
   auto globstmt = (*_du_globdbp) << "INSERT INTO t_objects VALUES(?,?,?,?,?,?);";
-  
   dumpglobf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
     std::lock_guard<std::mutex> gu(_du_globdbmtx);
+    MOM_DEBUGLOG(dump,"dump_emit_loop dumpglobf thix#" << thix << " pob=" << pob << " mtim=" << mtim
+		 << " contentstr=" << contentstr
+		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
+		 << ", content=" << pyem.pye_content << ")");
     globstmt << pob->id().to_string() << mtim << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
   };
@@ -817,8 +828,12 @@ MomDumper::dump_emit_loop(void) {
   dumpuserf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
     std::lock_guard<std::mutex> gu(_du_userdbmtx);
+    MOM_DEBUGLOG(dump,"dump_emit_loop userglobf thix#" << thix << " pob=" << pob << " mtim=" << mtim
+		 << " contentstr=" << contentstr
+		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
+		 << ", content=" << pyem.pye_content << ")");
     userstmt << pob->id().to_string() << mtim << contentstr
-    << pyem.pye_kind << pyem.pye_init<< pyem.pye_content;
+    << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
   };
   std::vector<std::vector<MomObject*>> vecobjob(mom_nb_jobs);
   std::vector<std::thread> vecthr(mom_nb_jobs);
@@ -835,6 +850,7 @@ MomDumper::dump_emit_loop(void) {
 	cnt++;
       }
   }
+  MOM_DEBUGLOG(dump,"dump_emit_loop before dump_emit_loop");
   for (unsigned ix=1; ix<=mom_nb_jobs; ix++) {
     vecthr[ix-1] = std::thread(dump_emit_thread, this, ix, &vecobjob[ix-1], &dumpglobf, &dumpuserf);
   }
@@ -842,6 +858,7 @@ MomDumper::dump_emit_loop(void) {
   std::this_thread::sleep_for(std::chrono::milliseconds(50+20*mom_nb_jobs));
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
     vecthr[ix-1].join();
+  MOM_DEBUGLOG(dump,"dump_emit_loop done");
 } // end MomDumper::dump_emit_loop
 
 
@@ -965,6 +982,6 @@ mom_dump_in_directory(const char*dirname)
   long nbob = dumper.nb_objects();
   double rt = dumper.dump_real_time();
   double cpu = dumper.dump_cpu_time();
-  MOM_INFORMPRINTF("dumped %d objects in directory %s in %.2f real, %.3f cpu seconds",
+  MOM_INFORMPRINTF("dumped %ld objects in directory %s in %.2f real, %.3f cpu seconds",
 		   nbob, dirname, rt, cpu);
 } // end mom_dump_in_directory
