@@ -626,7 +626,7 @@ MomDumper::initialize_db(sqlite::database &db)
   db << R"!*(
 CREATE TABLE IF NOT EXISTS t_objects
  (ob_id VARCHAR(30) PRIMARY KEY ASC NOT NULL UNIQUE,
-  ob_mtim INT8 NOT NULL,
+  ob_mtim REAL NOT NULL,
   ob_content TEXT NOT NULL,
   ob_paylkind VARCHAR(30) NOT NULL,
   ob_paylinit TEXT NOT NULL,
@@ -847,8 +847,11 @@ MomDumper::dump_emit_loop(void) {
 		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
 		 << ", content=" << pyem.pye_content << ")"
 		 << std::endl << " globstmt=" << globstmt.sql());
+    char mtimbuf[40];
+    memset(mtimbuf, 0, sizeof(mtimbuf));
+    snprintf(mtimbuf, sizeof(mtimbuf), "%.2f", mtim);
     globstmt.reset();
-    globstmt << pob->id().to_string() << mtim << contentstr
+    globstmt << pob->id().to_string() << mtimbuf << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf pob=" << pob << " globstmt=" << globstmt.sql());
     globstmt.execute();
@@ -865,8 +868,11 @@ MomDumper::dump_emit_loop(void) {
 		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
 		 << ", content=" << pyem.pye_content << ")"
 		 << std::endl << " userstmt=" << userstmt.sql());
+    char mtimbuf[40];
+    memset(mtimbuf, 0, sizeof(mtimbuf));
+    snprintf(mtimbuf, sizeof(mtimbuf), "%.2f", mtim);
     userstmt.reset();
-    userstmt << pob->id().to_string() << mtim << contentstr
+    userstmt << pob->id().to_string() << mtimbuf << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf pob=" << pob << " userstmt=" << userstmt.sql());
     userstmt.execute();
