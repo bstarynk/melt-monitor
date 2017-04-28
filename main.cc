@@ -32,7 +32,7 @@
 static struct backtrace_state *btstate_mom;
 static bool syslogging_mom;
 static const char* dump_dir_mom;
-static const char*load_state_mom;
+static const char*load_state_mom = ".";
 thread_local MomRandom MomRandom::_rand_thr_;
 
 typedef std::function<void(void)> todo_t;
@@ -1416,7 +1416,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
 } // end of parse_program_arguments_mom
 
 
-static void mom_sqlite_errlog(void*data, int errcode, const char*msg)
+static void mom_sqlite_errlog(void*, int errcode, const char*msg)
 {
   MOM_BACKTRACELOG("SQLITE ERROR#" << errcode
                    << " (" << sqlite3_errstr(errcode) << "):: "
@@ -1448,6 +1448,8 @@ main (int argc_main, char **argv_main)
   if (mom_nb_jobs>MOM_MAX_JOBS) mom_nb_jobs = MOM_MAX_JOBS;
   parse_program_arguments_mom(&argc, &argv);
   MomObject::initialize_predefined();
+  if (load_state_mom && load_state_mom[0] && load_state_mom[0] != '-')
+    mom_load_from_directory(load_state_mom);
 #warning missing stuff in main
   if (dump_dir_mom)
     mom_dump_in_directory(dump_dir_mom);

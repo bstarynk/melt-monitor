@@ -1802,10 +1802,14 @@ public:
   {
     _ob_comps.reserve(_ob_comps.size()+n);
   }
-  void unsync_touch(double t) {
+  void unsync_touch(double t)
+  {
     _ob_mtime = t;
   }
-  void unsync_touch(void) { unsync_touch(mom_clock_time(CLOCK_REALTIME)); };
+  void unsync_touch(void)
+  {
+    unsync_touch(mom_clock_time(CLOCK_REALTIME));
+  };
 }; // end class MomObject
 
 

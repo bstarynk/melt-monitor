@@ -73,7 +73,7 @@ MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
 {
   long obcnt = 0;
   std::lock_guard<std::mutex> gu (*(user?(&_ld_mtxuserdb):(&_ld_mtxglobdb)));
-  *pdb << "SELECT ob_id FROM t_objects"
+  *pdb << (user?"SELECT ob_id /*user*/ FROM t_objects" : "SELECT ob_id /*global*/ FROM t_objects")
        >> [&](std::string idstr)
   {
     auto id = MomIdent::make_from_cstr(idstr.c_str(),true);
@@ -98,6 +98,7 @@ MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
         obcnt++;
       }
   };
+  MOM_DEBUGLOG(load,"loaded " << obcnt << " empty objects from " << (user?"user":"global"));
   return obcnt;
 } // end MomLoader::load_empty_objects_from_db
 
@@ -159,22 +160,25 @@ MomLoader::load(void)
 void
 MomLoader::load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob)
 {
+  MOM_DEBUGLOG(load,"load_cold_globdata start globnam=" << globnam);
   MomObject*globpob = nullptr;
   {
     std::lock_guard<std::mutex> gu{_ld_mtxglobdb};
-    *_ld_globdbp << "SELECT glob_oid FROM t_globdata WHERE glob_namestr = ?;"
+    *_ld_globdbp << "SELECT glob_oid /*global*/ FROM t_globdata WHERE glob_namestr = ?;"
                  << globnam >> [&](const std::string &idstr)
     {
       globpob = MomObject::find_object_of_id(MomIdent::make_from_cstr(idstr.c_str()));
+      MOM_DEBUGLOG(load,"load_cold_globdata global globnam=" << globnam << " globpob=" << globpob);
     };
   }
   if (!globpob && _ld_userdbp)
     {
       std::lock_guard<std::mutex> gu{_ld_mtxuserdb};
-      *_ld_userdbp << "SELECT glob_oid FROM t_globdata WHERE glob_namestr = ?;"
+      *_ld_userdbp << "SELECT glob_oid /*user*/ FROM t_globdata WHERE glob_namestr = ?;"
                    << globnam >> [&](const std::string &idstr)
       {
         globpob = MomObject::find_object_of_id(MomIdent::make_from_cstr(idstr.c_str()));
+        MOM_DEBUGLOG(load,"load_cold_globdata user globnam=" << globnam << " globpob=" << globpob);
       };
     }
   if (globpob)
@@ -195,6 +199,7 @@ MomLoader::load_all_globdata(void)
 void
 MomLoader::load_all_objects_content(void)
 {
+  MOM_DEBUGLOG(load,"load_all_objects_content start");
   /// prepare the object loading statements
   auto globstmt = ((*_ld_globdbp)
                    << "SELECT ob_content FROM t_objects WHERE ob_id = ?; /*globaldb*/");
@@ -205,6 +210,7 @@ MomLoader::load_all_objects_content(void)
     std::string res;
     globstmt << pob->id().to_string() >> res;
     globstmt.reset();
+    MOM_DEBUGLOG(load,"load_all_objects_content getglobfun pob=" << pob << " res=" << res);
     return res;
   };
   std::function<std::string(MomObject*)> getuserfun;
@@ -219,6 +225,7 @@ MomLoader::load_all_objects_content(void)
         std::string res;
         userstmt << pob->id().to_string() >> res;
         userstmt.reset();
+        MOM_DEBUGLOG(load,"load_all_objects_content getuserfun pob=" << pob << " res=" << res);
         return res;
       };
     }
@@ -256,10 +263,12 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
   MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
              "MomLoader::thread_load_content_objects bad thix=" << thix);
   MOM_ASSERT(obpqu != nullptr, "MomLoader::thread_load_content_objects null obpqu");
+  MOM_DEBUGLOG(load,"thread_load_content_objects thix=#" << thix);
   while (!obpqu->empty())
     {
       MomObject*pob = obpqu->front();
       obpqu->pop_front();
+      MOM_DEBUGLOG(load,"thread_load_content_objects thix=#" << thix << " pob=" << pob);
       MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
                  "MomLoader::thread_load_content_objects bad pob");
       std::string strcont;
@@ -267,9 +276,12 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
         strcont = getuserfun(pob);
       else
         strcont = getglobfun(pob);
+      MOM_DEBUGLOG(load,"thread_load_content_objects thix=#" << thix << " pob=" << pob
+                   << " strcont=" << strcont);
       if (!strcont.empty())
         ld->load_object_content(pob, thix, strcont);
     };
+  MOM_DEBUGLOG(load,"thread_load_content_objects done thix=#" << thix << std::endl);
 } // end MomLoader::thread_load_content_objects
 
 
@@ -289,6 +301,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   contpars.next_line();
   int nbcomp = 0;
   int nbattr = 0;
+  MOM_DEBUGLOG(load,"load_object_content start pob=" << pob << " thix=" << thix << " strcont=" << strcont);
   MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs, "MomLoader::load_object_content bad thix#" << thix);
   for (;;)
     {
@@ -325,8 +338,8 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           nbcomp++;
         }
     }
-#warning incomplete MomLoader::load_object_content
-  /// should create a parser
+  MOM_DEBUGLOG(load,"load_object_content end pob=" << pob << " thix=" << thix
+               << " nbattr=" << nbattr << " nbcomp=" << nbcomp);
 } // end MomLoader::load_object_content
 
 void
