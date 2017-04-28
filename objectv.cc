@@ -452,6 +452,7 @@ MomObject::initialize_predefined(void)
 #define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) do {		\
   MOM_PREDEF(Id) = make_object_of_id(MomIdent(Hi,Lo));	\
   MOM_PREDEF(Id)->set_space(MomSpace::PredefSp);        \
+  MOM_PREDEF(Id)->unsync_touch();			\
 } while(0);
 #include "_mom_predef.h"
 } // end MomObject::initialize_predefined
