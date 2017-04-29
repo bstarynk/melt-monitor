@@ -1665,7 +1665,8 @@ enum class MomSpace : std::uint8_t
 class MomObject final : public MomAnyVal // in objectv.cc
 {
   friend struct MomPayload;
-  friend MomDumper;
+  friend class MomDumper;
+  friend class MomLoader;
   static std::mutex _bumtxarr_[MomSerial63::_maxbucket_];
   static std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _bumaparr_[MomSerial63::_maxbucket_];
   static std::mutex _predefmtx_;
