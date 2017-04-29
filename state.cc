@@ -301,8 +301,12 @@ MomLoader::load_all_objects_payload_from_db(MomLoader*ld, sqlite::database* pdb,
     if (!pob) MOM_FAILURE("no object of id:" << id);
     MOM_DEBUGLOG(load, "load_all_objects_payload_from_db pob=" << pob << " paykind=" << paykind
                  << std::endl << "..paylinit=" << paylinit);
-    // should find the payload vtable from paylind
-#warning load_all_objects_payload_from_db incomplete
+    const MomVtablePayload_st* pyvt = MomRegisterPayload::find_payloadv(paykind);
+    if (!pyvt)
+      MOM_FAILURE("object " << id << " has bad payload kind " << paykind);
+    if (!pyvt->pyv_initload)
+      MOM_FAILURE("object " << id << " withot initload payload " << pyvt->pyv_name);
+    pob->_ob_payl = pyvt->pyv_initload(pob,ld,paylinit.c_str());
   };
   MOM_DEBUGLOG(load, "end load_all_objects_payload_from_db user=" << (user?"true":"false"));
 } // end MomLoader::load_all_objects_payload_from_db

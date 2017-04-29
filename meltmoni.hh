@@ -1906,7 +1906,7 @@ typedef void MomPyv_destr_sig(struct MomPayload*payl,MomObject*own);
 typedef void MomPyv_scangc_sig(const struct MomPayload*payl,MomObject*own,MomGC*gc);
 typedef void MomPyv_scandump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du);
 typedef void MomPyv_emitdump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont);
-
+typedef MomPayload* MomPyv_initload_sig(MomObject*own,MomLoader*ld,const char*inits);
 #define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
 /// a payloadvtbl named FOO is declared as mompyvtl_FOO
 #define MOM_PAYLOADVTBL_SUFFIX "mompyvtl_"
@@ -1921,6 +1921,7 @@ struct MomVtablePayload_st // explicit "vtable-like" of payload
   const MomPyv_scangc_sig* pyv_scangc;
   const MomPyv_scandump_sig* pyv_scandump;
   const MomPyv_emitdump_sig* pyv_emitdump;
+  const MomPyv_initload_sig* pyv_initload;
 };
 
 class MomRegisterPayload
