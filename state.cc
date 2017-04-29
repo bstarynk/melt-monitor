@@ -33,10 +33,18 @@ class MomLoader
   std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _ld_objmap;
   std::mutex _ld_mtxobjmap;
   std::unique_ptr<sqlite::database> load_database(const char*dbradix);
+  MomObject* load_find_object_by_id(MomIdent id)
+  {
+    std::lock_guard<std::mutex> gu(_ld_mtxobjmap);
+    auto it = _ld_objmap.find(id);
+    if (it != _ld_objmap.end()) return it->second;
+    return nullptr;
+  }
   long load_empty_objects_from_db(sqlite::database* pdb, bool user);
   void load_all_globdata(void);
   void load_all_objects_content(void);
   void load_all_objects_payload_make(void);
+  static void load_all_objects_payload_from_db(MomLoader*,sqlite::database* pdb, bool user);
   void load_all_objects_payload_fill(void);
   void load_all_objects_touch(void);
   void load_object_content(MomObject*pob, int thix, const std::string&strcont);
@@ -264,8 +272,40 @@ MomLoader::load_all_objects_content(void)
 void
 MomLoader::load_all_objects_payload_make(void)
 {
-#warning unimplemented MomLoader::load_all_objects_payload_make
+  std::thread thrglob(load_all_objects_payload_from_db, this,  _ld_globdbp.get(),  IS_GLOBAL);
+  std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
+  if (_ld_userdbp)
+    {
+      std::this_thread::yield();
+      std::thread thruser(load_all_objects_payload_from_db, this,  _ld_userdbp.get(),  IS_USER);
+      std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
+      thruser.join();
+    }
+  thrglob.join();
 } // end MomLoader::load_all_objects_payload_make
+
+
+void
+MomLoader::load_all_objects_payload_from_db(MomLoader*ld, sqlite::database* pdb, bool user)
+{
+  MOM_DEBUGLOG(load, "start load_all_objects_payload_from_db user=" << (user?"true":"false"));
+  std::lock_guard<std::mutex> gu(*(user?&ld->_ld_mtxuserdb:&ld->_ld_mtxglobdb));
+  *pdb << (user?"SELECT /*user*/ (ob_id, ob_paylkind, ob_paylinit)"
+           " FROM t_objects WHERE ob_paylkind != ''"
+           :"SELECT /*global*/ (ob_id, ob_paylkind, ob_paylinit)"
+           " FROM t_objects WHERE ob_paylkind != ''")
+       >> [=] (const std::string& idstr, const std::string& paykind, const std::string&paylinit)
+  {
+    auto id = MomIdent::make_from_string(idstr, MomIdent::DO_FAIL);
+    auto pob = ld->load_find_object_by_id(id);
+    if (!pob) MOM_FAILURE("no object of id:" << id);
+    MOM_DEBUGLOG(load, "load_all_objects_payload_from_db pob=" << pob << " paykind=" << paykind
+                 << std::endl << "..paylinit=" << paylinit);
+    // should find the payload vtable from paylind
+#warning load_all_objects_payload_from_db incomplete
+  };
+  MOM_DEBUGLOG(load, "end load_all_objects_payload_from_db user=" << (user?"true":"false"));
+} // end MomLoader::load_all_objects_payload_from_db
 
 
 void
