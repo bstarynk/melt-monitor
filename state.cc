@@ -36,6 +36,9 @@ class MomLoader
   long load_empty_objects_from_db(sqlite::database* pdb, bool user);
   void load_all_globdata(void);
   void load_all_objects_content(void);
+  void load_all_objects_payload_make(void);
+  void load_all_objects_payload_fill(void);
+  void load_all_objects_touch(void);
   void load_object_content(MomObject*pob, int thix, const std::string&strcont);
   void load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob);
   static void thread_load_content_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&getglobfun,const std::function<std::string(MomObject*)>&getuserfun);
@@ -152,6 +155,9 @@ MomLoader::load(void)
   }
   load_all_globdata();
   load_all_objects_content();
+  load_all_objects_payload_make();
+  load_all_objects_payload_fill();
+  load_all_objects_touch();
 #warning MomLoader::load should do things in parallel
 } // end MomLoader::load
 
@@ -202,7 +208,7 @@ MomLoader::load_all_objects_content(void)
   MOM_DEBUGLOG(load,"load_all_objects_content start");
   /// prepare the object loading statements
   auto globstmt = ((*_ld_globdbp)
-                   << "SELECT ob_content FROM t_objects WHERE ob_id = ?; /*globaldb*/");
+                   << "SELECT /*globaldb*/ ob_content FROM t_objects WHERE ob_id = ?");
   std::function<std::string(MomObject*)> getglobfun =
     [&](MomObject*pob)
   {
@@ -215,7 +221,7 @@ MomLoader::load_all_objects_content(void)
   };
   std::function<std::string(MomObject*)> getuserfun;
   auto userstmt = ((*(_ld_userdbp?:_ld_globdbp))
-                   << "SELECT ob_content FROM t_objects WHERE ob_id = ?; /*userdb*/");
+                   << "SELECT  /*userdb*/ ob_content FROM t_objects WHERE ob_id = ?");
   if (_ld_userdbp)
     {
       getuserfun =
@@ -250,7 +256,30 @@ MomLoader::load_all_objects_content(void)
   std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
     vecthr[ix-1].join();
+  globstmt.used(true);
+  userstmt.used(true);
 } // end MomLoader::load_all_objects_content
+
+
+void
+MomLoader::load_all_objects_payload_make(void)
+{
+#warning unimplemented MomLoader::load_all_objects_payload_make
+} // end MomLoader::load_all_objects_payload_make
+
+
+void
+MomLoader::load_all_objects_payload_fill(void)
+{
+#warning unimplemented MomLoader::load_all_objects_payload_fill
+} // end MomLoader::load_all_objects_payload_fill
+
+
+void
+MomLoader::load_all_objects_touch(void)
+{
+#warning unimplemented MomLoader::load_all_objects_touch
+} // end MomLoader::load_all_objects_touch
 
 
 void
@@ -839,7 +868,6 @@ MomDumper::dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec,
     MOM_DEBUGLOG(dump,"dump_emit_thread did emit pob=" << pob << " ix#" << ix);
   }
   MOM_DEBUGLOG(dump,"dump_emit_thread end ix#" << ix);
-#warning MomDumper::dump_emit_thread very incomplete
 } // end MomDumper::dump_emit_thread
 
 
