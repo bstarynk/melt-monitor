@@ -20,6 +20,8 @@
 
 #include "meltmoni.hh"
 
+std::mutex  MomRegisterPayload::_pd_mtx_;
+std::map<std::string,const MomVtablePayload_st*>  MomRegisterPayload::_pd_dict_;
 // libbacktrace from GCC 6, i.e. libgcc-6-dev package
 #include <backtrace.h>
 #include <cxxabi.h>
@@ -1422,6 +1424,46 @@ static void mom_sqlite_errlog(void*, int errcode, const char*msg)
                    << " (" << sqlite3_errstr(errcode) << "):: "
                    << msg << std::endl);
 } // end mom_sqlite_errlog
+
+const MomVtablePayload_st*
+MomRegisterPayload::find_payloadv(const std::string&nam)
+{
+  if (nam.empty()) return nullptr;
+  std::lock_guard<std::mutex> gu(_pd_mtx_);
+  auto it=_pd_dict_.find(nam);
+  if (it!=_pd_dict_.end()) return it->second;
+  std::string fullnam = std::string{MOM_PAYLOADVTBL_SUFFIX}+nam;
+  auto pv = reinterpret_cast<const struct MomVtablePayload_st*>(dlsym(mom_prog_dlhandle,fullnam.c_str()));
+  if (pv != nullptr && pv->pyv_magic == MOM_PAYLOADVTBL_MAGIC
+      && nam == std::string{pv->pyv_name})
+    {
+      _pd_dict_.insert({nam,pv});
+      return pv;
+    }
+  return nullptr;
+} // end MomRegisterPayload::find_payloadv
+
+void
+MomRegisterPayload::register_payloadv(const MomVtablePayload_st*pv)
+{
+  if (!pv || pv->pyv_magic != MOM_PAYLOADVTBL_MAGIC)
+    MOM_FAILURE("register_payloadv bad pv");
+  if (!pv->pyv_name || !mom_valid_name_radix_len(pv->pyv_name, -1))
+    MOM_FAILURE("register_payloadv bad name:" <<pv->pyv_name);
+  std::lock_guard<std::mutex> gu(_pd_mtx_);
+  _pd_dict_.insert({std::string{pv->pyv_name},pv});
+}
+
+void
+MomRegisterPayload::forget_payloadv(const MomVtablePayload_st*pv)
+{
+  if (!pv || pv->pyv_magic != MOM_PAYLOADVTBL_MAGIC)
+    MOM_FAILURE("forget_payloadv bad pv");
+  if (!pv->pyv_name || !mom_valid_name_radix_len(pv->pyv_name, -1))
+    MOM_FAILURE("forget_payloadv bad name:" <<pv->pyv_name);
+  std::lock_guard<std::mutex> gu(_pd_mtx_);
+  _pd_dict_.erase(std::string{pv->pyv_name});
+}
 
 int
 main (int argc_main, char **argv_main)

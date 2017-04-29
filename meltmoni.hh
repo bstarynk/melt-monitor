@@ -1908,6 +1908,9 @@ typedef void MomPyv_scandump_sig(const struct MomPayload*payl,MomObject*own,MomD
 typedef void MomPyv_emitdump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont);
 
 #define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
+/// a payloadvtbl named FOO is declared as mompyvtl_FOO
+#define MOM_PAYLOADVTBL_SUFFIX "mompyvtl_"
+#define MOM_PAYLOADVTBL(Nam) mompyvtl_##Nam
 struct MomVtablePayload_st // explicit "vtable-like" of payload
 {
   const unsigned pyv_magic; // always MOM_PAYLOADVTBL_MAGIC
@@ -1919,6 +1922,30 @@ struct MomVtablePayload_st // explicit "vtable-like" of payload
   const MomPyv_scandump_sig* pyv_scandump;
   const MomPyv_emitdump_sig* pyv_emitdump;
 };
+
+class MomRegisterPayload
+{
+  static std::mutex _pd_mtx_;
+  static std::map<std::string,const MomVtablePayload_st*> _pd_dict_;
+  const MomVtablePayload_st*_pd_vtp;
+public:
+  static void register_payloadv(const MomVtablePayload_st*pv);
+  static void forget_payloadv(const MomVtablePayload_st*pv);
+  static const MomVtablePayload_st*find_payloadv(const std::string&nam);
+  MomRegisterPayload() = delete;
+  MomRegisterPayload(const MomRegisterPayload&) = delete;
+  MomRegisterPayload(MomRegisterPayload&&) = delete;
+  MomRegisterPayload(const MomVtablePayload_st*pv);
+  MomRegisterPayload(const MomVtablePayload_st&pv): MomRegisterPayload(&pv) {};
+  static void every_payloadv(std::function<bool(const MomVtablePayload_st*)> f)
+  {
+    std::lock_guard<std::mutex> gu(_pd_mtx_);
+    for (auto p : _pd_dict_)
+      if (f(p.second))
+        return;
+  }
+  ~MomRegisterPayload();
+}; // class MomRegisterPayload
 
 struct MomPayload
 {
