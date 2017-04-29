@@ -26,10 +26,12 @@
 class MomLoader
 {
   std::string _ld_dirname;
+  // global & user databases and their mutexes
   std::unique_ptr<sqlite::database> _ld_globdbp;
   std::unique_ptr<sqlite::database> _ld_userdbp;
   std::mutex _ld_mtxglobdb;
   std::mutex _ld_mtxuserdb;
+  // object map and its mutex
   std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _ld_objmap;
   std::mutex _ld_mtxobjmap;
   std::unique_ptr<sqlite::database> load_database(const char*dbradix);
@@ -268,7 +270,7 @@ MomLoader::load_all_objects_content(void)
   userstmt.used(true);
 } // end MomLoader::load_all_objects_content
 
-
+#warning perhaps the set of objects with payload should go into the loader?
 void
 MomLoader::load_all_objects_payload_make(void)
 {
