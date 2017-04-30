@@ -256,10 +256,12 @@ MomLoader::load_all_objects_content(void)
     [&](MomObject*pob)
   {
     std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
+    MOM_DEBUGLOG(load,"load_all_objects_content getglobfun start pob=" << pob);
     std::string res;
-    globstmt << pob->id().to_string() >> res;
     globstmt.reset();
+    globstmt << pob->id().to_string() >> res;
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun pob=" << pob << " res=" << res);
+    globstmt.reset();
     return res;
   };
   std::function<std::string(MomObject*)> getuserfun;
@@ -271,10 +273,12 @@ MomLoader::load_all_objects_content(void)
         [&](MomObject*pob)
       {
         std::lock_guard<std::mutex> gu(_ld_mtxuserdb);
+        MOM_DEBUGLOG(load,"load_all_objects_content getuserfun start pob=" << pob);
         std::string res;
-        userstmt << pob->id().to_string() >> res;
         userstmt.reset();
+        userstmt << pob->id().to_string() >> res;
         MOM_DEBUGLOG(load,"load_all_objects_content getuserfun pob=" << pob << " res=" << res);
+        userstmt.reset();
         return res;
       };
     }
@@ -471,7 +475,10 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
     {
       MomObject*pob = obpqu->front();
       obpqu->pop_front();
-      MOM_DEBUGLOG(load,"thread_load_content_objects thix=#" << thix << " pob=" << pob);
+      MOM_DEBUGLOG(load,"thread_load_content_objects thix=#" << thix << " pob=" << pob
+                   << " space#" << (int)pob->space()
+                   << ":"
+                   << (((pob->space() == MomSpace::UserSp)?"user":"global")));
       MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
                  "MomLoader::thread_load_content_objects bad pob");
       std::string strcont;
