@@ -1108,6 +1108,7 @@ usage_mom (const char *argv0)
     printf (" %s", mom_debug_names[ix]);
   putchar ('\n');
   printf ("\t -d | --dump <dumpdir>" " \t# Dump the state.\n");
+  printf ("\t -L | --load <loaddir>" " \t# Load the state.\n");
   printf ("\t --chdir-first dirpath" " \t#Change directory at first \n");
   printf ("\t --chdir-after-load dirpath"
           " \t#Change directory after load\n");
