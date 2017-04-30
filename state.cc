@@ -50,8 +50,10 @@ class MomLoader
   void load_all_objects_payload_fill(void);
   void load_all_objects_touch(void);
   void load_object_content(MomObject*pob, int thix, const std::string&strcont);
+  void load_object_fill_payload(MomObject*pob, int thix, const std::string&strfill);
   void load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob);
   static void thread_load_content_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&getglobfun,const std::function<std::string(MomObject*)>&getuserfun);
+  static void thread_load_fill_payload_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&fillglobfun,const std::function<std::string(MomObject*)>&filluserfun);
 #warning should add a lot more into MomLoader
 public:
   MomLoader(const std::string&dirnam);
@@ -317,9 +319,101 @@ MomLoader::load_all_objects_payload_from_db(MomLoader*ld, sqlite::database* pdb,
 void
 MomLoader::load_all_objects_payload_fill(void)
 {
-#warning unimplemented MomLoader::load_all_objects_payload_fill
+  MOM_DEBUGLOG(load,"load_all_objects_payload_fill start");
+  /// prepare the payload filling statements
+  auto globstmt = ((*_ld_globdbp)
+                   << "SELECT /*globaldb*/ ob_paylcontent FROM t_objects WHERE ob_id = ?");
+  std::function<std::string(MomObject*)> fillglobfun =
+    [&](MomObject*pob)
+  {
+    std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
+    std::string res;
+    globstmt << pob->id().to_string() >> res;
+    globstmt.reset();
+    MOM_DEBUGLOG(load,"load_all_objects_payload_fill fillglobfun pob=" << pob << " res=" << res);
+    return res;
+  };
+  std::function<std::string(MomObject*)> filluserfun;
+  auto userstmt = ((*(_ld_userdbp?:_ld_globdbp))
+                   << "SELECT  /*userdb*/ ob_paylcontent FROM t_objects WHERE ob_id = ?");
+  if (_ld_userdbp)
+    {
+      filluserfun =
+        [&](MomObject*pob)
+      {
+        std::lock_guard<std::mutex> gu(_ld_mtxuserdb);
+        std::string res;
+        userstmt << pob->id().to_string() >> res;
+        userstmt.reset();
+        MOM_DEBUGLOG(load,"load_all_objects_payload_fill filluserfun pob=" << pob << " res=" << res);
+        return res;
+      };
+    }
+  /// build a vector of queue of objects to be filled
+  std::vector<std::deque<MomObject*>> vecobjque(mom_nb_jobs);
+  unsigned long obcnt = 0;
+  {
+    std::lock_guard<std::mutex> gu{_ld_mtxobjmap};
+    for (auto p : _ld_objmap)
+      {
+        MomObject* pob = p.second;
+        MOM_ASSERT(pob != nullptr && pob->id() == p.first,
+                   "MomLoader::load_all_objects_payload_fill bad id");
+        if (!pob->_ob_payl)
+          continue;
+        vecobjque[obcnt % mom_nb_jobs].push_back(pob);
+        obcnt++;
+      }
+  }
+  std::vector<std::thread> vecthr(mom_nb_jobs);
+  for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
+    vecthr[ix-1] = std::thread(thread_load_fill_payload_objects, this, ix, &vecobjque[ix], fillglobfun, filluserfun);
+  std::this_thread::yield();
+  std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
+  for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
+    vecthr[ix-1].join();
+  globstmt.used(true);
+  userstmt.used(true);
 } // end MomLoader::load_all_objects_payload_fill
 
+
+void
+MomLoader::thread_load_fill_payload_objects(MomLoader*ld, int thix, std::deque<MomObject*>*obpqu,
+    const std::function<std::string(MomObject*)>&fillglobfun,
+    const std::function<std::string(MomObject*)>&filluserfun)
+{
+  MOM_ASSERT(ld != nullptr,
+             "MomLoader::thread_load_fill_payload_objects null ld");
+  MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
+             "MomLoader::thread_load_fill_payload_objects bad thix=" << thix);
+  MOM_ASSERT(obpqu != nullptr, "MomLoader::thread_load_fill_payload_objects null obpqu");
+  MOM_DEBUGLOG(load,"thread_load_fill_payload_objects thix=#" << thix);
+  while (!obpqu->empty())
+    {
+      MomObject*pob = obpqu->front();
+      obpqu->pop_front();
+      MOM_DEBUGLOG(load,"thread_load_fill_payload_objects thix=#" << thix << " pob=" << pob);
+      MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
+                 "MomLoader::thread_load_fill_payload_objects bad pob");
+      MOM_ASSERT(pob->_ob_payl != nullptr,
+                 "MomLoader::thread_load_fill_payload_objects no payload for pob:" <<pob);
+      std::string strfill;
+      if (pob->space() == MomSpace::UserSp)
+        strfill = filluserfun(pob);
+      else
+        strfill = fillglobfun(pob);
+      MOM_DEBUGLOG(load,"thread_load_fill_payload_objects thix=#" << thix << " pob=" << pob
+                   << " strfill=" << strfill);
+      ld->load_object_fill_payload(pob, thix, strfill);
+    };
+  MOM_DEBUGLOG(load,"thread_load_fill_payload_objects done thix=#" << thix << std::endl);
+} // end MomLoader::thread_load_content_objects
+
+
+void MomLoader::load_object_fill_payload(MomObject*pob, int thix, const std::string&strfill)
+{
+#warning unimplemented MomLoader::load_object_fill_payload
+} // end MomLoader::load_object_fill_payload
 
 void
 MomLoader::load_all_objects_touch(void)
