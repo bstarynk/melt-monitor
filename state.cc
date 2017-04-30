@@ -54,7 +54,6 @@ class MomLoader
   static void thread_load_content_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&getglobfun,const std::function<std::string(MomObject*)>&getuserfun);
   static void thread_load_fill_payload_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&fillglobfun,const std::function<std::string(MomObject*)>&filluserfun);
   static void load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool user);
-#warning should add a lot more into MomLoader
 public:
   MomLoader(const std::string&dirnam);
   static constexpr bool IS_USER= true;
@@ -203,7 +202,6 @@ MomLoader::load(void)
       }
     globthr.join();
   }
-#warning MomLoader::load should do things in parallel
 } // end MomLoader::load
 
 
@@ -635,7 +633,6 @@ public:
   {
     return mom_process_cpu_time() - _du_startcputime;
   };
-#warning should add a lot more into MomDumper
 };				// end class MomDumper
 
 class MomDumpEmitter final : public MomEmitter
@@ -993,7 +990,6 @@ MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dum
   std::string contentstr;
   MomObject::PayloadEmission pyem;
   double obmtime=0.0;
-  bool haspayload = false;
   {
     std::shared_lock<std::shared_mutex> gu{pob->_ob_shmtx};
     auto sp = pob->space();
@@ -1016,7 +1012,6 @@ MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dum
     }
     if (pob->_ob_payl) {
      pob->unsync_emit_dump_payload(this,pyem);
-     haspayload = true;
     }
   }
   if (isglobal) {
@@ -1025,7 +1020,7 @@ MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dum
   else if (isuser) {
     (*dumpuserf)(pob,thix,obmtime,contentstr,pyem);
   }
-#warning MomDumper::dump_emit_object incomplete
+  MOM_DEBUGLOG(dump,"dump_emit_object end pob=" << pob << " thix=" << thix);
 } // end MomDumper::dump_emit_object
 
 
