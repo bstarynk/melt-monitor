@@ -301,11 +301,13 @@ MomLoader::load_all_objects_content(void)
     vecthr[ix-1].join();
   globstmt.used(true);
   userstmt.used(true);
+  MOM_DEBUGLOG(load,"load_all_objects_content end");
 } // end MomLoader::load_all_objects_content
 
 void
 MomLoader::load_all_objects_payload_make(void)
 {
+  MOM_DEBUGLOG(load,"load_all_objects_payload_make start");
   std::thread thrglob(load_all_objects_payload_from_db, this,  _ld_globdbp.get(),  IS_GLOBAL);
   std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
   if (_ld_userdbp)
@@ -316,6 +318,7 @@ MomLoader::load_all_objects_payload_make(void)
       thruser.join();
     }
   thrglob.join();
+  MOM_DEBUGLOG(load,"load_all_objects_payload_make end");
 } // end MomLoader::load_all_objects_payload_make
 
 
@@ -489,6 +492,7 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
 void
 MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcont)
 {
+  MOM_DEBUGLOG(load,"load_object_content start pob=" << pob << " thix=" << thix << " strcont=" << strcont);
   std::istringstream incont(strcont);
   MomParser contpars(incont);
   char title[80];
@@ -501,7 +505,6 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   contpars.next_line();
   int nbcomp = 0;
   int nbattr = 0;
-  MOM_DEBUGLOG(load,"load_object_content start pob=" << pob << " thix=" << thix << " strcont=" << strcont);
   MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs, "MomLoader::load_object_content bad thix#" << thix);
   for (;;)
     {
@@ -541,6 +544,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   MOM_DEBUGLOG(load,"load_object_content end pob=" << pob << " thix=" << thix
                << " nbattr=" << nbattr << " nbcomp=" << nbcomp);
 } // end MomLoader::load_object_content
+
 
 void
 mom_load_from_directory(const char*dirname)
