@@ -48,12 +48,12 @@ class MomLoader
   void load_all_objects_payload_make(void);
   static void load_all_objects_payload_from_db(MomLoader*,sqlite::database* pdb, bool user);
   void load_all_objects_payload_fill(void);
-  void load_all_objects_touch(void);
   void load_object_content(MomObject*pob, int thix, const std::string&strcont);
   void load_object_fill_payload(MomObject*pob, int thix, const std::string&strfill);
   void load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob);
   static void thread_load_content_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&getglobfun,const std::function<std::string(MomObject*)>&getuserfun);
   static void thread_load_fill_payload_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&fillglobfun,const std::function<std::string(MomObject*)>&filluserfun);
+  static void load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool user);
 #warning should add a lot more into MomLoader
 public:
   MomLoader(const std::string&dirnam);
@@ -150,6 +150,22 @@ MomLoader::MomLoader(const std::string& dirnam)
 } // end MomLoader::MomLoader
 
 void
+MomLoader::load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool user)
+{
+  MOM_DEBUGLOG(load,"load_touch_objects_from_db start user=" << (user?"true":"false"));
+  std::lock_guard<std::mutex> gu (*(user?(&ld->_ld_mtxuserdb):(&ld->_ld_mtxglobdb)));
+  *pdb << (user?"SELECT ob_id, ob_mtim /*user*/ FROM t_objects" : "SELECT ob_id, ob_mtim /*global*/ FROM t_objects")
+       >> [&](std::string idstr, double mtim)
+  {
+    auto id = MomIdent::make_from_cstr(idstr.c_str(),true);
+    auto pob = ld->load_find_object_by_id(id);
+    if (pob)
+      pob->_ob_mtime = mtim;
+  };
+  MOM_DEBUGLOG(load,"load_touch_objects_from_db end user=" << (user?"true":"false"));
+} // end MomLoader::load_touch_objects_from_db
+
+void
 MomLoader::load(void)
 {
   long nbglobob = 0;
@@ -157,11 +173,18 @@ MomLoader::load(void)
   {
     auto globthr = std::thread([&](void)
     {
-      nbglobob = load_empty_objects_from_db(_ld_globdbp.get(),IS_GLOBAL);
+      nbglobob
+        = load_empty_objects_from_db(_ld_globdbp.get(),IS_GLOBAL);
     });
+    std::thread userthr;
     if (_ld_userdbp)
       {
-        nbuserob = load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
+        userthr = std::thread([&](void)
+        {
+          nbuserob
+            = load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
+        });
+        userthr.join();
       }
     globthr.join();
   }
@@ -169,7 +192,17 @@ MomLoader::load(void)
   load_all_objects_content();
   load_all_objects_payload_make();
   load_all_objects_payload_fill();
-  load_all_objects_touch();
+  {
+    auto ld = this;
+    auto globthr = std::thread(load_touch_objects_from_db,ld,_ld_globdbp.get(),IS_GLOBAL);
+    std::thread userthr;
+    if (_ld_userdbp)
+      {
+        userthr = std::thread(load_touch_objects_from_db,ld,_ld_userdbp.get(),IS_USER);
+        userthr.join();
+      }
+    globthr.join();
+  }
 #warning MomLoader::load should do things in parallel
 } // end MomLoader::load
 
@@ -272,7 +305,6 @@ MomLoader::load_all_objects_content(void)
   userstmt.used(true);
 } // end MomLoader::load_all_objects_content
 
-#warning perhaps the set of objects with payload should go into the loader?
 void
 MomLoader::load_all_objects_payload_make(void)
 {
@@ -421,12 +453,6 @@ void MomLoader::load_object_fill_payload(MomObject*pob, int thix, const std::str
   MOM_DEBUGLOG(load,"load_object_fill_payload end pob=" << pob << " thix=" << thix
                << " strfill=" << strfill);
 } // end MomLoader::load_object_fill_payload
-
-void
-MomLoader::load_all_objects_touch(void)
-{
-#warning unimplemented MomLoader::load_all_objects_touch
-} // end MomLoader::load_all_objects_touch
 
 
 void
