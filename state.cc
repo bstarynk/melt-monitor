@@ -361,6 +361,8 @@ MomLoader::load_all_objects_payload_fill(void)
                    "MomLoader::load_all_objects_payload_fill bad id");
         if (!pob->_ob_payl)
           continue;
+        if (!pob->_ob_payl->_py_vtbl->pyv_loadfill)
+          continue;
         vecobjque[obcnt % mom_nb_jobs].push_back(pob);
         obcnt++;
       }
@@ -412,7 +414,12 @@ MomLoader::thread_load_fill_payload_objects(MomLoader*ld, int thix, std::deque<M
 
 void MomLoader::load_object_fill_payload(MomObject*pob, int thix, const std::string&strfill)
 {
-#warning unimplemented MomLoader::load_object_fill_payload
+  MOM_DEBUGLOG(load,"load_object_fill_payload start pob=" << pob << " thix=" << thix
+               << " strfill=" << strfill);
+  auto py = pob->_ob_payl;
+  py->_py_vtbl->pyv_loadfill(py, pob, this, strfill.c_str());
+  MOM_DEBUGLOG(load,"load_object_fill_payload end pob=" << pob << " thix=" << thix
+               << " strfill=" << strfill);
 } // end MomLoader::load_object_fill_payload
 
 void
