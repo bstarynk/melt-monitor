@@ -86,31 +86,35 @@ long
 MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
 {
   long obcnt = 0;
+  MOM_DEBUGLOG(load,"load_empty_objects_from_db start " << (user?"user":"glob"));
   std::lock_guard<std::mutex> gu (*(user?(&_ld_mtxuserdb):(&_ld_mtxglobdb)));
   *pdb << (user?"SELECT ob_id /*user*/ FROM t_objects" : "SELECT ob_id /*global*/ FROM t_objects")
        >> [&](std::string idstr)
   {
+    MOM_DEBUGLOG(load,"load_empty_objects_from_db " << (user?"user":"glob")
+                 << " idstr=" << idstr);
     auto id = MomIdent::make_from_cstr(idstr.c_str(),true);
     auto pob = MomObject::make_object_of_id(id);
-    if (pob)
+    if (!pob)
+      MOM_FAILURE("load_empty_objects_from_db bad idstr=" << idstr);
+    {
+      std::lock_guard<std::mutex> gu(_ld_mtxobjmap);
+      _ld_objmap.insert({id,pob});
+    }
+    if (pob->space() == MomSpace::TransientSp)
       {
-        {
-          std::lock_guard<std::mutex> gu(_ld_mtxobjmap);
-          _ld_objmap.insert({id,pob});
-        }
-        if (pob->space() == MomSpace::TransientSp)
+        if (user)
           {
-            if (user)
-              {
-                pob->set_space(MomSpace::UserSp);
-              }
-            else
-              {
-                pob->set_space(MomSpace::GlobalSp);
-              }
+            pob->set_space(MomSpace::UserSp);
           }
-        obcnt++;
+        else
+          {
+            pob->set_space(MomSpace::GlobalSp);
+          }
       }
+    obcnt++;
+    MOM_DEBUGLOG(load,"load_empty_objects_from_db " << (user?"user":"glob")
+                 << " obcnt=" << obcnt << " pob=" << pob);
   };
   MOM_DEBUGLOG(load,"loaded " << obcnt << " empty objects from " << (user?"user":"global"));
   return obcnt;
@@ -291,18 +295,21 @@ MomLoader::load_all_objects_content(void)
   unsigned long obcnt = 0;
   {
     std::lock_guard<std::mutex> gu{_ld_mtxobjmap};
+    MOM_DEBUGLOG(load,"load_all_objects_content objmapsize=" << _ld_objmap.size());
     for (auto p : _ld_objmap)
       {
         MomObject* pob = p.second;
         MOM_ASSERT(pob != nullptr && pob->id() == p.first,
                    "MomLoader::load_all_objects_content bad id");
-        vecobjque[obcnt % mom_nb_jobs].push_back(pob);
+        int qix = obcnt % mom_nb_jobs;
+        vecobjque[qix].push_back(pob);
         obcnt++;
+        MOM_DEBUGLOG(load,"load_all_objects_content obcnt=" << obcnt << " pob=" << pob << " qix#" << qix);
       }
   }
   std::vector<std::thread> vecthr(mom_nb_jobs);
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
-    vecthr[ix-1] = std::thread(thread_load_content_objects, this, ix, &vecobjque[ix], getglobfun, getuserfun);
+    vecthr[ix-1] = std::thread(thread_load_content_objects, this, ix, &vecobjque[ix-1], getglobfun, getuserfun);
   std::this_thread::yield();
   std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
@@ -357,6 +364,8 @@ MomLoader::load_all_objects_payload_from_db(MomLoader*ld, sqlite::database* pdb,
 } // end MomLoader::load_all_objects_payload_from_db
 
 
+
+
 void
 MomLoader::load_all_objects_payload_fill(void)
 {
@@ -403,14 +412,20 @@ MomLoader::load_all_objects_payload_fill(void)
         if (!pob->_ob_payl)
           continue;
         if (!pob->_ob_payl->_py_vtbl->pyv_loadfill)
-          continue;
-        vecobjque[obcnt % mom_nb_jobs].push_back(pob);
+          {
+            MOM_DEBUGLOG(load,"load_all_objects_payload_fill skip pob=" << pob);
+            continue;
+          }
+        int qix = obcnt % mom_nb_jobs;
+        vecobjque[qix].push_back(pob);
         obcnt++;
+        MOM_DEBUGLOG(load,"load_all_objects_payload_fill pob=" << pob << " qix=" << qix
+                     << " obcnt=" << obcnt);
       }
   }
   std::vector<std::thread> vecthr(mom_nb_jobs);
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
-    vecthr[ix-1] = std::thread(thread_load_fill_payload_objects, this, ix, &vecobjque[ix], fillglobfun, filluserfun);
+    vecthr[ix-1] = std::thread(thread_load_fill_payload_objects, this, ix, &vecobjque[ix-1], fillglobfun, filluserfun);
   std::this_thread::yield();
   std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
@@ -480,7 +495,7 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
   MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
              "MomLoader::thread_load_content_objects bad thix=" << thix);
   MOM_ASSERT(obpqu != nullptr, "MomLoader::thread_load_content_objects null obpqu");
-  MOM_DEBUGLOG(load,"thread_load_content_objects thix=#" << thix);
+  MOM_DEBUGLOG(load,"thread_load_content_objects thix=#" << thix << " qusiz=" << obpqu->size());
   while (!obpqu->empty())
     {
       MomObject*pob = obpqu->front();
