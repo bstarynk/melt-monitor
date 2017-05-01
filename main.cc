@@ -802,16 +802,16 @@ mom_debugprintf_at (const char *fil, int lin, enum mom_debug_en dbg,
       };
     if (syslogging_mom)
       {
-        syslog (LOG_DEBUG, "MONIMELT DEBUG %7s <%s> @%s:%d %s %s",
-                dbg_level_mom (dbg).c_str(), thrname, fil, lin, timbuf, msg);
+        syslog (LOG_DEBUG, "MONIMELT DEBUG %7s <%s:%d> @%s:%d %s %s",
+                dbg_level_mom (dbg).c_str(), thrname, (int)mom_gettid(), fil, lin, timbuf, msg);
         if (nbdbg % DEBUG_DATE_PERIOD_MOM == 0)
           syslog (LOG_DEBUG, "MONIMELT DEBUG#%04ld ~ %s *^*^*", nbdbg,
                   datebuf);
       }
     else
       {
-        fprintf (stderr, "MONIMELT DEBUG %7s <%s> @%s:%d %s %s\n",
-                 dbg_level_mom (dbg).c_str(), thrname, fil, lin, timbuf, msg);
+        fprintf (stderr, "MONIMELT DEBUG %7s <%s:%d> @%s:%d %s %s\n",
+                 dbg_level_mom (dbg).c_str(), thrname, (int)mom_gettid(), fil, lin, timbuf, msg);
         fflush (stderr);
         if (nbdbg % DEBUG_DATE_PERIOD_MOM == 0)
           fprintf (stderr, "MONIMELT DEBUG#%04ld ~ %s *^*^*\n", nbdbg,
