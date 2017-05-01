@@ -348,6 +348,9 @@ MomLoader::load_all_objects_payload_from_db(MomLoader*ld, sqlite::database* pdb,
            " FROM t_objects WHERE ob_paylkind != ''")
        >> [=] (const std::string& idstr, const std::string& paykind, const std::string&paylinit)
   {
+    MOM_DEBUGLOG(load, "load_all_objects_payload_from_db idstr=" << idstr
+                 << " paykind=" << paykind
+                 << " paylinit=" << paylinit);
     auto id = MomIdent::make_from_string(idstr, MomIdent::DO_FAIL);
     auto pob = ld->load_find_object_by_id(id);
     if (!pob) MOM_FAILURE("no object of id:" << id);
@@ -358,7 +361,10 @@ MomLoader::load_all_objects_payload_from_db(MomLoader*ld, sqlite::database* pdb,
       MOM_FAILURE("object " << id << " has bad payload kind " << paykind);
     if (!pyvt->pyv_initload)
       MOM_FAILURE("object " << id << " withot initload payload " << pyvt->pyv_name);
+    MOM_DEBUGLOG(load, "load_all_objects_payload_from_db before initload pob=" << pob
+                 << " paylinit=" << paylinit);
     pob->_ob_payl = pyvt->pyv_initload(pob,ld,paylinit.c_str());
+    MOM_DEBUGLOG(load, "load_all_objects_payload_from_db after initload pob=" << pob);
   };
   MOM_DEBUGLOG(load, "end load_all_objects_payload_from_db user=" << (user?"true":"false"));
 } // end MomLoader::load_all_objects_payload_from_db
