@@ -151,6 +151,7 @@ MomLoader::MomLoader(const std::string& dirnam)
 void
 MomLoader::load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool user)
 {
+  pthread_setname_np(pthread_self(),user?"motouchuser":"mothouchglob");
   MOM_DEBUGLOG(load,"load_touch_objects_from_db start user=" << (user?"true":"false"));
   std::lock_guard<std::mutex> gu (*(user?(&ld->_ld_mtxuserdb):(&ld->_ld_mtxglobdb)));
   *pdb << (user?"SELECT ob_id, ob_mtim /*user*/ FROM t_objects" : "SELECT ob_id, ob_mtim /*global*/ FROM t_objects")
@@ -172,6 +173,7 @@ MomLoader::load(void)
   {
     auto globthr = std::thread([&](void)
     {
+      pthread_setname_np(pthread_self(), "moloademglob");
       nbglobob
         = load_empty_objects_from_db(_ld_globdbp.get(),IS_GLOBAL);
     });
@@ -180,6 +182,7 @@ MomLoader::load(void)
       {
         userthr = std::thread([&](void)
         {
+          pthread_setname_np(pthread_self(), "moloademuser");
           nbuserob
             = load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
         });
@@ -258,6 +261,7 @@ MomLoader::load_all_objects_content(void)
     std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun start pob=" << pob);
     std::string res;
+    MOM_BACKTRACELOG("load_all_objects_content @@getglobfun pob=" << pob);
     globstmt.reset();
     globstmt << pob->id().to_string() >> res;
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun pob=" << pob << " res=" << res);
@@ -421,6 +425,9 @@ MomLoader::thread_load_fill_payload_objects(MomLoader*ld, int thix, std::deque<M
     const std::function<std::string(MomObject*)>&fillglobfun,
     const std::function<std::string(MomObject*)>&filluserfun)
 {
+  char buf[24];
+  snprintf(buf, sizeof(buf), "molopayl%d", thix);
+  pthread_setname_np(pthread_self(), buf);
   MOM_ASSERT(ld != nullptr,
              "MomLoader::thread_load_fill_payload_objects null ld");
   MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
@@ -465,6 +472,9 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
                                        const std::function<std::string(MomObject*)>&getglobfun,
                                        const std::function<std::string(MomObject*)>&getuserfun)
 {
+  char buf[24];
+  snprintf(buf, sizeof(buf), "moldcont%d", thix);
+  pthread_setname_np(pthread_self(),buf);
   MOM_ASSERT(ld != nullptr,
              "MomLoader::thread_load_content_objects null ld");
   MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
@@ -483,9 +493,21 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
                  "MomLoader::thread_load_content_objects bad pob");
       std::string strcont;
       if (pob->space() == MomSpace::UserSp)
-        strcont = getuserfun(pob);
+        {
+          MOM_DEBUGLOG(load,"thread_load_content_objects thix#" << thix
+                       << " before getuserfun on pob=" << pob);
+          strcont = getuserfun(pob);
+          MOM_DEBUGLOG(load,"thread_load_content_objects thix#" << thix
+                       << " after getuserfun on pob=" << pob);
+        }
       else
-        strcont = getglobfun(pob);
+        {
+          MOM_DEBUGLOG(load,"thread_load_content_objects thix#" << thix
+                       << " before getglobfun on pob=" << pob);
+          strcont = getglobfun(pob);
+          MOM_DEBUGLOG(load,"thread_load_content_objects thix#" << thix
+                       << " after getglobfun on pob=" << pob);
+        }
       MOM_DEBUGLOG(load,"thread_load_content_objects thix=#" << thix << " pob=" << pob
                    << " strcont=" << strcont);
       if (!strcont.empty())
