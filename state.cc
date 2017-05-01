@@ -26,6 +26,7 @@
 class MomLoader
 {
   std::string _ld_dirname;
+  const double _ld_startrealtime, _ld_startcputime;
   // global & user databases and their mutexes
   std::unique_ptr<sqlite::database> _ld_globdbp;
   std::unique_ptr<sqlite::database> _ld_userdbp;
@@ -122,7 +123,10 @@ MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
 
 
 MomLoader::MomLoader(const std::string& dirnam)
-  : _ld_dirname(dirnam), _ld_globdbp(nullptr), _ld_userdbp(nullptr),
+  : _ld_dirname(dirnam),
+    _ld_startrealtime(mom_elapsed_real_time()),
+    _ld_startcputime(mom_process_cpu_time()),
+    _ld_globdbp(nullptr), _ld_userdbp(nullptr),
     _ld_mtxglobdb(), _ld_mtxuserdb(),
     _ld_objmap(), _ld_mtxobjmap()
 {
@@ -209,6 +213,11 @@ MomLoader::load(void)
       }
     globthr.join();
   }
+  char cputimbuf[24], realtimbuf[24];
+  snprintf(cputimbuf, sizeof(cputimbuf), "%.3f", mom_process_cpu_time() - _ld_startcputime);
+  snprintf(realtimbuf, sizeof(realtimbuf), "%.2f", mom_elapsed_real_time() - _ld_startrealtime);
+  MOM_INFORMLOG("loaded " << nbglobob << " global, " << nbuserob << " user objects from " << _ld_dirname
+                << " in " << realtimbuf << " real, "  << cputimbuf << " cpu seconds" << std::endl);
 } // end MomLoader::load
 
 
@@ -265,7 +274,7 @@ MomLoader::load_all_objects_content(void)
     std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun start pob=" << pob);
     std::string res;
-    MOM_BACKTRACELOG("load_all_objects_content @@getglobfun pob=" << pob);
+    //MOM_BACKTRACELOG("load_all_objects_content @@getglobfun pob=" << pob);
     globstmt.reset();
     globstmt << pob->id().to_string() >> res;
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun pob=" << pob << " res=" << res);
@@ -342,9 +351,9 @@ MomLoader::load_all_objects_payload_from_db(MomLoader*ld, sqlite::database* pdb,
 {
   MOM_DEBUGLOG(load, "start load_all_objects_payload_from_db user=" << (user?"true":"false"));
   std::lock_guard<std::mutex> gu(*(user?&ld->_ld_mtxuserdb:&ld->_ld_mtxglobdb));
-  *pdb << (user?"SELECT /*user*/ (ob_id, ob_paylkind, ob_paylinit)"
+  *pdb << (user?"SELECT /*user*/ ob_id, ob_paylkind, ob_paylinit"
            " FROM t_objects WHERE ob_paylkind != ''"
-           :"SELECT /*global*/ (ob_id, ob_paylkind, ob_paylinit)"
+           :"SELECT /*global*/ ob_id, ob_paylkind, ob_paylinit"
            " FROM t_objects WHERE ob_paylkind != ''")
        >> [=] (const std::string& idstr, const std::string& paykind, const std::string&paylinit)
   {
