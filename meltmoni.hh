@@ -775,7 +775,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
 
 class MomLoader;		// in state.cc
 class MomDumper;		// in state.cc
-class MomGC; // in garbcoll.cc
+class MomGC;
 extern "C" void mom_dump_into_directory(const char*dirnam);
 
 #define MOM_GLOBAL_DB "mom_global"
@@ -1173,10 +1173,7 @@ public:
   //
 protected:
   void* operator new (size_t sz) = delete;
-  void* operator new (size_t sz, MomNewTag, size_t gap)
-  {
-    return ::operator new(mom_align(sz) + mom_align(gap));
-  }
+  inline void* operator new (size_t sz, MomNewTag, size_t gap);
   MomAnyVal(MomKind k, MomSize sz, MomHash h) :
     _headerw(((std::uint32_t)k)<<29 | std::uint32_t(sz & (_max_size-1))),
     _hashw(h)
@@ -1910,6 +1907,10 @@ typedef void MomPyv_scandump_sig(const struct MomPayload*payl,MomObject*own,MomD
 typedef void MomPyv_emitdump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont);
 typedef MomPayload* MomPyv_initload_sig(MomObject*own,MomLoader*ld,const char*inits);
 typedef void MomPyv_loadfill_sig(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills);
+typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob);
+typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
+typedef void MomPyv_update_sig(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
+typedef void MomPyv_step_sig(struct MomPayload*payl,MomObject*own);
 #define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
 /// a payloadvtbl named FOO is declared as mompyvtl_FOO
 #define MOM_PAYLOADVTBL_SUFFIX "mompyvtl_"
@@ -1926,6 +1927,13 @@ struct MomVtablePayload_st // explicit "vtable-like" of payload
   const MomPyv_emitdump_sig* pyv_emitdump;
   const MomPyv_initload_sig* pyv_initload;
   const MomPyv_loadfill_sig* pyv_loadfill;
+  const MomPyv_getmagic_sig* pyv_getmagic;
+  const MomPyv_fetch_sig* pyv_fetch;
+  const MomPyv_update_sig* pyv_update;
+  const MomPyv_step_sig* pyv_step;
+  const void*pyv__spare1;
+  const void*pyv__spare2;
+  const void*pyv__spare3;
 };
 
 class MomRegisterPayload
@@ -2245,6 +2253,14 @@ public:
   };
 };				// end class MomEmitter
 
+////////////////////////////////////////////////////////////////
+class MomGC
+{
+  friend class MomAnyVal;
+  static std::atomic<bool> _forbid_allocation_;
+};				// end class MomGC
+
+////////////////////////////////////////////////////////////////
 void
 MomObject::unsync_clear_payload()
 {
@@ -2269,6 +2285,15 @@ MomValue::scan_dump(MomDumper*du) const
   if (pv)
     pv->scan_dump(du);
 }      // end MomValue::scan_dump
+
+
+void*
+MomAnyVal::operator new (size_t sz, MomNewTag, size_t gap)
+{
+  if (MOM_UNLIKELY(MomGC::_forbid_allocation_.load()))
+    MOM_FAILURE("forbidden to allocate sz=" << sz << " gap=" << gap);
+  return ::operator new(mom_align(sz) + mom_align(gap));
+} // end MomAnyVal::operator new
 
 extern "C" void mom_dump_in_directory(const char*dirname);
 
