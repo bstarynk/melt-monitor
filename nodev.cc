@@ -29,10 +29,10 @@ MomNode::compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz)
   if (!conn || conn->vkind() != MomKind::TagObjectK)
     MOM_FAILURE("MomNode::compute_hash missing connective");
   MomHash h1 = (73453*conn->hash()) ^ (13477*sz +9);
-  if (MOM_UNLIKELY(h1==0))
+  if (MOM_UNLIKELY(mom_hash(h1)==0))
     h1 = ((367*sz) & 0xfffff) + 140;
   MomHash h2 = (379*sz) + 101;
-  if (sz==0) return h1;
+  if (sz==0) return mom_hash(h1);
   if (MOM_UNLIKELY(arr==nullptr))
     MOM_FAILURE("MomNode::compute_hash null arr with sz=" << sz);
   for (unsigned ix=0; ix<sz; ix++)
@@ -55,9 +55,9 @@ MomNode::compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz)
         }
     }
   MomHash h = h1 ^ h2;
-  if (MOM_UNLIKELY(h==0))
+  if (MOM_UNLIKELY(mom_hash(h)==0))
     h = 11*(h1 & 0xffffff) + 5*(h2 & 0xffffff) + 1000;
-  return h;
+  return mom_hash(h);
 } // end MomNode::compute_hash
 
 const MomNode*

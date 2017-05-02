@@ -43,9 +43,9 @@ MomAnyObjSeq::compute_hash_seq(MomObject*const* obarr, unsigned sz)
         h2 = (k3 * h2 + 11 * (ix&0xffff)) ^ (hob * k4);
     }
   MomHash h = h1 ^ h2;
-  if (MOM_UNLIKELY(h==0))
+  if (MOM_UNLIKELY(mom_hash(h)==0))
     return 3*(h1 & 0xffffff) + 5*(h2 & 0xfffff) + (sz & 0xffff) + hinit/1000 + 8;
-  return h;
+  return mom_hash(h);
 } // end of MomAnyObjSeq::compute_hash
 
 

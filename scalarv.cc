@@ -54,9 +54,9 @@ MomIntSq::compute_hash(const intptr_t* iarr, MomSize sz)
         h2 = (31153 * h2 - 13 * ix) ^ MomHash(45121 * iarr[ix]);
     }
   MomHash h = (17*h1) ^ (457*h2);
-  if (MOM_UNLIKELY(h==0))
+  if (MOM_UNLIKELY(mom_hash(h)==0))
     h = (h1 & 0xffffff) + (h2 & 0xffffff) + 5*(sz & 0xfff) + 10;
-  return h;
+  return mom_hash(h);
 } // end MomIntSq::compute_hash
 
 
@@ -122,13 +122,13 @@ MomDoubleSq::hash_double(double d)
     };
   double x = frexp (d, &e);
   MomHash h = ((MomHash) (x / (M_PI * M_LN2 * DBL_EPSILON))) ^ e;
-  if (!h)
+  if (mom_hash(h)==0)
     {
       h = e;
-      if (!h)
+      if (mom_hash(h)==0)
         h = (x > 0.0) ? 1689767 : (x < 0.0) ? 2000281 : 13;
     }
-  return h;
+  return mom_hash(h);
 } // end MomDoubleSq::hash_double
 
 
@@ -155,9 +155,9 @@ MomDoubleSq::compute_hash(const double* darr, MomSize sz)
         h2 = (h2 * 15193 - 7 * ix) ^ (hx * 1409 + 10 - (hx >> 20));
     }
   MomHash h = h1 ^ h2;
-  if (MOM_UNLIKELY(h==0))
+  if (MOM_UNLIKELY(mom_hash(h)==0))
     h = (h1 & 0xfffff) + 11 * (h2 & 0xfffff) + 10;
-  return h;
+  return mom_hash(h);
 } // end MomDoubleSq::compute_hash
 
 
@@ -227,13 +227,13 @@ MomString::compute_hash_dim(const char*cstr, MomSize*psiz, uint32_t*pbylen)
         h2 = (h2*9419) ^ (11*cnt + 11437 * uc - 17*cnt);
     }
   MomHash h = h1 ^ h2;
-  if (MOM_UNLIKELY(h==0))
+  if (MOM_UNLIKELY(mom_hash(h)==0))
     h = 5*(h1 & 0xfffff) + 13*(h2 & 0xffffff) + 3*(cnt&0xfff) + 9;
   if (psiz)
     *psiz = cnt;
   if (pbylen)
     *pbylen = sz;
-  return h;
+  return mom_hash(h);
 } // end MomString::compute_hash_dim
 
 

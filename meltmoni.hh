@@ -462,6 +462,7 @@ const char *mom_hexdump_data (char *buf, unsigned buflen,
 
 
 typedef std::uint32_t MomHash; // hash codes are on 32 bits, but could become on 56 bits!
+#define mom_hash(H) ((MomHash)(H))
 
 const char *mom_double_to_cstr (double x, char *buf, size_t buflen);
 
@@ -752,7 +753,7 @@ public:
     MomHash h = ((shi * 81281) ^ (slo * 33769)) + 11*(shi>>35) - 31*(slo>>47);
     if (MOM_UNLIKELY(h==0))
       h = 3*(shi & 0xffffff) + 5*(slo & 0xffffff) + 315;
-    return h;
+    return mom_hash(h);
   }
 };				// end class MomIdent
 
@@ -1055,7 +1056,7 @@ public:
   };
   MomHash hash() const
   {
-    return _hashw;
+    return mom_hash(_hashw);
   };
   // integer sequences
   const MomIntSq* as_intsq() const
@@ -1207,7 +1208,7 @@ MomValue::hash() const
       MomHash h = (iv * 241) ^ (iv >> 28);
       if (MOM_UNLIKELY(h==0))
         h = (iv & 0xfffff) + 130;
-      return h;
+      return mom_hash(h);
     }
   auto v = as_val();
   MomHash h = v->hash();
@@ -1217,7 +1218,7 @@ MomValue::hash() const
       if (MOM_UNLIKELY(h==0))
         h = 31*(((unsigned)v->vkind()) & 0xfffff) + 10;
     }
-  return h;
+  return mom_hash(h);
 } // end MomValue::hash
 
 /// internally, in many values, we end with a flexible array member of scalar or pointers
