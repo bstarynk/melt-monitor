@@ -34,6 +34,7 @@ PKGCONFIG= pkg-config
 PREPROFLAGS= -I. -I/usr/local/include $(shell $(PKGCONFIG) --cflags $(PACKAGES))
 OPTIMFLAGS= -Og -g3
 SQLITE3=sqlite3
+QTMOC= moc
 
 LIBES= -L/usr/local/lib $(shell $(PKGCONFIG) --libs $(PACKAGES)) \
 	$(shell $(CXX) -print-file-name=libbacktrace.a) \
@@ -93,10 +94,18 @@ _timestamp.c: Makefile
 	@(echo -n 'const char monimelt_sqliteprog[]="'; echo -n  $(shell which $(SQLITE3)); echo '";') >> _timestamp.tmp
 	@mv _timestamp.tmp _timestamp.c
 
-$(OBJECTS): meltmoni.hh.gch $(GENERATED_HEADERS)
+$(OBJECTS): meltmoni.hh.gch 
 
 meltmoni.hh.gch: meltmoni.hh $(GENERATED_HEADERS)
 	$(COMPILE.cc) $(CXXFLAGS) -c $< -o $@
+
+%.o: %.qcc  meltmoni.hh.gch %.moc.h
+	$(COMPILE.cc) $(CXXFLAGS) -c $< -o $@
+
+.SUFFIXES: .qcc
+
+%.moc.h: %.qcc  meltmoni.hh $(GENERATED_HEADERS)
+	$(QTMOC) $(PREPROFLAGS) -o $@ $<
 
 monimelt: $(OBJECTS) 
 	@if [ -f $@ ]; then echo -n backup old executable: ' ' ; mv -v $@ $@~ ; fi
