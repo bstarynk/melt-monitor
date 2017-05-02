@@ -57,11 +57,13 @@ class MomLoader
   static void load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool user);
 public:
   MomLoader(const std::string&dirnam);
-  static constexpr bool IS_USER= true;
-  static constexpr bool IS_GLOBAL= false;
+  static constexpr const bool IS_USER= true;
+  static constexpr const bool IS_GLOBAL= false;
   void load(void);
 };				// end class MomLoader
 
+const bool MomLoader::IS_USER;
+const bool MomLoader::IS_GLOBAL;
 
 std::unique_ptr<sqlite::database>
 MomLoader::load_database(const char*dbradix)
@@ -815,6 +817,9 @@ MomDumper::close_and_dump_databases(void)
   auto userdbpath = temporary_file_path(MOM_USER_DB ".sqlite");
   auto globsqlpath = temporary_file_path(MOM_GLOBAL_DB ".sql");
   auto usersqlpath = temporary_file_path(MOM_USER_DB ".sql");
+  *_du_globdbp << "END /*global*/ TRANSACTION";
+  if (_du_userdbp)
+    *_du_userdbp << "END /*user*/ TRANSACTION";
   _du_globdbp.reset();
   _du_userdbp.reset();
   pid_t globpid = fork_dump_database(globdbpath, globsqlpath, MOM_GLOBAL_DB);
@@ -917,6 +922,7 @@ CREATE TABLE IF NOT EXISTS t_globdata
  (glob_namestr VARCHAR(80) NOT NULL UNIQUE,
   glob_oid  VARCHAR(30) NOT NULL)
 )!*";
+    db << "BEGIN TRANSACTION";
   } // end MomDumper::initialize_db
 
 
