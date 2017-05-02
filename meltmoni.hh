@@ -775,7 +775,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
 
 class MomLoader;		// in state.cc
 class MomDumper;		// in state.cc
-class MomGC;
+class MomGC; // in garbcoll.cc
 extern "C" void mom_dump_into_directory(const char*dirnam);
 
 #define MOM_GLOBAL_DB "mom_global"
