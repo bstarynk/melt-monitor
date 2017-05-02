@@ -276,7 +276,6 @@ MomLoader::load_all_objects_content(void)
     std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun start pob=" << pob);
     std::string res;
-    //MOM_BACKTRACELOG("load_all_objects_content @@getglobfun pob=" << pob);
     globstmt.reset();
     globstmt << pob->id().to_string() >> res;
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun pob=" << pob << " res=" << res);
@@ -571,12 +570,12 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
     {
       contpars.skip_spaces();
       if (contpars.eof()) break;
-      if (contpars.hasdelim("@@"))
+      if (contpars.hasdelim("@:"))
         {
           bool gotattr = false;
           MomObject*pobattr = contpars.parse_objptr(&gotattr);
           if (!pobattr || !gotattr)
-            MOM_PARSE_FAILURE(&contpars, "missing attribute after @@");
+            MOM_PARSE_FAILURE(&contpars, "missing attribute after @:");
           bool gotval = false;
           MomValue valattr = contpars.parse_value(&gotval);
           if (!gotval)
@@ -588,7 +587,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           });
           nbattr++;
         }
-      else if (contpars.hasdelim("&&"))
+      else if (contpars.hasdelim("&:"))
         {
           bool gotcomp = false;
           MomValue valcomp = contpars.parse_value(&gotcomp);
@@ -1260,14 +1259,14 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
     const MomValue valattr = p.second;
     if (!valattr || valattr.is_transient())
       continue;
-    em.out() << "@@ ";
+    em.out() << "@: ";
     em.emit_objptr(pobattr);
     em.emit_space(1);
     em.emit_value(valattr);
     em.emit_newline(0);
   }
   for (const MomValue vcomp : _ob_comps) {
-    em.out() << "&& ";
+    em.out() << "&: ";
     em.emit_value(vcomp);
     em.emit_newline(0);
   }
