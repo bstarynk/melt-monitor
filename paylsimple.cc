@@ -45,6 +45,11 @@ private:
   static std::map<std::string,MomObject*> _nam_dict_;
   MomPaylNamed(MomObject*own, const char*name)
     : MomPayload(&MOM_PAYLOADVTBL(named), own), _nam_str(name), _nam_proxy(nullptr) {};
+  ~MomPaylNamed()
+  {
+    (const_cast<stringty*>(&_nam_str))->clear();
+    _nam_proxy = nullptr;
+  };
 public:
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
@@ -131,8 +136,7 @@ MomPaylNamed::Destroy (struct MomPayload*payl,MomObject*own)
   auto it = _nam_dict_.find(py->_nam_str);
   MOM_ASSERT(it != _nam_dict_.end() && it->second == own, "corrupted _nam_dict_ for own=" << own);
   _nam_dict_.erase(it);
-  py->_nam_str.~stringty();
-  py->_nam_proxy = nullptr;
+  delete py;
 } // end MomPaylNamed::Destroy
 
 
