@@ -58,7 +58,7 @@ again:
       if (pgotval) *pgotval = true;
       if (_parfun)
         _parfun(PtokInt,inicol,inilincnt);
-      return MomValue((intptr_t)ll);
+      return _parnobuild?nullptr:MomValue((intptr_t)ll);
     }
   else if (isspace(pc))
     {
@@ -101,18 +101,19 @@ again:
               break;
             }
           curob = parse_objptr(&gotcurobj);
-          if (!curob || !gotcurobj)
+          if ((!_parnobuild && !curob) || !gotcurobj)
             MOM_PARSE_FAILURE(this, "missing component object in vector");
-          vec.push_back(curob);
+          if (!_parnobuild)
+            vec.push_back(curob);
           cnt++;
         }
       if (pgotval)
         *pgotval = true;
-      MOM_ASSERT(cnt == (int)vec.size(),
+      MOM_ASSERT(_parnobuild || cnt == (int)vec.size(),
                  "parsing tuple expecting " << cnt << " got " << vec.size());
       if (_parfun)
         _parfun(PtokTuple,inicol,inilincnt);
-      return MomValue(MomTuple::make_from_objptr_vector(vec));
+      return _parnobuild?nullptr:MomValue(MomTuple::make_from_objptr_vector(vec));
     }
   else if (pc=='{') // set
     {
@@ -131,9 +132,10 @@ again:
               break;
             }
           curob = parse_objptr(&gotcurobj);
-          if (!curob || !gotcurobj)
+          if ((!_parnobuild && !curob) || !gotcurobj)
             MOM_PARSE_FAILURE(this, "missing element object in set");
-          set.insert(curob);
+          if (!_parnobuild)
+            set.insert(curob);
           cnt++;
         }
       if (pgotval)
@@ -142,7 +144,7 @@ again:
                  "parsing set expecting at most " << cnt << " got " << set.size());
       if (_parfun)
         _parfun(PtokSet,inicol,inilincnt);
-      return MomValue(MomSet::make_from_objptr_set(set));
+      return _parnobuild?nullptr:MomValue(MomSet::make_from_objptr_set(set));
     }
   else if (pc=='"')   // JSON encoded UTF8 string, on the same line
     {
@@ -159,7 +161,7 @@ again:
         *pgotval = true;
       if (_parfun)
         _parfun(PtokString,inicol,inilincnt);
-      return MomValue(MomString::make_from_string(str));
+      return _parnobuild?nullptr:MomValue(MomString::make_from_string(str));
     }
   // multi-line raw strings like `ab0|foobar\here|ab0`
   else if (pc=='`' && (memset(border, 0, sizeof(border)), (borderpos=0), (nc=='_' || isalnum(nc)))
@@ -193,7 +195,7 @@ again:
         *pgotval = true;
       if (_parfun)
         _parfun(PtokString,inicol,inilincnt);
-      return MomValue(MomString::make_from_string(str));
+      return _parnobuild?nullptr:MomValue(MomString::make_from_string(str));
     }
   else if (pc=='(' && nc=='#')	// (# integer sequence #)
     {
@@ -218,7 +220,8 @@ again:
               char*endp = nullptr;
               long long ll = strtoll(curp, &endp, 0);
               consume(endp-curp);
-              v.push_back(ll);
+              if (!_parnobuild)
+                v.push_back(ll);
             }
           else
             MOM_PARSE_FAILURE(this, "invalid integer sequence");
@@ -227,7 +230,7 @@ again:
         *pgotval = true;
       if (_parfun)
         _parfun(PtokIntSeq,inicol,inilincnt);
-      return MomValue(MomIntSq::make_from_vector(v));
+      return _parnobuild?nullptr:MomValue(MomIntSq::make_from_vector(v));
     }
   else if (pc=='(' && nc==':')	// (: double sequence :)
     {
@@ -252,7 +255,8 @@ again:
               char*endp = nullptr;
               double x = strtod(curp, &endp);
               consume(endp-curp);
-              v.push_back(x);
+              if (!_parnobuild)
+                v.push_back(x);
             }
           else
             MOM_PARSE_FAILURE(this, "invalid double sequence");
@@ -261,7 +265,7 @@ again:
         *pgotval = true;
       if (_parfun)
         _parfun(PtokDoubleSeq,inicol,inilincnt);
-      return MomValue(MomDoubleSq::make_from_vector(v));
+      return _parnobuild?nullptr:MomValue(MomDoubleSq::make_from_vector(v));
     }
   else if (pc=='*' /* && nc<127 && !(nc>0 && nc!='_' && ispunct(nc))*/) // node
     {
@@ -271,7 +275,7 @@ again:
       consume(1);
       skip_spaces();
       connob = parse_objptr(&gotconn);
-      if (!connob || !gotconn)
+      if ((!_parnobuild && !connob) || !gotconn)
         MOM_PARSE_FAILURE(this, "missing connective object in node");
       skip_spaces();
       pc = peekbyte(0);
@@ -290,15 +294,16 @@ again:
               break;
             }
           curval = parse_value(&gotcurval);
-          if (!curval || !gotcurval)
+          if ((!_parnobuild && !curval) || !gotcurval)
             MOM_PARSE_FAILURE(this, "missing son#" << sonvec.size() << " in node of " << connob);
-          sonvec.push_back(curval);
+          if (!_parnobuild)
+            sonvec.push_back(curval);
         }
       if (pgotval)
         *pgotval = true;
       if (_parfun)
         _parfun(PtokNode,inicol,inilincnt);
-      return MomValue(MomNode::make_from_vector(connob,sonvec));
+      return  _parnobuild?nullptr:MomValue(MomNode::make_from_vector(connob,sonvec));
     }
   else if (pc=="°"[0] && nc=="°"[1])
     {
@@ -311,7 +316,7 @@ again:
           if (pgotval)
             *pgotval = true;
           if (vv.is_val())
-            return MomValue(vv.to_val(),MomTransientTag{});
+            return  _parnobuild?nullptr:MomValue(vv.to_val(),MomTransientTag{});
           else return vv;
         }
       else
@@ -354,11 +359,14 @@ again:
       const char*curp = peekchars();
       auto id = MomIdent::make_from_cstr(curp,&endp);
       if (id.is_null()) goto failure;
-      if (_parmakefromid)
-        respob = MomObject::make_object_of_id(id);
-      else
-        respob = MomObject::find_object_of_id(id);
-      if (respob)
+      if (!_parnobuild)
+        {
+          if (_parmakefromid)
+            respob = MomObject::make_object_of_id(id);
+          else
+            respob = MomObject::find_object_of_id(id);
+        }
+      if (_parnobuild || respob)
         {
           consume(endp-curp);
           if (pgotob)
@@ -386,7 +394,7 @@ again:
         endnamp++;
       std::string namstr(begnamp, endnamp-begnamp);
       MomObject* ob = fetch_named_object(namstr);
-      if (ob)
+      if (ob || _parnobuild)
         {
           consume(endnamp-begnamp);
           if (pgotob)

@@ -2074,15 +2074,16 @@ public:
     PtokNode,
   };
 private:
-  std::istream &_parinp;
-  std::string _parlinstr;
-  unsigned _parlincount;
-  long _parlinoffset;
-  int _parcol;
-  bool _parsilent;
-  bool _parmakefromid;
-  std::string _parname;
-  std::function<void(TokenKind tok,int startcol, unsigned startlineno)>_parfun;
+  std::istream &_parinp; // input stream
+  std::string _parlinstr; // line string
+  unsigned _parlincount; // line count
+  long _parlinoffset; // offset of current line
+  int _parcol; // current column
+  bool _parsilent; // if set, failure is silent without backtrace
+  bool _parnobuild; // if set, no values are built
+  bool _parmakefromid; // if set, make objects from id
+  std::string _parname;		// name of parser in messages
+  std::function<void(TokenKind tok,int startcol, unsigned startlineno)>_parfun; // function called (e.g. for colorization)
 public:
   class Mom_parse_failure : public Mom_runtime_failure
   {
@@ -2103,6 +2104,11 @@ public:
   MomParser& set_name(const std::string&nam)
   {
     _parname=nam;
+    return *this;
+  };
+  MomParser& set_no_build(bool nobuild)
+  {
+    _parnobuild = nobuild;
     return *this;
   };
   MomParser& set_make_from_id(bool mf)
