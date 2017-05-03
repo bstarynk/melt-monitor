@@ -42,6 +42,8 @@ private:
   MomObject* _nam_proxy;
   static std::mutex _nam_mtx_;
   static std::map<std::string,MomObject*> _nam_dict_;
+  MomPaylNamed(const char*name, MomObject*own)
+    : MomPayload(&MOM_PAYLOADVTBL(named), own), _nam_str(name), _nam_proxy(nullptr) {};
 public:
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
