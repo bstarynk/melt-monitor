@@ -1034,26 +1034,64 @@ private:
   // we start with the vtable ptr, probably 64 bits
   // the header word contains:
   //// 3 bits for the kind (constant)
-  //// 2 bits for the GC marking (could change during GC operations)
+  //// 2 bits (grey & mark) for the GC marking (could change during GC operations)
   //// 27 bits for the size (constant)
-  mutable std::uint32_t _headerw;
+  mutable std::atomic<std::uint32_t> _headera;
   const MomHash _hashw;
 public:
+  bool gc_mark(MomGC*) const volatile
+  {
+    return (_headera.load()>>27) & 1;
+  }
+  bool gc_grey(MomGC*) const volatile
+  {
+    return (_headera.load()>>27) & 2;
+  }
+  unsigned gc_info(MomGC*) const volatile
+  {
+    return (_headera.load()>>27) & 3;
+  }
+  static bool gc_info_to_mark(MomGC*,unsigned info)
+  {
+    return info & 1;
+  };
+  static bool gc_info_to_grey(MomGC*,unsigned info)
+  {
+    return info & 2;
+  };
+  bool gc_set_mark(MomGC*, bool m) volatile
+  {
+    if (m)
+      {
+        auto oldh = _headera.fetch_or(1U<<27);
+        return (oldh>>27) & 1;
+      }
+    else
+      {
+        auto oldh = _headera.fetch_and(~(1U<<27));
+        return (oldh>>27) & 1;
+      }
+  }
+  bool gc_set_grey(MomGC*, bool g) volatile
+  {
+    if (g)
+      {
+        auto oldh = _headera.fetch_or(1U<<28);
+        return (oldh>>28) & 1;
+      }
+    else
+      {
+        auto oldh = _headera.fetch_and(~(1U<<28));
+        return (oldh>>28) & 1;
+      }
+  }
   MomKind kindw() const
   {
-    return MomKind(_headerw>>29);
-  };
-  MomGCMark gcmarkw(MomGC*) const
-  {
-    return (_headerw>>27) & 03;
-  };
-  void set_gcmarkw(MomGC*, MomGCMark gm)
-  {
-    _headerw = (_headerw & ~((std::uint32_t)3<<27)) | ((gm & 3)<<27);
+    return MomKind(_headera.load()>>29);
   };
   MomSize sizew() const
   {
-    return _headerw & ((1<<27)-1);
+    return _headera.load() & ((1<<27)-1);
   };
   MomHash hash() const
   {
@@ -1176,7 +1214,7 @@ protected:
   void* operator new (size_t sz) = delete;
   inline void* operator new (size_t sz, MomNewTag, size_t gap);
   MomAnyVal(MomKind k, MomSize sz, MomHash h) :
-    _headerw(((std::uint32_t)k)<<29 | std::uint32_t(sz & (_max_size-1))),
+    _headera(((std::uint32_t)k)<<29 | std::uint32_t(sz & (_max_size-1))),
     _hashw(h)
   {
     MOM_ASSERT(k>MomKind::TagNoneK && k<MomKind::Tag_LastK, "MomAnyVal bad kind " << (int)k);
