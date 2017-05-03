@@ -20,13 +20,7 @@
 
 #include "meltmoni.hh"
 
-extern "C" void mom_register_unsync_named(MomObject*obj, const char*name);
-extern "C" void mom_forget_unsync_named_object(MomObject*obj);
-extern "C" void mom_forget_name(const char*name);
-extern "C" MomObject*mom_find_named(const char*name);
-extern "C" const char* mom_get_unsync_name(MomObject*obj);
 
-extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(named);
 class MomPaylNamed : public MomPayload
 {
 public:
@@ -37,6 +31,8 @@ public:
   friend MomObject*mom_find_named(const char*name);
   friend const char* mom_get_unsync_name(MomObject*obj);
   friend void mom_forget_name(const char*name);
+  friend MomObject*mom_unsync_named_object_proxy(MomObject*objn);
+  friend void mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy);
   typedef std::string stringty;
 private:
   const stringty _nam_str;
@@ -84,6 +80,28 @@ mom_forget_unsync_named_object(MomObject*obj)
   obj->unsync_clear_payload();
 } // end  mom_forget_unsync_named_object
 
+void
+mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy)
+{
+  if (!objn) return;
+  auto py = static_cast<MomPaylNamed*>(objn->unsync_payload());
+  if (py-> _py_vtbl !=  &MOM_PAYLOADVTBL(named)) return;
+  if (obproxy)
+    {
+      if (obproxy->vkind() != MomKind::TagObjectK)
+        MOM_FAILURE("mom_unsync_named_object_set_proxy objn=" << objn << " bad proxy");
+    }
+  py->_nam_proxy = obproxy;
+} // end mom_unsync_named_object_set_proxy
+
+MomObject*
+mom_unsync_named_object_proxy(MomObject*objn)
+{
+  if (!objn) return nullptr;
+  auto py = static_cast<MomPaylNamed*>(objn->unsync_payload());
+  if (py-> _py_vtbl !=  &MOM_PAYLOADVTBL(named)) return nullptr;
+  return py->_nam_proxy;
+} // end mom_unsync_named_object_proxy
 
 MomObject*
 mom_find_named(const char*name)
@@ -144,6 +162,7 @@ void
 MomPaylNamed::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
+#warning MomPaylNamed::Scangc should scangc the _nam_proxy
 } // end MomPaylNamed::Scangc
 
 
@@ -160,12 +179,14 @@ void
 MomPaylNamed::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
+#warning unimplemented MomPaylNamed::Emitdump
 } // end MomPaylNamed::Emitdump
 
 
 MomPayload*
 MomPaylNamed::Initload(MomObject*own,MomLoader*ld,const char*inits)
 {
+#warning unimplemented MomPaylNamed::Initload
 } // end MomPaylNamed::Initload
 
 
@@ -173,6 +194,7 @@ MomPaylNamed::Initload(MomObject*own,MomLoader*ld,const char*inits)
 void  MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills)
 {
   auto py = static_cast< MomPaylNamed*>(payl);
+#warning unimplemented MomPaylNamed::Loadfill
 } // end MomPaylNamed::Loadfill
 
 
@@ -180,4 +202,5 @@ MomValue
 MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
+#warning unimplemented MomPaylNamed::Getmagic
 } // end   MomPaylNamed::Getmagic
