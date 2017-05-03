@@ -2395,8 +2395,19 @@ MomAnyVal::operator new (size_t sz, MomNewTag, size_t gap)
   return ::operator new(fulsiz);
 } // end MomAnyVal::operator new
 
-extern "C" void mom_dump_in_directory(const char*dirname);
 
+/// in state.cc
+extern "C" void mom_dump_in_directory(const char*dirname);
 extern "C" void mom_load_from_directory(const char*dirname);
 
+
+/// in paylsimple.cc
+extern "C" void mom_register_unsync_named(MomObject*obj, const char*name);
+extern "C" void mom_forget_unsync_named_object(MomObject*obj);
+extern "C" void mom_forget_name(const char*name);
+extern "C" MomObject*mom_find_named(const char*name);
+extern "C" const char* mom_get_unsync_name(MomObject*obj);
+extern "C" MomObject*mom_unsync_named_object_proxy(MomObject*objn);
+extern "C" void mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy);
+extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(named);
 #endif /*MONIMELT_INCLUDED_ */
