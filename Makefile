@@ -137,11 +137,11 @@ dumpstate:
 
 restorestate: |  mom_global.sql  mom_user.sql
 	@if [ -f mom_global.sqlite ]; then \
-	  echo makebackup old: ' ' ; mv -v --backup mom_global.sqlite  mom_global.sqlite~ ; fi
+	  echo -n makebackup global old: ' ' ; mv -v --backup mom_global.sqlite  mom_global.sqlite~ ; fi
 	$(SQLITE3) mom_global.sqlite < mom_global.sql
 	touch -r  mom_global.sql  mom_global.sqlite
 	@if [ -f mom_user.sqlite ]; then \
-	  echo makebackup old: ' ' ; mv -v --backup mom_user.sqlite  mom_user.sqlite~ ; fi
+	  echo -n makebackup user old: ' ' ; mv -v --backup mom_user.sqlite  mom_user.sqlite~ ; fi
 	$(SQLITE3) mom_user.sqlite < mom_user.sql
 	touch -r  mom_user.sql  mom_user.sqlite
 
