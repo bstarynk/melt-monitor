@@ -1874,6 +1874,10 @@ public:
   {
     unsync_touch(mom_clock_time(CLOCK_REALTIME));
   };
+  MomPayload* unsync_payload() const
+  {
+    return _ob_payl;
+  }
 }; // end class MomObject
 
 
