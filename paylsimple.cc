@@ -20,14 +20,28 @@
 
 #include "meltmoni.hh"
 
+extern "C" void mom_register_unsync_named(MomObject*obj, const char*name);
+extern "C" void mom_forget_unsync_named_object(MomObject*obj);
+extern "C" void mom_forget_name(const char*name);
+extern "C" MomObject*mom_find_named(const char*name);
+extern "C" const char* mom_get_name(MomObject*obj);
+
+extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(named);
 class MomPaylNamed : public MomPayload
 {
 public:
   friend struct MomVtablePayload_st;
+  friend void mom_register_unsync_named(MomObject*obj, const char*name);
+  friend void mom_forget_unsync_named_object(MomObject*obj);
+  friend MomObject*mom_find_named(const char*name);
+  friend const char* mom_get_name(MomObject*obj);
+  friend void mom_forget_name(const char*name);
   typedef std::string stringty;
 private:
   const stringty _nam_str;
   MomObject* _nam_proxy;
+  static std::mutex _nam_mtx_;
+  static std::map<std::string,MomObject*> _nam_dict_;
 public:
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
@@ -38,7 +52,31 @@ public:
   static MomPyv_getmagic_sig Getmagic;
 }; // end class MomPaylNamed
 
-extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(named) __attribute__((section(".rodata"))) =
+std::mutex MomPaylNamed::_nam_mtx_;
+std::map<std::string,MomObject*> MomPaylNamed::_nam_dict_;
+
+void
+mom_register_unsync_named(MomObject*obj, const char*name)
+{
+  if (!obj || obj->vkind() != MomKind::TagObjectK) return;
+  if (!mom_valid_name_radix_len(name,-1)) return;
+  obj->unsync_clear_payload();
+#warning mom_register_unsync_named incomplete
+} // end mom_register_unsync_named
+
+void
+mom_forget_unsync_named_object(MomObject*obj)
+{
+  if (!obj) return;
+  auto py = static_cast<MomPaylNamed*>(obj->unsync_payload());
+  if (py-> _py_vtbl !=  &MOM_PAYLOADVTBL(named)) return;
+  obj->unsync_clear_payload();
+} // end  mom_forget_unsync_named_object
+
+
+MomObject*mom_find_named(const char*name);
+const char* mom_get_name(MomObject*obj);
+const struct MomVtablePayload_st MOM_PAYLOADVTBL(named) __attribute__((section(".rodata"))) =
 {
   /**   .pyv_magic=      */       MOM_PAYLOADVTBL_MAGIC,
   /**   .pyv_size=       */       sizeof(MomPaylNamed),
@@ -63,6 +101,10 @@ void
 MomPaylNamed::Destroy (struct MomPayload*payl,MomObject*own)
 {
   auto py = static_cast<MomPaylNamed*>(payl);
+  std::lock_guard<std::mutex> gu(_nam_mtx_);
+  auto it = _nam_dict_.find(py->_nam_str);
+  MOM_ASSERT(it != _nam_dict_.end() && it->second == own, "corrupted _nam_dict_ for own=" << own);
+  _nam_dict_.erase(it);
   py->_nam_str.~stringty();
   py->_nam_proxy = nullptr;
 } // end MomPaylNamed::Destroy
