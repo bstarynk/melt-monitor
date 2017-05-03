@@ -1878,6 +1878,12 @@ public:
   {
     return _ob_payl;
   }
+  template<class PaylClass, typename...ArgsType> PaylClass* unsync_make_payload(ArgsType... args)
+  {
+    unsync_clear_payload();
+    auto py = _ob_payl = new PaylClass(this,args...);
+    return static_cast<PaylClass*>(py);
+  }
 }; // end class MomObject
 
 
