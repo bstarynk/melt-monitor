@@ -272,6 +272,7 @@ extern "C" void mom_failure_backtrace_at(const char*fil, int lin, const std::str
   Dbg(cmd)					\
   Dbg(dump)					\
   Dbg(load)					\
+  Dbg(misc)					\
   Dbg(blue)					\
   Dbg(green)					\
   Dbg(red)					\
@@ -1910,7 +1911,7 @@ typedef void MomPyv_loadfill_sig(struct MomPayload*payl,MomObject*own,MomLoader*
 typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob);
 typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
 typedef void MomPyv_update_sig(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
-typedef void MomPyv_step_sig(struct MomPayload*payl,MomObject*own);
+typedef void MomPyv_step_sig(struct MomPayload*payl,MomObject*own,const MomValue*vecarr, unsigned veclen);
 #define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
 /// a payloadvtbl named FOO is declared as mompyvtl_FOO
 #define MOM_PAYLOADVTBL_SUFFIX "mompyvtl_"
@@ -2003,6 +2004,23 @@ struct MomPayload
 
 class MomParser			// in file parsemit.cc
 {
+public:
+  enum TokenKind
+  {
+    Ptok_NONE,
+    PtokComment,
+    PtokNil,
+    PtokInt,
+    PtokString,
+    PtokId,
+    PtokName,
+    PtokTuple,
+    PtokSet,
+    PtokIntSeq,
+    PtokDoubleSeq,
+    PtokNode,
+  };
+private:
   std::istream &_parinp;
   std::string _parlinstr;
   unsigned _parlincount;
@@ -2011,6 +2029,7 @@ class MomParser			// in file parsemit.cc
   bool _parsilent;
   bool _parmakefromid;
   std::string _parname;
+  std::function<void(TokenKind tok,int startcol, unsigned startlineno)>_parfun;
 public:
   class Mom_parse_failure : public Mom_runtime_failure
   {
@@ -2025,7 +2044,7 @@ public:
     };
   };
   MomParser(std::istream&inp, unsigned lincount=0)
-    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}, _parsilent{false}, _parmakefromid{false}, _parname()
+    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}, _parsilent{false}, _parmakefromid{false}, _parname(), _parfun()
   {
   }
   MomParser& set_name(const std::string&nam)
@@ -2036,6 +2055,11 @@ public:
   MomParser& set_make_from_id(bool mf)
   {
     _parmakefromid=mf;
+    return *this;
+  };
+  MomParser& set_parser_fun(std::function<void(TokenKind tok,int startcol, unsigned startlineno)>fun)
+  {
+    _parfun = fun;
     return *this;
   };
   std::string name() const

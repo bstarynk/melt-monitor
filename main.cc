@@ -1195,8 +1195,9 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   char **argv = *pargv;
   int opt = -1;
   char *commentstr = nullptr;
+  int myargindex = 0;
   while ((opt = getopt_long (argc, argv, "hVd:sD:L:J:",
-                             mom_long_options, nullptr)) >= 0)
+                             mom_long_options, &myargindex)) >= 0)
     {
       switch (opt)
         {
@@ -1416,6 +1417,11 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           return;
         }
     }
+  *pargc -= optind;
+  argc = *pargc;
+  *pargv = argv+optind;
+  argv = *pargv;
+  MOM_DEBUGLOG(misc, "parse_program_arguments final argc=" << argc);
 } // end of parse_program_arguments_mom
 
 

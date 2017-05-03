@@ -56,6 +56,8 @@ again:
       if (endp>curp)
         consume(endp-curp);
       if (pgotval) *pgotval = true;
+      if (_parfun)
+        _parfun(PtokInt,inicol,inilincnt);
       return MomValue((intptr_t)ll);
     }
   else if (isspace(pc))
@@ -66,11 +68,16 @@ again:
   else if (pc=='/' && nc == '/')
     {
       next_line();
+      if (_parfun)
+        _parfun(PtokComment,inicol,inilincnt);
       goto again;
     }
   else if (pc=='_' && nc=='_')
     {
       consume(2);
+      if (pgotval) *pgotval = true;
+      if (_parfun)
+        _parfun(PtokNil,inicol,inilincnt);
       return MomValue{nullptr};
     }
   else if (pc<127 && (isalpha(pc) || (pc=='_' && nc<127 && isdigit(nc))))
@@ -101,7 +108,10 @@ again:
         }
       if (pgotval)
         *pgotval = true;
-      MOM_ASSERT(cnt == (int)vec.size(), "parsing tuple expecting " << cnt << " got " << vec.size());
+      MOM_ASSERT(cnt == (int)vec.size(),
+                 "parsing tuple expecting " << cnt << " got " << vec.size());
+      if (_parfun)
+        _parfun(PtokTuple,inicol,inilincnt);
       return MomValue(MomTuple::make_from_objptr_vector(vec));
     }
   else if (pc=='{') // set
@@ -128,7 +138,10 @@ again:
         }
       if (pgotval)
         *pgotval = true;
-      MOM_ASSERT(cnt >= (int)set.size(), "parsing set expecting at most " << cnt << " got " << set.size());
+      MOM_ASSERT(cnt >= (int)set.size(),
+                 "parsing set expecting at most " << cnt << " got " << set.size());
+      if (_parfun)
+        _parfun(PtokSet,inicol,inilincnt);
       return MomValue(MomSet::make_from_objptr_set(set));
     }
   else if (pc=='"')   // JSON encoded UTF8 string, on the same line
@@ -144,6 +157,8 @@ again:
       consume(1);
       if (pgotval)
         *pgotval = true;
+      if (_parfun)
+        _parfun(PtokString,inicol,inilincnt);
       return MomValue(MomString::make_from_string(str));
     }
   // multi-line raw strings like `ab0|foobar\here|ab0`
@@ -176,6 +191,8 @@ again:
         }
       if (pgotval)
         *pgotval = true;
+      if (_parfun)
+        _parfun(PtokString,inicol,inilincnt);
       return MomValue(MomString::make_from_string(str));
     }
   else if (pc=='(' && nc=='#')	// (# integer sequence #)
@@ -206,7 +223,10 @@ again:
           else
             MOM_PARSE_FAILURE(this, "invalid integer sequence");
         }
-      if (pgotval) *pgotval = true;
+      if (pgotval)
+        *pgotval = true;
+      if (_parfun)
+        _parfun(PtokIntSeq,inicol,inilincnt);
       return MomValue(MomIntSq::make_from_vector(v));
     }
   else if (pc=='(' && nc==':')	// (: double sequence :)
@@ -237,7 +257,10 @@ again:
           else
             MOM_PARSE_FAILURE(this, "invalid double sequence");
         }
-      if (pgotval) *pgotval = true;
+      if (pgotval)
+        *pgotval = true;
+      if (_parfun)
+        _parfun(PtokDoubleSeq,inicol,inilincnt);
       return MomValue(MomDoubleSq::make_from_vector(v));
     }
   else if (pc=='*' /* && nc<127 && !(nc>0 && nc!='_' && ispunct(nc))*/) // node
@@ -273,6 +296,8 @@ again:
         }
       if (pgotval)
         *pgotval = true;
+      if (_parfun)
+        _parfun(PtokNode,inicol,inilincnt);
       return MomValue(MomNode::make_from_vector(connob,sonvec));
     }
   else if (pc=="°"[0] && nc=="°"[1])
@@ -338,6 +363,8 @@ again:
           consume(endp-curp);
           if (pgotob)
             *pgotob = true;
+          if (_parfun)
+            _parfun(PtokId,inicol,inilincnt);
           return respob;
         }
       else goto failure;
@@ -347,6 +374,8 @@ again:
       consume(2);
       if (pgotob)
         *pgotob = true;
+      if (_parfun)
+        _parfun(PtokNil,inicol,inilincnt);
       return nullptr;
     }
   else if (isalpha(pc))
@@ -362,6 +391,8 @@ again:
           consume(endnamp-begnamp);
           if (pgotob)
             *pgotob = true;
+          if (_parfun)
+            _parfun(PtokName,inicol,inilincnt);
           return ob;
         }
       else goto failure;
@@ -371,7 +402,7 @@ failure:
     *pgotob = false;
   restore_state(inioff, inilincnt, inicol);
   return nullptr;
-} // end of MomParser::parse_value
+} // end of MomParser::parse_objptr
 
 
 
