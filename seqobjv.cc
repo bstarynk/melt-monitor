@@ -133,6 +133,12 @@ MomSet::make_from_objptr_set(const MomObjptrSet&oset)
   return make_from_ascending_objptr_vector(vec);
 } // end MomSet::make_from_objptr_set
 
+std::mutex*
+MomSet::valmtx() const
+{
+  return _mtxarr_+slotindex(hash());
+} // end MomSet::valmtx
+
 //////////////// tuples
 
 std::mutex MomTuple::_mtxarr_[MomTuple::_swidth_];
@@ -181,3 +187,9 @@ MomTuple::make_from_array(MomObject*const* obarr, MomSize sz)
     }
   return res;
 } // end MomTuple::make_from_array
+
+std::mutex*
+MomTuple::valmtx() const
+{
+  return _mtxarr_+slotindex(hash());
+} // end MomTuple::valmtx

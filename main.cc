@@ -1317,7 +1317,11 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           auto id4 = MomIdent::make_random();
           auto id5 = MomIdent::make_random();
           auto id6 = MomIdent::make_random();
-          MOM_INFORMLOG("test-id __cplusplus=" << __cplusplus << " sizeof(MomObject)=" << sizeof(MomObject));
+          MOM_INFORMLOG("test-id __cplusplus=" << __cplusplus
+                        << " sizeof(MomObject)=" << sizeof(MomObject)
+                        << " sizeof(MomAnyVal)=" << sizeof(MomAnyVal)
+                        << " sizeof(MomTuple)=" << sizeof(MomTuple)
+                        << " sizeof(MomNode)=" << sizeof(MomNode));
           MOM_INFORMLOG("test-id hardware_concurrency=" << std::thread::hardware_concurrency());
           MOM_INFORMLOG("test-id:" << std::endl
                         << " .. id1= " << id1 << " =(" << id1.hi().serial() << "," << id1.lo().serial()

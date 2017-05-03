@@ -93,7 +93,11 @@ MomIntSq::make_from_array(const intptr_t* iarr, MomSize sz)
   return res;
 } // end MomIntSq::make_from_array
 
-
+std::mutex*
+MomIntSq::valmtx() const
+{
+  return _mtxarr_+slotindex(hash());
+} // end MomIntSq::valmtx
 
 ////////////////////////////////////////////////////////////////
 std::mutex MomDoubleSq::_mtxarr_[MomDoubleSq::_swidth_];
@@ -192,6 +196,12 @@ MomDoubleSq::make_from_array(const double* darr, MomSize sz)
     }
   return res;
 } // end MomDoubleSq::make_from_array
+
+std::mutex*
+MomDoubleSq::valmtx() const
+{
+  return _mtxarr_+slotindex(hash());
+} // end MomDoubleSq::valmtx
 
 
 ////////////////////////////////////////////////////////////////
@@ -311,3 +321,9 @@ MomString::make_sprintf(const char*fmt, ...)
   free (pbuf);
   return res;
 } // end of MomString::make_sprintf
+
+std::mutex*
+MomString::valmtx() const
+{
+  return _mtxarr_+slotindex(hash());
+} // end MomString::valmtx

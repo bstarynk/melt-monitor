@@ -412,6 +412,12 @@ MomObject::make_object(void)
 } // end MomObject::make_object
 
 
+std::mutex*
+MomObject::valmtx() const
+{
+  return _bumtxarr_+_ob_id.bucketnum();
+} // end MomObject::valmtx
+
 void
 MomObject::scan_gc(MomGC*) const
 {

@@ -752,8 +752,8 @@ public:
     uint64_t shi = _idhi.serial();
     uint64_t slo = _idlo.serial();
     MomHash h = ((shi * 81281) ^ (slo * 33769)) + 11*(shi>>35) - 31*(slo>>47);
-    if (MOM_UNLIKELY(h==0))
-      h = 3*(shi & 0xffffff) + 5*(slo & 0xffffff) + 315;
+    if (MOM_UNLIKELY(mom_hash(h)==0))
+      h = 3*(shi & 0xffffff) + 11*(slo & 0xffffff) + 315;
     return mom_hash(h);
   }
 };				// end class MomIdent
@@ -1185,9 +1185,17 @@ protected:
   };
   virtual ~MomAnyVal() {};
 public:
+  /// scan the value for garbage collection:
   virtual void scan_gc(MomGC*) const =0;
+  //
+  /// scan the value for dump
   virtual void scan_dump(MomDumper*du) const =0;
+  //
+  /// get the kind thru vtable
   virtual MomKind vkind() const =0;
+  //
+  // return a mutex appropriate for the value, e.g. for garbage collection
+  virtual std::mutex* valmtx() const =0;
 };				// end class MomAnyVal
 
 size_t mom_align(size_t sz)
@@ -1283,6 +1291,7 @@ public:
   {
     return MomKind::TagIntSqK;
   };
+  virtual std::mutex* valmtx() const;
   virtual void scan_gc(MomGC*) const {};
   virtual void scan_dump(MomDumper*) const {};
 };				// end class MomIntSq
@@ -1345,6 +1354,7 @@ public:
   {
     return MomKind::TagDoubleSqK;
   };
+  virtual std::mutex* valmtx() const;
   virtual void scan_gc(MomGC*) const {};
   virtual void scan_dump(MomDumper*) const {};
 };				// end class MomDoubleSq
@@ -1403,6 +1413,7 @@ public:
   };
   virtual void scan_gc(MomGC*) const {};
   virtual void scan_dump(MomDumper*) const {};
+  virtual std::mutex* valmtx() const;
 };				// end class MomString
 
 ////////////////////////////////////////////////////////////////
@@ -1532,6 +1543,7 @@ public:
   {
     return MomKind::TagSetK;
   };
+  virtual std::mutex* valmtx() const;
 }; // end class MomSet
 
 ////////////////////////////////////////////////////////////////
@@ -1571,6 +1583,7 @@ public:
   {
     return MomKind::TagTupleK;
   };
+  virtual std::mutex* valmtx() const;
 }; // end class MomTuple
 
 
@@ -1639,6 +1652,7 @@ public:
   {
     return _nod_sons[ix];
   };
+  virtual std::mutex* valmtx() const;
 protected:
   ~MomNode() {};
   virtual void scan_gc(MomGC*) const ;
@@ -1772,6 +1786,7 @@ public:
   virtual void scan_gc(MomGC*) const;
   virtual void scan_dump(MomDumper*du) const; // in state.cc
   virtual void scan_dump_content(MomDumper*du) const; // in state.cc
+  virtual std::mutex* valmtx() const;
   void unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const; // in state.cc
   void unsync_emit_dump_payload(MomDumper*du, PayloadEmission&) const; // in state.cc
   inline void unsync_clear_payload();

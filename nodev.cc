@@ -99,3 +99,9 @@ MomNode::scan_gc(MomGC*)const
   MOM_FATAPRINTF("unimplemented MomNode::scan_gc");
 #warning unimplemented MomNode::scan_gc
 } // end MomNode::scan_gc
+
+std::mutex*
+MomNode::valmtx() const
+{
+  return _mtxarr_+slotindex(hash());
+} // end MomNode::valmtx
