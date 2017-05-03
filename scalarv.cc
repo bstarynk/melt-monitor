@@ -21,6 +21,8 @@
 #include "meltmoni.hh"
 
 
+std::atomic<std::uint64_t> MomAnyVal::_wordalloca;
+
 std::mutex MomIntSq::_mtxarr_[MomIntSq::_swidth_];
 std::unordered_multimap<MomHash,const MomIntSq*> MomIntSq::_maparr_[MomIntSq::_swidth_];
 

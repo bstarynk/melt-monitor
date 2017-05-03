@@ -1038,7 +1038,12 @@ private:
   //// 27 bits for the size (constant)
   mutable std::atomic<std::uint32_t> _headera;
   const MomHash _hashw;
+  static std::atomic<std::uint64_t> _wordalloca;
 public:
+  static std::uint64_t allocation_word_count(void)
+  {
+    return _wordalloca.load();
+  };
   bool gc_mark(MomGC*) const volatile
   {
     return (_headera.load()>>27) & 1;
@@ -2375,7 +2380,9 @@ MomAnyVal::operator new (size_t sz, MomNewTag, size_t gap)
 {
   if (MOM_UNLIKELY(MomGC::_forbid_allocation_.load()))
     MOM_FAILURE("forbidden to allocate sz=" << sz << " gap=" << gap);
-  return ::operator new(mom_align(sz) + mom_align(gap));
+  auto fulsiz = mom_align(sz) + mom_align(gap);
+  _wordalloca.fetch_add(fulsiz / sizeof(void*));
+  return ::operator new(fulsiz);
 } // end MomAnyVal::operator new
 
 extern "C" void mom_dump_in_directory(const char*dirname);
