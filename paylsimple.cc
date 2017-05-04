@@ -30,6 +30,7 @@ public:
   friend void mom_forget_unsync_named_object(MomObject*obj);
   friend MomObject*mom_find_named(const char*name);
   friend const char* mom_get_unsync_name(MomObject*obj);
+  friend const std::string mom_get_unsync_string_name(MomObject*obj);
   friend void mom_forget_name(const char*name);
   friend MomObject*mom_unsync_named_object_proxy(MomObject*objn);
   friend void mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy);
@@ -123,6 +124,15 @@ mom_get_unsync_name(MomObject*obj)
   if (!py || py-> _py_vtbl !=  &MOM_PAYLOADVTBL(named)) return nullptr;
   return py->_nam_str.c_str();
 } // end mom_get_unsync_name
+
+
+const std::string
+mom_get_unsync_string_name(MomObject*obj)
+{
+  auto py = static_cast<MomPaylNamed*>(obj->unsync_payload());
+  if (!py || py-> _py_vtbl !=  &MOM_PAYLOADVTBL(named)) return nullptr;
+  return py->_nam_str;
+} // end mom_get_unsync_string_name
 
 
 const struct MomVtablePayload_st MOM_PAYLOADVTBL(named) __attribute__((section(".rodata"))) =

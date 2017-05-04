@@ -2409,6 +2409,7 @@ extern "C" void mom_forget_unsync_named_object(MomObject*obj);
 extern "C" void mom_forget_name(const char*name);
 extern "C" MomObject*mom_find_named(const char*name);
 extern "C" const char* mom_get_unsync_name(MomObject*obj);
+extern "C" const std::string mom_get_unsync_string_name(MomObject*obj);
 extern "C" MomObject*mom_unsync_named_object_proxy(MomObject*objn);
 extern "C" void mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy);
 extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(named);
