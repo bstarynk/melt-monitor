@@ -1389,20 +1389,32 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
 
 void 
 MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pyem) const
-{  
-  if (_ob_payl->_py_vtbl->pyv_emitdump) {
+{
+  auto vt = _ob_payl->_py_vtbl;
+  MOM_ASSERT(vt != nullptr && vt->pyv_magic == MOM_PAYLOADVTBL_MAGIC && vt->pyv_name,
+	     "unsync_emit_dump_payload bad payload for " << this);
+  if (vt->pyv_emitdump) {
+    MOM_DEBUGLOG(dump, "unsync_emit_dump_payload this=" << this << " /pynam=" << vt->pyv_name);
     std::ostringstream outinit;
     MomDumpEmitter emitinit(outinit, du);
     std::ostringstream outcontent;
     MomDumpEmitter emitcontent(outcontent, du);
     _ob_payl->_py_vtbl->pyv_emitdump(_ob_payl,const_cast<MomObject*>(this),du,&emitinit,&emitcontent);
     pyem.pye_kind = _ob_payl->_py_vtbl->pyv_name;
-    pyem.pye_module = _ob_payl->_py_vtbl->pyv_module;
+    if (_ob_payl->_py_vtbl->pyv_module != nullptr)
+      pyem.pye_module = _ob_payl->_py_vtbl->pyv_module;
     outinit<<std::flush;
     pyem.pye_init = outinit.str();
     outcontent<<std::endl;
     pyem.pye_content = outcontent.str();
+    MOM_DEBUGLOG(dump, "unsync_emit_dump_payload done this=" <<this
+		 << " /pynam=" << vt->pyv_name <<std::endl
+		 << ".. init=" << pyem.pye_init <<std::endl
+		 << ".. content=" << pyem.pye_content <<std::endl);
   }
+  else    
+    MOM_DEBUGLOG(dump, "unsync_emit_dump_payload nondumpable payload this=" << this
+		 << " /pynam=" << vt->pyv_name);
 } // end MomObject::unsync_emit_dump_payload
 
 void
