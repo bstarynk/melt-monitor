@@ -1403,9 +1403,9 @@ MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pye
     pyem.pye_kind = _ob_payl->_py_vtbl->pyv_name;
     if (_ob_payl->_py_vtbl->pyv_module != nullptr)
       pyem.pye_module = _ob_payl->_py_vtbl->pyv_module;
-    outinit<<std::flush;
+    outinit.flush();
     pyem.pye_init = outinit.str();
-    outcontent<<std::endl;
+    outcontent.flush();
     pyem.pye_content = outcontent.str();
     MOM_DEBUGLOG(dump, "unsync_emit_dump_payload done this=" <<this
 		 << " /pynam=" << vt->pyv_name <<std::endl
