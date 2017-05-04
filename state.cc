@@ -625,6 +625,7 @@ enum MomDumpState { dus_none, dus_scan, dus_emit };
 typedef std::function<void(MomObject*pob,int thix,double mtim,const std::string&contentstr,const MomObject::PayloadEmission& pyem)> momdumpinsertfunction_t;
 class MomDumper
 {
+  friend void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam);
   std::mutex _du_mtx;
   const double _du_startrealtime;
   const double _du_startcputime;
@@ -885,6 +886,34 @@ mom_dump_todo_emit(MomDumper*du, std::function<void(MomDumper*)> todofun)
     MOM_FAILURE("mom_dump_todo_emit no dumper");
   du->todo_emit(todofun);
 } // end mom_dump_todo_emit
+
+void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam)
+{
+  if (!du)
+    MOM_FAILURE("mom_dump_named_update_defer no dumper");
+  if (!pob || pob->vkind() != MomKind::TagObjectK)
+    MOM_FAILURE("mom_dump_named_update_defer bad pob");
+  if (nam.empty())
+    MOM_FAILURE("mom_dump_named_update_defer empty name for pob=" << pob);
+  // we don't bother having a prepared statement for update of t_names table
+  bool user = pob->space() == MomSpace::UserSp;
+  if (user)
+    du->todo_emit([=](MomDumper*dumper)
+    {
+      std::lock_guard<std::mutex> gu_u{dumper->_du_userdbmtx};
+      *dumper->_du_userdbp << "INSERT /*username*/ INTO t_names VALUES(?,?)"
+                           << pob->id().to_string() << nam;
+    });
+  else
+    du->todo_emit([=](MomDumper*dumper)
+    {
+      std::lock_guard<std::mutex> gu_g{dumper->_du_globdbmtx};
+      *dumper->_du_globdbp << "INSERT /*globname*/ INTO t_names VALUES(?,?)"
+                           << pob->id().to_string() << nam;
+    });
+
+} // end  mom_dump_named_update_defer
+
 
 bool
 MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc)
