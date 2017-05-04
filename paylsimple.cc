@@ -190,19 +190,26 @@ void
 MomPaylNamed::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
-#warning unimplemented MomPaylNamed::Emitdump
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
+             "invalid named payload for own=" << own);
+  mom_dump_named_update_defer(du, own, py->_nam_str);
+  empaylinit->out() << py->_nam_str;
+  empaylcont->out() << "@PROXY: ";
+  empaylcont->emit_objptr(py->_nam_proxy);
 } // end MomPaylNamed::Emitdump
 
 
 MomPayload*
-MomPaylNamed::Initload(MomObject*own,MomLoader*ld,const char*inits)
+MomPaylNamed::Initload(MomObject*own,MomLoader*,const char*inits)
 {
-#warning unimplemented MomPaylNamed::Initload
+  mom_register_unsync_named(own,inits);
+  return own->unsync_payload();
 } // end MomPaylNamed::Initload
 
 
 
-void  MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills)
+void
+MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills)
 {
   auto py = static_cast< MomPaylNamed*>(payl);
 #warning unimplemented MomPaylNamed::Loadfill
