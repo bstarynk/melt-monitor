@@ -16,10 +16,11 @@ INSERT INTO "t_objects" VALUES('_2mYaTh9kH4I_7ENiXcymRmy',1493382726.98,'
 ','','','');
 INSERT INTO "t_objects" VALUES('_1jJjA6LcXiX_1V4ZcXlje09',1493382726.98,'
 
-','','','');
+','named','name','@NAMEDPROXY: __');
 CREATE TABLE t_names
  (nam_oid VARCHAR(30) NOT NULL UNIQUE,
   nam_str TEXT PRIMARY KEY ASC NOT NULL UNIQUE);
+INSERT INTO "t_names" VALUES('_1jJjA6LcXiX_1V4ZcXlje09','name');
 CREATE TABLE t_globdata
  (glob_namestr VARCHAR(80) NOT NULL UNIQUE,
   glob_oid  VARCHAR(30) NOT NULL);
