@@ -212,14 +212,19 @@ MomBacktraceData::bt_err_callback(void *data, const char *msg, int errnum)
 
 void mom_failure_backtrace_at(const char*fil, int lin, const std::string& str)
 {
-  MomBacktraceData backdata(fil,lin);
-  backdata.bt_outs << " !!! " << str << std::endl;
-  backtrace_full (btstate_mom, 1,
-                  MomBacktraceData::bt_callback,
-                  MomBacktraceData::bt_err_callback,
-                  (void *) &backdata);
-  backdata.bt_outs << std::endl;
-  mom_warnprintf_at (fil, lin, "FAILURE %s", backdata.bt_outs.str().c_str());
+  if (btstate_mom)
+    {
+      MomBacktraceData backdata(fil,lin);
+      backdata.bt_outs << " !!! " << str << std::endl;
+      backtrace_full (btstate_mom, 1,
+                      MomBacktraceData::bt_callback,
+                      MomBacktraceData::bt_err_callback,
+                      (void *) &backdata);
+      backdata.bt_outs << std::endl;
+      mom_warnprintf_at (fil, lin, "FAILURE %s", backdata.bt_outs.str().c_str());
+    }
+  else
+    mom_warnprintf_at (fil, lin, "FAILURE WITHOUT BACKTRACE %s", str.c_str());
 } // end mom_failure_backtrace_at
 
 
@@ -1435,6 +1440,7 @@ static void mom_sqlite_errlog(void*, int errcode, const char*msg)
                    << " (" << sqlite3_errstr(errcode) << "):: "
                    << msg << std::endl);
 } // end mom_sqlite_errlog
+
 
 const MomVtablePayload_st*
 MomRegisterPayload::find_payloadv(const std::string&nam)
