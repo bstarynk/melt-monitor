@@ -194,7 +194,7 @@ MomPaylNamed::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, 
              "invalid named payload for own=" << own);
   mom_dump_named_update_defer(du, own, py->_nam_str);
   empaylinit->out() << py->_nam_str;
-  empaylcont->out() << "@PROXY: ";
+  empaylcont->out() << "@NAMEDPROXY: ";
   empaylcont->emit_objptr(py->_nam_proxy);
 } // end MomPaylNamed::Emitdump
 
@@ -212,7 +212,31 @@ void
 MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills)
 {
   auto py = static_cast< MomPaylNamed*>(payl);
-#warning unimplemented MomPaylNamed::Loadfill
+  std::string fillstr{fills};
+  std::istringstream infill(fillstr);
+  MomParser fillpars(infill);
+  char title[80];
+  memset(title,0,sizeof(title));
+  char idbuf[32];
+  memset(idbuf, 0, sizeof(idbuf));
+  own->id().to_cbuf32(idbuf);
+  snprintf(title, sizeof(title), "*fillname %s*", idbuf);
+  fillpars.set_name(std::string{title}).set_make_from_id(true);
+  fillpars.next_line();
+  fillpars.skip_spaces();
+  if (fillpars.eof())
+    return;
+  if (fillpars.hasdelim("@NAMEDPROXY:"))
+    {
+      bool gotproxy = false;
+      fillpars.skip_spaces();
+      MomObject* pobproxy = fillpars.parse_objptr(&gotproxy);
+      if (!gotproxy)
+        MOM_PARSE_FAILURE(&fillpars, "missing proxy for fill of named object " << own);
+      py->_nam_proxy = pobproxy;
+    }
+  else
+    MOM_PARSE_FAILURE(&fillpars, "missing @NAMEDPROXY: for fill of named object " << own);
 } // end MomPaylNamed::Loadfill
 
 
