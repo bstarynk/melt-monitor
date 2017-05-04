@@ -40,7 +40,7 @@ LIBES= -L/usr/local/lib $(shell $(PKGCONFIG) --libs $(PACKAGES)) \
 	$(shell $(CXX) -print-file-name=libbacktrace.a) \
         -lpthread -lcrypt -lm -ldl
 
-PLUGIN_SOURCES= $(sort $(wildcard momplug_*.c momplug_*.cc))
+PLUGIN_SOURCES= $(sort $(wildcard momplug_*.cc))
 PLUGINS=  $(patsubst %.c,%.so,$(PLUGIN_SOURCES))
 # modules are generated inside modules/
 MODULE_SOURCES= $(sort $(wildcard modules/momg_*.cc))
@@ -49,9 +49,13 @@ GENERATED_HEADERS= $(sort $(wildcard _mom*.h))
 MODULES=  $(patsubst %.cc,%.so,$(MODULE_SOURCES))
 CSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.c)))
 CXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.cc)))
-OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES)) 
+QTCXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.qcc)))
+SHSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.sh)))
+OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES)) $(patsubst %.qcc,%.o,$(QTCXXSOURCES))
 RM= rm -fv
-.PHONY: all checkgithooks installgithooks dumpstate restorestate tags modules plugins clean tests 
+.PHONY: all checkgithooks installgithooks dumpstate restorestate
+.PHONY: dumpuserstate dumpglobstate restoreuserstate restoreglobstate
+.PHONY: tags modules plugins clean tests 
 all: checkgithooks monimelt
 
 
@@ -125,25 +129,27 @@ indent: .indent.pro
 	  $(ASTYLE)  $(ASTYLEFLAGS) $$g ; \
 	done
 
-dumpstate:
-	echo "-- generated MONIMELT dump mom_global.sql ** DONT EDIT" > mom_global.sql-tmp
-	$(SQLITE3) mom_global.sqlite .dump >> mom_global.sql-tmp
-	mv --backup  mom_global.sql-tmp mom_global.sql
-	touch -r mom_global.sqlite mom_global.sql
-	echo "-- generated MONIMELT dump mom_user.sql ** DONT EDIT" > mom_user.sql-tmp
-	$(SQLITE3) mom_user.sqlite .dump >> mom_user.sql-tmp
-	mv --backup  mom_user.sql-tmp mom_user.sql
-	touch -r mom_user.sqlite mom_user.sql
+dumpstate: dumpuserstate dumpglobstate monimelt-dump-state.sh | mom_global.sqlite mom_user.sqlite 
 
-restorestate: |  mom_global.sql  mom_user.sql
-	@if [ -f mom_global.sqlite ]; then \
-	  echo -n makebackup global old: ' ' ; mv -v --backup mom_global.sqlite  mom_global.sqlite~ ; fi
-	$(SQLITE3) mom_global.sqlite < mom_global.sql
-	touch -r  mom_global.sql  mom_global.sqlite
+dumpglobstate:  monimelt-dump-state.sh | mom_global.sqlite
+	./monimelt-dump-state.sh mom_global.sqlite mom_global.sql
+
+dumpuserstate:  monimelt-dump-state.sh | mom_user.sqlite
+	./monimelt-dump-state.sh mom_user.sqlite mom_user.sql
+
+restorestate: restoreuserstate restoreglobstate |  mom_global.sql  mom_user.sql
+
+restoreuserstate:
 	@if [ -f mom_user.sqlite ]; then \
 	  echo -n makebackup user old: ' ' ; mv -v --backup mom_user.sqlite  mom_user.sqlite~ ; fi
 	$(SQLITE3) mom_user.sqlite < mom_user.sql
 	touch -r  mom_user.sql  mom_user.sqlite
+
+restoreglobstate:
+	@if [ -f mom_global.sqlite ]; then \
+	  echo -n makebackup global old: ' ' ; mv -v --backup mom_global.sqlite  mom_global.sqlite~ ; fi
+	$(SQLITE3) mom_global.sqlite < mom_global.sql
+	touch -r  mom_global.sql  mom_global.sqlite
 
 
 modules/momg_%.so: modules/momg_%.cc $(OBJECTS)

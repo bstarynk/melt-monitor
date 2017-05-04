@@ -790,31 +790,27 @@ MomDumper::open_databases(void)
 pid_t
 MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpath, const std::string& basepath)
 {
-  FILE *f = fopen(sqlpath.c_str(), "w");
-  if (!f)
-    MOM_FATALOG("MomDumper::fork_dump_database failed to open " << sqlpath
-                << " (" << strerror(errno) << ")");
-  fprintf(f, "-- generated MONIMELT dump %s ** DONT EDIT\n", basepath.c_str());
-  fflush(f);
-  fflush(nullptr);
+  MOM_DEBUGLOG(dump, "fork_dump_database start dbpath=" << dbpath << " sqlpath=" << sqlpath
+	       << " basepath=" << basepath);
+  std::string dumpshellscript = std::string{monimelt_directory} + '/' + "monimelt-dump-state.sh";
   pid_t p = fork();
   if (p==0)
     {
       close(STDIN_FILENO);
       int nfd = open("/dev/null", O_RDONLY);
       if (nfd>0) dup2(nfd, STDIN_FILENO);
-      for (int ix=3; ix<128; ix++) if (ix != fileno(f)) (void) close(ix);
-      dup2(fileno(f), STDOUT_FILENO);
+      for (int ix=3; ix<64; ix++)
+	(void) close(ix);
       nice(1);
       for (int sig=1; sig<SIGRTMIN; sig++) signal(sig, SIG_DFL);
-      execlp(monimelt_sqliteprog, monimelt_sqliteprog, dbpath.c_str(), ".dump", nullptr);
-      perror("execlp sqlite3");
+      execlp(dumpshellscript.c_str(), dumpshellscript.c_str(),
+	     dbpath.c_str(), sqlpath.c_str(), basepath.c_str(), nullptr);
+      perror((dumpshellscript + " execlp").c_str());
       _exit(EXIT_FAILURE);
     }
   else if (p<0)
     MOM_FATALOG("MomDumper::fork_dump_database failed to fork for " << basepath
                 << " (" << strerror(errno) << ")");
-  fclose(f);
   return p;
 } // end MomDumper::fork_dump_database
 
@@ -983,6 +979,7 @@ MomDumper::rename_temporary_files(void)
 void
 MomDumper::initialize_db(sqlite::database &db)
 {
+  /// keep this in sync with monimelt-dump-state.sh script
   db << R"!*(
 CREATE TABLE IF NOT EXISTS t_objects
  (ob_id VARCHAR(30) PRIMARY KEY ASC NOT NULL UNIQUE,
