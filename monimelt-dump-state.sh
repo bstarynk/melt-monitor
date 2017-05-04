@@ -53,7 +53,7 @@ export LANG=C LC_ALL=C
 
 sqlbase=$(basename "$sqlfile" .sql)
 # generate an initial comment, it should be at least 128 bytes
-date -r "$dbfile" +"-- dump %Y %b %d from $dubase dumped by $0 ....." > $tempdump
+date -r "$dbfile" +"-- dump %Y %b %d from $dubase dumped by $(basename $0) ....." > $tempdump
 echo >> $tempdump
 date +' --   Copyright (C) %Y Free Software Foundation, Inc.' >> $tempdump
 echo ' --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/' >> $tempdump
