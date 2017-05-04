@@ -2017,7 +2017,6 @@ public:
   MomRegisterPayload() = delete;
   MomRegisterPayload(const MomRegisterPayload&) = delete;
   MomRegisterPayload(MomRegisterPayload&&) = delete;
-  MomRegisterPayload(const MomVtablePayload_st*pv);
   MomRegisterPayload(const MomVtablePayload_st&pv): MomRegisterPayload(&pv) {};
   static void every_payloadv(std::function<bool(const MomVtablePayload_st*)> f)
   {
@@ -2026,7 +2025,16 @@ public:
       if (f(p.second))
         return;
   }
-  ~MomRegisterPayload();
+  MomRegisterPayload(const MomVtablePayload_st*pv)
+    : _pd_vtp(pv)
+  {
+    register_payloadv(pv);
+  }
+  ~MomRegisterPayload()
+  {
+    forget_payloadv(_pd_vtp);
+    *const_cast<MomVtablePayload_st**>(&_pd_vtp) = nullptr;
+  }
 }; // class MomRegisterPayload
 
 struct MomPayload
