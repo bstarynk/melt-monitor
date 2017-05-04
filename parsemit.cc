@@ -625,9 +625,10 @@ MomEmitter::emit_string_value(const MomString*strv, int depth, bool asraw)
 void
 MomEmitter::emit_objptr(const MomObject*pob, int depth MOM_UNUSED)
 {
-  if (skippable_object(pob)) return;
-#warning MomEmitter::emit_objptr should deal with named objects
-  out() << pob->id();
+  if (!pob || skippable_object(pob))
+    out() << "__";
+  else
+    out() << pob->id();
 } // end MomEmitter::emit_objptr
 
 
