@@ -140,7 +140,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(named) __attribute__((section("
 {
   /**   .pyv_magic=      */       MOM_PAYLOADVTBL_MAGIC,
   /**   .pyv_size=       */       sizeof(MomPaylNamed),
-  /**   .pyv_name=       */       __BASE_FILE__,
+  /**   .pyv_name=       */       "named",
   /**   .pyv_module=     */       (const char*)nullptr,
   /**   .pyv_destroy=    */       MomPaylNamed::Destroy,
   /**   .pyv_scangc=     */       MomPaylNamed::Scangc,
@@ -156,6 +156,8 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(named) __attribute__((section("
   /**   .pyv_spare2=     */       nullptr,
   /**   .pyv_spare3=     */       nullptr,
 };
+
+MomRegisterPayload mompy_named(MOM_PAYLOADVTBL(named));
 
 void
 MomPaylNamed::Destroy (struct MomPayload*payl,MomObject*own)
@@ -182,7 +184,7 @@ MomPaylNamed::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
   MOM_DEBUGLOG(dump, "PaylNamed::Scandump own=" << own << " name=" << py->_nam_str
-	       << " proxy=" << py->_nam_proxy);
+               << " proxy=" << py->_nam_proxy);
   if (py->_nam_proxy)
     py->_nam_proxy->scan_dump(du);
 } // end MomPaylNamed::Scandump
@@ -195,7 +197,7 @@ MomPaylNamed::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, 
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
              "invalid named payload for own=" << own);
   MOM_DEBUGLOG(dump, "PaylNamed::Emitdump own=" << own << " name=" << py->_nam_str
-	       << " proxy=" << py->_nam_proxy);
+               << " proxy=" << py->_nam_proxy);
   mom_dump_named_update_defer(du, own, py->_nam_str);
   empaylinit->out() << py->_nam_str;
   empaylcont->out() << "@NAMEDPROXY: ";
@@ -220,8 +222,8 @@ MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const c
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
              "PaylNamed::Loadfill invalid named payload for own=" << own);
   MOM_DEBUGLOG(load,"PaylNamed::Loadfill own=" << own
-	       << " named:" <<  py->_nam_str
-	       << " fills='" << fills << "'");
+               << " named:" <<  py->_nam_str
+               << " fills='" << fills << "'");
   std::string fillstr{fills};
   std::istringstream infill(fillstr);
   MomParser fillpars(infill);
