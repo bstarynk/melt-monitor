@@ -23,6 +23,8 @@
 /// from https://github.com/aminroosta/sqlite_modern_cpp
 #include "sqlite_modern_cpp.h"
 
+
+// we don't want to move MomLoader into meltmoni.hh because it uses sqlite::
 class MomLoader
 {
   std::string _ld_dirname;
@@ -617,6 +619,7 @@ mom_load_from_directory(const char*dirname)
 //==============================================================
 ////////////////////////////////////////////////////////////////
 
+// we don't want to move MomDumper into meltmoni.hh because it uses sqlite::
 enum MomDumpState { dus_none, dus_scan, dus_emit };
 
 typedef std::function<void(MomObject*pob,int thix,double mtim,const std::string&contentstr,const MomObject::PayloadEmission& pyem)> momdumpinsertfunction_t;
@@ -868,7 +871,7 @@ MomDumper::todo_emit(std::function<void(MomDumper*)> todoemitfun)
 } // end MomDumper::todo_emit
 
 void
-mom_dump_todo_scan(MomDumper*du, std::function<void(Dumper*)> todofun)
+mom_dump_todo_scan(MomDumper*du, std::function<void(MomDumper*)> todofun)
 {
   if (!du)
     MOM_FAILURE("mom_dump_todo_scan no dumper");
@@ -876,7 +879,7 @@ mom_dump_todo_scan(MomDumper*du, std::function<void(Dumper*)> todofun)
 } // end mom_dump_todo_scan
 
 void
-mom_dump_todo_emit(MomDumper*du, std::function<void(Dumper*)> todofun)
+mom_dump_todo_emit(MomDumper*du, std::function<void(MomDumper*)> todofun)
 {
   if (!du)
     MOM_FAILURE("mom_dump_todo_emit no dumper");

@@ -2399,8 +2399,8 @@ MomAnyVal::operator new (size_t sz, MomNewTag, size_t gap)
 /// in state.cc
 extern "C" void mom_dump_in_directory(const char*dirname);
 extern "C" void mom_load_from_directory(const char*dirname);
-extern "C" void mom_dump_todo_scan(MomDumper*du, std::function<void(Dumper*)> todofun);
-extern "C" void mom_dump_todo_emit(MomDumper*du, std::function<void(Dumper*)> todofun);
+extern "C" void mom_dump_todo_scan(MomDumper*du, std::function<void(MomDumper*)> todofun);
+extern "C" void mom_dump_todo_emit(MomDumper*du, std::function<void(MomDumper*)> todofun);
 
 
 /// in paylsimple.cc
