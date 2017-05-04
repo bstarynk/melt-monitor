@@ -629,6 +629,8 @@ class MomDumper
   std::string _du_dirname;
   std::string _du_tempsuffix;
   std::set<std::string> _du_tempset;
+  std::deque<std::function<void(MomDumper*)>> _du_todoscanq;
+  std::deque<std::function<void(MomDumper*)>> _du_todoemitq;
   std::unique_ptr<sqlite::database> _du_globdbp;
   std::unique_ptr<sqlite::database> _du_userdbp;
   std::mutex _du_globdbmtx;
@@ -643,7 +645,10 @@ class MomDumper
   static void dump_scan_thread(MomDumper*du, int ix);
   static void dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
   void dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
+  std::function<void(MomDumper*)> pop_locked_todo_emit(void);
 public:
+  void todo_scan(std::function<void(MomDumper*)> todoscanfun);
+  void todo_emit(std::function<void(MomDumper*)> todoemitfun);
   std::string temporary_file_path(const std::string& path);
   static bool rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc=false); // return true if same files
   void rename_temporary_files(void);
@@ -719,6 +724,7 @@ MomDumper::MomDumper(const std::string&dirnam)
     _du_startrealtime(mom_elapsed_real_time()),
     _du_startcputime(mom_process_cpu_time()),
     _du_state{dus_none}, _du_dirname(dirnam), _du_tempsuffix(), _du_tempset(),
+    _du_todoscanq(), _du_todoemitq(),
     _du_globdbp(), _du_userdbp(),
     _du_globdbmtx(), _du_userdbmtx(),
     _du_addedcondvar(),
@@ -833,6 +839,49 @@ MomDumper::close_and_dump_databases(void)
     MOM_FAILURE("MomDumper::close_and_dump_databases in " << _du_dirname << " failed to dump user");
 } // end MomDumper::close_and_dump_databases
 
+void
+MomDumper::todo_scan(std::function<void(MomDumper*)> todoscanfun)
+{
+  if (_du_state != dus_scan)
+    MOM_FAILURE("dumper " << _du_dirname << " todo_scan in wrong dump state");
+  if (!todoscanfun)
+    MOM_FAILURE("dumper " << _du_dirname << " todo_scan empty function");
+  {
+    std::lock_guard<std::mutex> gu{_du_mtx};
+    _du_todoscanq.push_back(todoscanfun);
+  }
+  _du_addedcondvar.notify_all();
+} // end MomDumper::todo_scan
+
+void
+MomDumper::todo_emit(std::function<void(MomDumper*)> todoemitfun)
+{
+  if (_du_state != dus_emit && _du_state != dus_scan)
+    MOM_FAILURE("dumper " << _du_dirname << " todo_emit in wrong dump state");
+  {
+    if (!todoemitfun)
+      MOM_FAILURE("dumper " << _du_dirname << " todo_emit empty function");
+    std::lock_guard<std::mutex> gu{_du_mtx};
+    _du_todoemitq.push_back(todoemitfun);
+  }
+  _du_addedcondvar.notify_all();
+} // end MomDumper::todo_emit
+
+void
+mom_dump_todo_scan(MomDumper*du, std::function<void(Dumper*)> todofun)
+{
+  if (!du)
+    MOM_FAILURE("mom_dump_todo_scan no dumper");
+  du->todo_scan(todofun);
+} // end mom_dump_todo_scan
+
+void
+mom_dump_todo_emit(MomDumper*du, std::function<void(Dumper*)> todofun)
+{
+  if (!du)
+    MOM_FAILURE("mom_dump_todo_emit no dumper");
+  du->todo_emit(todofun);
+} // end mom_dump_todo_emit
 
 bool
 MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc)
@@ -1004,6 +1053,8 @@ MomDumper::dump_scan_thread(MomDumper*du, int ix)
   while (!endedscan) {
     const MomObject* ob1 = nullptr;
     const MomObject* ob2 = nullptr;
+    endedscan = true;
+    std::function<void(MomDumper*)> todofun;
     {
       std::lock_guard<std::mutex> gu{du->_du_mtx};
       if (!du->_du_queobj.empty()) {
@@ -1014,22 +1065,33 @@ MomDumper::dump_scan_thread(MomDumper*du, int ix)
 	ob2 = du->_du_queobj.front();
 	du->_du_queobj.pop_front();
       }
+      if (!du->_du_todoscanq.empty()) {
+	todofun = du->_du_todoscanq.front();
+	du->_du_todoscanq.pop_front();
+      }
     }
     if (ob1) {
       ob1->scan_dump_content(du);
       std::atomic_fetch_add(&du->_du_scancount,1UL);
+      endedscan = false;
     }
     if (ob2) {
       ob2->scan_dump_content(du);
       std::atomic_fetch_add(&du->_du_scancount,1UL);
+      endedscan = false;
     }
-    if (!ob1 && !ob2) {
+    if (todofun)
+      todofun(du);
+    if (endedscan) {
       std::unique_lock<std::mutex> lk(du->_du_mtx);
       du->_du_addedcondvar.wait_for(lk,std::chrono::milliseconds(80));
-      endedscan = du->_du_queobj.empty();
+      endedscan = du->_du_queobj.empty() && du->_du_todoscanq.empty();
     }
   }
-} // end dump_scan_thread
+} // end MomDumper::dump_scan_thread
+
+
+
 
 void
 MomDumper::dump_scan_loop(void) {
@@ -1092,15 +1154,36 @@ MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dum
 } // end MomDumper::dump_emit_object
 
 
+std::function<void(MomDumper*)>
+MomDumper::pop_locked_todo_emit(void)
+{
+  MOM_ASSERT(_du_state == dus_emit, "bad state in pop_locked_todo_emit");
+  std::function<void(MomDumper*)> todofun;
+  {
+    std::lock_guard<std::mutex> gu{_du_mtx};
+    if (!_du_todoemitq.empty()) {
+      todofun =_du_todoemitq.front();
+      _du_todoemitq.pop_front();
+    }
+  }
+  return todofun;
+} // end  MomDumper::pop_locked_todo_emit
 
 void
 MomDumper::dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf)
 {
   MOM_DEBUGLOG(dump,"dump_emit_thread start ix#" << ix);
   std::sort(pvec->begin(), pvec->end(), MomObjptrLess{});
+  unsigned long todocount=0;
+  std::function<void(MomDumper*)> todofun;
   for (MomObject*pob : *pvec) {
     MOM_DEBUGLOG(dump,"dump_emit_thread emitting pob=" << pob << " ix#" << ix);
     du->dump_emit_object(pob, ix, dumpglobf,dumpuserf);
+    while ((todofun=du->pop_locked_todo_emit())) {
+      todocount++;
+      MOM_DEBUGLOG(dump,"dump_emit_thread before todo#" << todocount << " ix#" << ix);
+      todofun(du);
+    }
     MOM_DEBUGLOG(dump,"dump_emit_thread did emit pob=" << pob << " ix#" << ix);
   }
   MOM_DEBUGLOG(dump,"dump_emit_thread end ix#" << ix);
