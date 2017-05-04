@@ -130,7 +130,8 @@ const std::string
 mom_get_unsync_string_name(MomObject*obj)
 {
   auto py = static_cast<MomPaylNamed*>(obj->unsync_payload());
-  if (!py || py-> _py_vtbl !=  &MOM_PAYLOADVTBL(named)) return nullptr;
+  if (!py || py-> _py_vtbl !=  &MOM_PAYLOADVTBL(named))
+    return std::string{};
   return py->_nam_str;
 } // end mom_get_unsync_string_name
 
