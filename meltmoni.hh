@@ -273,6 +273,7 @@ extern "C" void mom_failure_backtrace_at(const char*fil, int lin, const std::str
   Dbg(dump)					\
   Dbg(load)					\
   Dbg(parse)					\
+  Dbg(garbcoll)					\
   Dbg(misc)					\
   Dbg(blue)					\
   Dbg(green)					\
@@ -2462,6 +2463,12 @@ class MomGC
 {
   friend class MomAnyVal;
   static std::atomic<bool> _forbid_allocation_;
+  std::thread::id _gc_thrid;
+  MomGC(const MomGC&) = delete;
+  MomGC(MomGC&&) = delete;
+public:
+  MomGC();
+  ~MomGC();
 };				// end class MomGC
 
 ////////////////////////////////////////////////////////////////
@@ -2505,8 +2512,8 @@ MomAnyVal::operator new (size_t sz, MomNewTag, size_t gap)
 
 
 /// in state.cc
-extern "C" void mom_dump_in_directory(const char*dirname);
-extern "C" void mom_load_from_directory(const char*dirname);
+extern "C" void mom_dump_in_directory(const char*dirname, MomGC*pgc=nullptr);
+extern "C" void mom_load_from_directory(const char*dirname, MomGC*pgc=nullptr);
 extern "C" void mom_dump_todo_scan(MomDumper*du, std::function<void(MomDumper*)> todofun);
 extern "C" void mom_dump_todo_emit(MomDumper*du, std::function<void(MomDumper*)> todofun);
 extern "C" void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam);

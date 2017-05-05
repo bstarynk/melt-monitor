@@ -23,3 +23,16 @@
 // see http://wiki.luajit.org/New-Garbage-Collector
 std::atomic<bool> MomGC::_forbid_allocation_;
 thread_local bool MomAnyVal::_allocok;
+
+
+MomGC::MomGC()
+  : _gc_thrid(std::this_thread::get_id())
+{
+  MOM_DEBUGLOG(garbcoll, "MomGC created thrid=" << _gc_thrid);
+} // end MomGC::MomGC
+
+MomGC::~MomGC()
+{
+  MOM_DEBUGLOG(garbcoll, "MomGC destroyed thrid=" << _gc_thrid);
+} // end MomGC::~MomGC
+
