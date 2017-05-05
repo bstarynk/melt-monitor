@@ -2114,6 +2114,7 @@ private:
   bool _parsilent; // if set, failure is silent without backtrace
   bool _parnobuild; // if set, no values are built
   bool _parmakefromid; // if set, make objects from id
+  bool _parhaschunk;   // if set, accept code chunks
   std::string _parname;		// name of parser in messages
   std::function<void(TokenKind tok,int startcol, unsigned startlineno)>_parfun; // function called (e.g. for colorization)
 public:
@@ -2130,7 +2131,10 @@ public:
     };
   };
   MomParser(std::istream&inp, unsigned lincount=0)
-    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0}, _parsilent{false}, _parmakefromid{false}, _parname(), _parfun()
+    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0},
+      _parsilent{false}, _parmakefromid{false},
+      _parhaschunk{false},
+      _parname(), _parfun()
   {
   }
   MomParser& set_name(const std::string&nam)
@@ -2141,6 +2145,11 @@ public:
   MomParser& set_no_build(bool nobuild)
   {
     _parnobuild = nobuild;
+    return *this;
+  };
+  MomParser& set_has_chunk(bool haschunk)
+  {
+    _parhaschunk = haschunk;
     return *this;
   };
   MomParser& set_make_from_id(bool mf)
@@ -2276,6 +2285,8 @@ public:
       _parlincount++;
   }
   MomValue parse_value(bool* pgotval);
+  MomValue parse_chunk(bool* pgotchunk); // parse a code chunk, including the ending )$
+  bool parse_chunk_element(std::vector<MomValue>&vec);
   MomObject* parse_objptr(bool* pgotob);
   virtual MomObject* fetch_named_object(const std::string&)
   {

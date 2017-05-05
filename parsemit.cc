@@ -307,7 +307,7 @@ again:
     }
   else if (pc=="°"[0] && nc=="°"[1])
     {
-      static_assert(sizeof("°")==3, "wrong length for °");
+      static_assert(sizeof("°")==3, "wrong length for ° (degree sign)");
       consume(2);
       bool gotvval = false;
       auto vv = MomParser::parse_value(&gotvval);
@@ -322,6 +322,20 @@ again:
       else
         goto failure;
     }
+  else if (pc=='$' && nc=='(' && _parhaschunk)
+    {
+      consume(2);
+      bool gotvchunk = false;
+      auto vc = MomParser::parse_chunk(&gotvchunk);
+      if (gotvchunk)
+        {
+          if (pgotval)
+            *pgotval = true;
+          return  _parnobuild?nullptr:vc;
+        }
+      else
+        goto failure;
+    }
 failure:
   if (pgotval)
     *pgotval = false;
@@ -329,6 +343,39 @@ failure:
   return nullptr;
 } // end of MomParser::parse_value
 
+
+MomValue
+MomParser::parse_chunk(bool *pgotchunk)
+{
+  std::vector<MomValue> vecelem;
+  auto inioff = _parlinoffset;
+  auto inicol = _parcol;
+  auto inilincnt = _parlincount;
+  while (parse_chunk_element(vecelem))
+    {
+      // do nothing
+    };
+  if (peekbyte(0) == ')' && peekbyte(1) == '$')
+    {
+      consume(2);
+      if (_parnobuild) return nullptr;
+    }
+  else
+    MOM_PARSE_FAILURE(this, "failed to parse chunk started at line#" << inilincnt << " column:" << inicol);
+} // end MomParser::parse_chunk
+
+
+bool
+MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
+{
+  auto inioff = _parlinoffset;
+  auto inicol = _parcol;
+  auto inilincnt = _parlincount;
+  if (peekbyte(0) == ')' && peekbyte(1) == '$')
+    return false;
+#warning unimplemented MomParser::parse_chunk_element
+  MOM_PARSE_FAILURE(this, "unimplemented MomParser::parse_chunk_element");
+} // end MomParser::parse_chunk_element
 
 MomObject*
 MomParser::parse_objptr(bool *pgotob)
