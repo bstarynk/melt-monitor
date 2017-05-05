@@ -60,7 +60,7 @@ MomGC::scan_object(MomObject*pob)
       std::lock_guard<std::mutex> gu(_gc_mtx);
       _gc_objque.push_back(pob);
     }
-}
+} // end MomGC::scan_object
 
 void
 MomGC::scan_anyval(MomAnyVal*av)
@@ -72,4 +72,13 @@ MomGC::scan_anyval(MomAnyVal*av)
       std::lock_guard<std::mutex>  gu(_gc_mtx);
       _gc_valque.push_back(av);
     }
-}
+} // end MomGC::scan_anyval
+
+void
+MomGC::add_todo(std::function<void(MomGC*)> fun)
+{
+  MOM_ASSERT(fun, "empty fun for GC add_todo");
+  std::lock_guard<std::mutex>  gu(_gc_mtx);
+  _gc_todoque.push_back(fun);
+} // end MomGC::add_todo
+

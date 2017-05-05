@@ -1341,7 +1341,11 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
   {
     return (h ^ (h / 2316179)) % _swidth_;
   };
+  static constexpr const int _chunklen_ = 512;
+  static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomIntSq*,_chunklen_> arrptr);
 public:
+  static void gc_todo_clear_marks(MomGC*gc);
   intptr_t unsafe_at(unsigned ix) const
   {
     return _ivalarr[ix];
@@ -2467,12 +2471,14 @@ class MomGC
   std::mutex _gc_mtx;
   std::deque<MomAnyVal*> _gc_valque;
   std::deque<MomObject*> _gc_objque;
+  std::deque<std::function<void(MomGC*)>> _gc_todoque;
   MomGC(const MomGC&) = delete;
   MomGC(MomGC&&) = delete;
   void scan_anyval(MomAnyVal*);
 public:
   void scan_value(const MomValue);
   void scan_object(MomObject*);
+  void add_todo(std::function<void(MomGC*)>);
   MomGC();
   ~MomGC();
 };				// end class MomGC
