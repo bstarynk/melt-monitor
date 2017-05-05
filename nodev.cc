@@ -94,10 +94,11 @@ MomNode::make_from_array(const MomObject*conn, const MomValue*varr, MomSize sz)
 
 
 void
-MomNode::scan_gc(MomGC*)const
+MomNode::scan_gc(MomGC*gc)const
 {
-  MOM_FATAPRINTF("unimplemented MomNode::scan_gc");
-#warning unimplemented MomNode::scan_gc
+  gc->scan_object(const_cast<MomObject*>(_nod_conn));
+  for (auto vcomp : *this)
+    gc->scan_value(vcomp);
 } // end MomNode::scan_gc
 
 std::mutex*

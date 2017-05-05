@@ -52,8 +52,9 @@ MomAnyObjSeq::compute_hash_seq(MomObject*const* obarr, unsigned sz)
 void
 MomAnyObjSeq::scan_gc(MomGC* gc) const
 {
-#warning unimplemented MomAnyObjSeq::scan_gc
-  MOM_FATALOG("unimplemented MomAnyObjSeq::scan_gc gc=" << (void*)gc);
+  for (auto pob : *this)
+    if (pob)
+      gc->scan_object(const_cast<MomObject*>(pob));
 } // end MomAnyObjSeq::scan_gc
 
 

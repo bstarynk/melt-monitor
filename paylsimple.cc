@@ -175,7 +175,10 @@ void
 MomPaylNamed::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
-#warning MomPaylNamed::Scangc should scangc the _nam_proxy
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
+             "invalid named payload for own=" << own);
+  if (py->_nam_proxy)
+    gc->scan_object(py->_nam_proxy);
 } // end MomPaylNamed::Scangc
 
 

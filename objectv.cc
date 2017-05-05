@@ -419,10 +419,24 @@ MomObject::valmtx() const
 } // end MomObject::valmtx
 
 void
-MomObject::scan_gc(MomGC*) const
+MomObject::scan_gc(MomGC*gc) const
 {
-#warning unimplemented MomObject::scan_gc
-  MOM_FATAPRINTF("unimplemented MomObject::scan_gc");
+  std::shared_lock<std::shared_mutex> gu{_ob_shmtx};
+  for (auto p: _ob_attrs)
+    {
+      MomObject* pobattr = p.first;
+      MomValue atval = p.second;
+      gc->scan_object(pobattr);
+      gc->scan_value(atval);
+    }
+  for (auto vcomp : _ob_comps)
+    {
+      gc->scan_value(vcomp);
+    }
+  if (_ob_payl)
+    {
+      _ob_payl->scan_gc_payl(gc);
+    }
 } // end of MomObject::scan_gc
 
 MomObject*
