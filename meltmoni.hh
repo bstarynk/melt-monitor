@@ -2322,14 +2322,7 @@ public:
       }
     return *this;
   }
-  void next_line()
-  {
-    _parlinoffset = _parinp.tellg();
-    std::getline(_parinp, _parlinstr);
-    _parcol = 0;
-    if (_parinp)
-      _parlincount++;
-  }
+  inline void next_line(void);
   MomValue parse_value(bool* pgotval);
   MomValue parse_chunk(bool* pgotchunk); // parse a code chunk, including the ending )$
   bool parse_chunk_element(std::vector<MomValue>&vec);
@@ -2384,6 +2377,19 @@ public:
   MOM_PARSE_FAILURE_AT_BIS((Par),__FILE__,__LINE__,Log)
 
 
+void
+MomParser::next_line()
+{
+  _parlinoffset = _parinp.tellg();
+  std::getline(_parinp, _parlinstr);
+  if (MOM_UNLIKELY(!g_utf8_validate(_parlinstr.c_str(), _parlinstr.size(),
+                                    nullptr)))
+    MOM_PARSE_FAILURE(this,"invalid UTF8 line#" << _parlincount
+                      << ":" << _parlinstr);
+  _parcol = 0;
+  if (_parinp)
+    _parlincount++;
+} // end MomParser::next_line
 
 ////////////////
 class MomEmitter 		// in file parsemit.cc
