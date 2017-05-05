@@ -20,6 +20,9 @@
 
 #include "meltmoni.hh"
 
+#define MOM_PARSERDEBUGLOG(Pa,Log) do { if ((Pa)->_pardebug) MOM_DEBUGLOG(parse,Log); } while(0)
+#define MOM_THISPARSDBGLOG(Log) MOM_PARSERDEBUGLOG(this,Log)
+
 MomValue
 MomParser::parse_value(bool *pgotval)
 {
@@ -58,6 +61,7 @@ again:
       if (pgotval) *pgotval = true;
       if (_parfun)
         _parfun(PtokInt,inicol,inilincnt);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " int:" << ll);
       return _parnobuild?nullptr:MomValue((intptr_t)ll);
     }
   else if (isspace(pc))
@@ -78,6 +82,7 @@ again:
       if (pgotval) *pgotval = true;
       if (_parfun)
         _parfun(PtokNil,inicol,inilincnt);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " NIL");
       return MomValue{nullptr};
     }
   else if (pc<127 && (isalpha(pc) || (pc=='_' && nc<127 && isdigit(nc))))
@@ -113,7 +118,10 @@ again:
                  "parsing tuple expecting " << cnt << " got " << vec.size());
       if (_parfun)
         _parfun(PtokTuple,inicol,inilincnt);
-      return _parnobuild?nullptr:MomValue(MomTuple::make_from_objptr_vector(vec));
+      auto resv = _parnobuild?nullptr:MomValue(MomTuple::make_from_objptr_vector(vec));
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "tuple/" << cnt
+                         << (_parnobuild?"!":" ") << resv);
+      return resv;
     }
   else if (pc=='{') // set
     {
@@ -144,7 +152,10 @@ again:
                  "parsing set expecting at most " << cnt << " got " << set.size());
       if (_parfun)
         _parfun(PtokSet,inicol,inilincnt);
-      return _parnobuild?nullptr:MomValue(MomSet::make_from_objptr_set(set));
+      auto resv= _parnobuild?nullptr:MomValue(MomSet::make_from_objptr_set(set));
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "set/" << cnt
+                         << (_parnobuild?"!":" ") << resv);
+      return resv;
     }
   else if (pc=='"')   // JSON encoded UTF8 string, on the same line
     {
@@ -161,6 +172,8 @@ again:
         *pgotval = true;
       if (_parfun)
         _parfun(PtokString,inicol,inilincnt);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " string "
+                         << MomShowString(str));
       return _parnobuild?nullptr:MomValue(MomString::make_from_string(str));
     }
   // multi-line raw strings like `ab0|foobar\here|ab0`
@@ -195,10 +208,13 @@ again:
         *pgotval = true;
       if (_parfun)
         _parfun(PtokString,inicol,inilincnt);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " rawstring "
+                         << MomShowString(str));
       return _parnobuild?nullptr:MomValue(MomString::make_from_string(str));
     }
   else if (pc=='(' && nc=='#')	// (# integer sequence #)
     {
+      int cnt = 0;
       std::vector<intptr_t> v;
       for (;;)
         {
@@ -222,6 +238,7 @@ again:
               consume(endp-curp);
               if (!_parnobuild)
                 v.push_back(ll);
+              cnt++;
             }
           else
             MOM_PARSE_FAILURE(this, "invalid integer sequence");
@@ -230,10 +247,14 @@ again:
         *pgotval = true;
       if (_parfun)
         _parfun(PtokIntSeq,inicol,inilincnt);
-      return _parnobuild?nullptr:MomValue(MomIntSq::make_from_vector(v));
+      auto resv = _parnobuild?nullptr:MomValue(MomIntSq::make_from_vector(v));
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "intseq/" << cnt
+                         << (_parnobuild?"!":" ") << resv);
+      return resv;
     }
   else if (pc=='(' && nc==':')	// (: double sequence :)
     {
+      int cnt =0;
       std::vector<double> v;
       for (;;)
         {
@@ -257,6 +278,7 @@ again:
               consume(endp-curp);
               if (!_parnobuild)
                 v.push_back(x);
+              cnt++;
             }
           else
             MOM_PARSE_FAILURE(this, "invalid double sequence");
@@ -265,13 +287,17 @@ again:
         *pgotval = true;
       if (_parfun)
         _parfun(PtokDoubleSeq,inicol,inilincnt);
-      return _parnobuild?nullptr:MomValue(MomDoubleSq::make_from_vector(v));
+      auto resv = _parnobuild?nullptr:MomValue(MomDoubleSq::make_from_vector(v));
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "doubleseq/" << cnt
+                         << (_parnobuild?"!":" ") << resv);
+      return resv;
     }
   else if (pc=='*' /* && nc<127 && !(nc>0 && nc!='_' && ispunct(nc))*/) // node
     {
       MomObject* connob = nullptr;
       bool gotconn = false;
       std::vector<MomValue> sonvec;
+      int cnt = 0;
       consume(1);
       skip_spaces();
       connob = parse_objptr(&gotconn);
@@ -298,12 +324,16 @@ again:
             MOM_PARSE_FAILURE(this, "missing son#" << sonvec.size() << " in node of " << connob);
           if (!_parnobuild)
             sonvec.push_back(curval);
+          cnt++;
         }
       if (pgotval)
         *pgotval = true;
       if (_parfun)
         _parfun(PtokNode,inicol,inilincnt);
-      return  _parnobuild?nullptr:MomValue(MomNode::make_from_vector(connob,sonvec));
+      auto resv =  _parnobuild?nullptr:MomValue(MomNode::make_from_vector(connob,sonvec));
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "node/" << cnt
+                         << (_parnobuild?"!":" ") << resv);
+      return resv;
     }
   else if (pc=="°"[0] && nc=="°"[1])
     {
@@ -315,6 +345,8 @@ again:
         {
           if (pgotval)
             *pgotval = true;
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "transient"
+                             << (_parnobuild?"!":" ") << vv);
           if (vv.is_val())
             return  _parnobuild?nullptr:MomValue(vv.to_val(),MomTransientTag{});
           else return vv;
@@ -331,6 +363,8 @@ again:
         {
           if (pgotval)
             *pgotval = true;
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "chunk"
+                             << (_parnobuild?"!":" ") << vc);
           return  _parnobuild?nullptr:vc;
         }
       else
@@ -368,14 +402,22 @@ MomParser::parse_chunk(bool *pgotchunk)
 bool
 MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
 {
+  int pc = 0;
+  int nc = 0;
   auto inioff = _parlinoffset;
   auto inicol = _parcol;
   auto inilincnt = _parlincount;
-  if (peekbyte(0) == ')' && peekbyte(1) == '$')
+  pc = peekbyte(0);
+  pc = peekbyte(1);
+  if (pc == ')' && nc == '$')
+    return false;
+  if (eof())
     return false;
 #warning unimplemented MomParser::parse_chunk_element
   MOM_PARSE_FAILURE(this, "unimplemented MomParser::parse_chunk_element");
 } // end MomParser::parse_chunk_element
+
+
 
 MomObject*
 MomParser::parse_objptr(bool *pgotob)
@@ -420,6 +462,7 @@ again:
             *pgotob = true;
           if (_parfun)
             _parfun(PtokId,inicol,inilincnt);
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " objid:" << id);
           return respob;
         }
       else goto failure;
@@ -431,6 +474,7 @@ again:
         *pgotob = true;
       if (_parfun)
         _parfun(PtokNil,inicol,inilincnt);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " OBJNIL");
       return nullptr;
     }
   else if (isalpha(pc))
@@ -448,6 +492,8 @@ again:
             *pgotob = true;
           if (_parfun)
             _parfun(PtokName,inicol,inilincnt);
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                             << " namedobj: " << namstr << " = " << ob);
           return ob;
         }
       else goto failure;

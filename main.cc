@@ -529,6 +529,21 @@ mom_output_utf8_encoded (FILE *f, const char *str, int len)
 
 
 void
+MomShowString::output(std::ostream&os) const
+{
+  char *buf = nullptr;
+  size_t siz = 0;
+  FILE *f = open_memstream(&buf,&siz);
+  if (MOM_UNLIKELY(!f))
+    MOM_FATAPRINTF("MomShowString::output open_memstream failure %m");
+  mom_output_utf8_encoded (f, _shstr.c_str(), _shstr.size());
+  fputc(0,f);
+  fflush(f);
+  os << '"' << buf << '"';
+  free (buf);
+} // end MomShowString::output
+
+void
 mom_output_utf8_html (FILE *f, const char *str, int len, bool nlisbr)
 {
   if (!f)

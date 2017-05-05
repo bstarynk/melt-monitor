@@ -272,6 +272,7 @@ extern "C" void mom_failure_backtrace_at(const char*fil, int lin, const std::str
   Dbg(cmd)					\
   Dbg(dump)					\
   Dbg(load)					\
+  Dbg(parse)					\
   Dbg(misc)					\
   Dbg(blue)					\
   Dbg(green)					\
@@ -455,6 +456,45 @@ void mom_output_utf8_escaped (FILE *f, const char *str, int len,
                               mom_utf8escape_sig_t * rout,
                               void *clientdata);
 
+class MomShowString
+{
+  std::string _shstr;
+public:
+  MomShowString(const std::string& str) : _shstr(str) {};
+  MomShowString(const char*cstr) : _shstr(cstr) {};
+  MomShowString(const MomShowString&) = default;
+  MomShowString(MomShowString&&) = default;
+  ~MomShowString() = default;
+  void output(std::ostream& os) const;
+};
+
+inline
+std::ostream& operator << (std::ostream& out, const MomShowString shs)
+{
+  shs.output(out);
+  return out;
+}
+
+class MomDoShow
+{
+  std::function<void(std::ostream&)> _shfun;
+public:
+  MomDoShow(std::function<void(std::ostream&)> f) : _shfun(f) {};
+  MomDoShow(const MomDoShow&) = default;
+  MomDoShow(MomDoShow&&) = default;
+  ~MomDoShow() = default;
+  void output(std::ostream& os) const
+  {
+    _shfun(os);
+  }
+};
+
+inline
+std::ostream& operator << (std::ostream& out, const MomDoShow shd)
+{
+  shd.output(out);
+  return out;
+}
 
 // compute the hash of a string (same as the hash of the MomSTRING value)
 momhash_t mom_cstring_hash_len (const char *str, int len);
@@ -2111,6 +2151,7 @@ private:
   unsigned _parlincount; // line count
   long _parlinoffset; // offset of current line
   int _parcol; // current column
+  bool _pardebug;	// if set, activate MOM_DEBUGLOG(parse, ...)
   bool _parsilent; // if set, failure is silent without backtrace
   bool _parnobuild; // if set, no values are built
   bool _parmakefromid; // if set, make objects from id
@@ -2132,7 +2173,7 @@ public:
   };
   MomParser(std::istream&inp, unsigned lincount=0)
     : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0},
-      _parsilent{false}, _parmakefromid{false},
+      _pardebug{false}, _parsilent{false}, _parmakefromid{false},
       _parhaschunk{false},
       _parname(), _parfun()
   {
@@ -2145,6 +2186,11 @@ public:
   MomParser& set_no_build(bool nobuild)
   {
     _parnobuild = nobuild;
+    return *this;
+  };
+  MomParser& set_debug(bool hasdebug)
+  {
+    _pardebug = hasdebug;
     return *this;
   };
   MomParser& set_has_chunk(bool haschunk)
@@ -2288,7 +2334,23 @@ public:
   MomValue parse_chunk(bool* pgotchunk); // parse a code chunk, including the ending )$
   bool parse_chunk_element(std::vector<MomValue>&vec);
   MomObject* parse_objptr(bool* pgotob);
+  /// given some name, fetch the corresponding named object
   virtual MomObject* fetch_named_object(const std::string&)
+  {
+    return nullptr;
+  };
+  /// from some name in a code chunk, gives a value
+  virtual MomValue chunk_name(const std::string&)
+  {
+    return nullptr;
+  };
+  /// from some id in a code chunk, gives a value
+  virtual MomValue chunk_id(MomIdent)
+  {
+    return nullptr;
+  };
+  /// from some embedded value in a code chunk with $% gives a non-nil value
+  virtual MomValue chunk_value(const MomValue)
   {
     return nullptr;
   };
