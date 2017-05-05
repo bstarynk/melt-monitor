@@ -2354,6 +2354,16 @@ public:
   {
     return nullptr;
   };
+  /// from some object ($-prefixed) in a code chunk, gives the value
+  virtual MomValue chunk_dollarobj(MomObject*)
+  {
+    return nullptr;
+  }
+  /// return the chunk value from a vector
+  virtual MomValue chunk_value(const std::vector<MomValue>&)
+  {
+    return nullptr;
+  }
 };				// end class MomParser
 
 #define MOM_PARSE_FAILURE_AT(Par,Fil,Lin,Log) do {		\

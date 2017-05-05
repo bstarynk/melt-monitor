@@ -392,7 +392,28 @@ MomParser::parse_chunk(bool *pgotchunk)
   if (peekbyte(0) == ')' && peekbyte(1) == '$')
     {
       consume(2);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "endchunk/"
+                         << vecelem.size() << ":"
+                         << (MomDoShow([=,&vecelem](std::ostream&out)
+      {
+        int cnt=0;
+        for (auto vcomp : vecelem)
+          {
+            if (cnt>0) out << ' ';
+            out << vcomp;
+            cnt++;
+          }
+      }))
+          << std::endl);
       if (_parnobuild) return nullptr;
+      else
+        {
+          auto vch = chunk_value(vecelem);
+          if (!vch)
+            MOM_PARSE_FAILURE(this, "failed to build chunk started at line#" << inilincnt << " column:" << inicol);
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "endchunk=" << vch);
+          return vch;
+        }
     }
   else
     MOM_PARSE_FAILURE(this, "failed to parse chunk started at line#" << inilincnt << " column:" << inicol);
@@ -413,6 +434,51 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
     return false;
   if (eof())
     return false;
+  if (isspace(pc))
+    {
+      std::string spacestr;
+      while (isspace(pc))
+        {
+          spacestr += (char)pc;
+          consume(1);
+          pc = peekbyte(0);
+        };
+      if (eol())
+        {
+          spacestr += '\n';
+          next_line();
+        }
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                         << " chunk spacestr " << MomShowString(spacestr));
+      if (!_parnobuild)
+        vecelem.push_back(MomString::make_from_string(spacestr));
+      return true;
+    }
+  else if (pc<127 && isalpha(pc))
+    {
+      std::string namestr;
+      while (pc>0 && pc<127 && (isalnum(pc) || pc=='_'))
+        {
+          namestr += (char)pc;
+          consume(1);
+          pc = peekbyte(0);
+        }
+      auto namv = _parnobuild?nullptr:chunk_name(namestr);
+      if (namv)
+        {
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                             << " chunk name " << namestr << " = " << namv);
+          vecelem.push_back(namv);
+        }
+      else
+        {
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                             << " chunk namestr " << namestr);
+          if (!_parnobuild)
+            vecelem.push_back(MomString::make_from_string(namestr));
+        }
+      return true;
+    }
 #warning unimplemented MomParser::parse_chunk_element
   MOM_PARSE_FAILURE(this, "unimplemented MomParser::parse_chunk_element");
 } // end MomParser::parse_chunk_element
