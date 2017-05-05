@@ -36,3 +36,40 @@ MomGC::~MomGC()
   MOM_DEBUGLOG(garbcoll, "MomGC destroyed thrid=" << _gc_thrid);
 } // end MomGC::~MomGC
 
+
+void
+MomGC::scan_value(const MomValue v)
+{
+  const MomAnyVal* av = v.to_val();
+  if (!av) return;
+  if (av->vkind() == MomKind::TagObjectK)
+    scan_object(reinterpret_cast<MomObject*>(const_cast<MomAnyVal*>(av)));
+  else
+    scan_anyval(const_cast<MomAnyVal*>(av));
+} // end MomGC::scan_value
+
+
+void
+MomGC::scan_object(MomObject*pob)
+{
+  if (!pob) return;
+  MOM_ASSERT(pob->vkind() == MomKind::TagObjectK, "scan_object bad pob");
+  bool oldgray = pob->gc_set_grey(this,true);
+  if (!oldgray)
+    {
+      std::lock_guard<std::mutex> gu(_gc_mtx);
+      _gc_objque.push_back(pob);
+    }
+}
+
+void
+MomGC::scan_anyval(MomAnyVal*av)
+{
+  if (!av) return;
+  bool oldgray = av->gc_set_grey(this,true);
+  if (!oldgray)
+    {
+      std::lock_guard<std::mutex>  gu(_gc_mtx);
+      _gc_valque.push_back(av);
+    }
+}

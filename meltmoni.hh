@@ -2464,9 +2464,15 @@ class MomGC
   friend class MomAnyVal;
   static std::atomic<bool> _forbid_allocation_;
   std::thread::id _gc_thrid;
+  std::mutex _gc_mtx;
+  std::deque<MomAnyVal*> _gc_valque;
+  std::deque<MomObject*> _gc_objque;
   MomGC(const MomGC&) = delete;
   MomGC(MomGC&&) = delete;
+  void scan_anyval(MomAnyVal*);
 public:
+  void scan_value(const MomValue);
+  void scan_object(MomObject*);
   MomGC();
   ~MomGC();
 };				// end class MomGC
