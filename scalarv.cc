@@ -154,7 +154,7 @@ MomIntSq::gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, s
   MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_chunk invalid slotix=" << slotix);
   MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_clear_mark_chunk start slotix=" << slotix
                << " chunkix=" << chunkix);
-  std::lock_guard<std::mutex> gu(_mtxarr_[slotix]);
+  /// we don't need to lock any mutex
   for (MomIntSq*pis : arrptr)
     {
       if (!pis) break;
