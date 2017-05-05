@@ -45,12 +45,12 @@ PLUGINS=  $(patsubst %.c,%.so,$(PLUGIN_SOURCES))
 # modules are generated inside modules/
 MODULE_SOURCES= $(sort $(wildcard modules/momg_*.cc))
 # generated headers
-GENERATED_HEADERS= $(sort $(wildcard _mom*.h))
+GENERATED_HEADERS= $(sort $(wildcard _mom*.h) $(wildcard MOM_*.h))
 MODULES=  $(patsubst %.cc,%.so,$(MODULE_SOURCES))
-CSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.c)))
-CXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.cc)))
-QTCXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.qcc)))
-SHSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-z]*.sh)))
+CSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.c)))
+CXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.cc)))
+QTCXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.qcc)))
+SHSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.sh)))
 OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES)) $(patsubst %.qcc,%.o,$(QTCXXSOURCES))
 RM= rm -fv
 .PHONY: all checkgithooks installgithooks dumpstate restorestate
