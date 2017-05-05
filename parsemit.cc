@@ -420,6 +420,8 @@ MomParser::parse_chunk(bool *pgotchunk)
 } // end MomParser::parse_chunk
 
 
+
+
 bool
 MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
 {
@@ -428,12 +430,26 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
   auto inioff = _parlinoffset;
   auto inicol = _parcol;
   auto inilincnt = _parlincount;
+  MomIdent id;
+  const char* endid = nullptr;
   pc = peekbyte(0);
-  pc = peekbyte(1);
+  nc = peekbyte(1);
+  /* in chunks, )$ is ending the chunk */
   if (pc == ')' && nc == '$')
     return false;
   if (eof())
     return false;
+  /* in chunks, the end-of-line is parsed as a newline */
+  if (eol())
+    {
+      next_line();
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                         << " chunk EOL");
+      if (!_parnobuild)
+        vecelem.push_back(MomString::make_from_string("\n"));
+      return true;
+    }
+  /* in chunks, a sequence of space is agglomerated into a single string */
   if (isspace(pc))
     {
       std::string spacestr;
@@ -454,6 +470,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
         vecelem.push_back(MomString::make_from_string(spacestr));
       return true;
     }
+  /* handling names in chunks */
   else if (pc<127 && isalpha(pc))
     {
       std::string namestr;
@@ -477,6 +494,83 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
           if (!_parnobuild)
             vecelem.push_back(MomString::make_from_string(namestr));
         }
+      return true;
+    }
+  /* handling objids in chunks */
+  else if (pc=='_' && nc<127 && isdigit(nc) && (id=MomIdent::make_from_cstr(peekchars(0),&endid))
+           && endid!=nullptr)
+    {
+      std::string idstr(peekchars(0), endid - peekchars());
+      consume(endid - peekchars());
+      auto vid = _parnobuild?nullptr:chunk_id(id);
+      if (vid)
+        {
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                             << " chunk id=" << id << " = " << vid);
+          vecelem.push_back(vid);
+        }
+      else
+        {
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                             << " chunk idstr=" << idstr);
+          if (!_parnobuild)
+            vecelem.push_back(MomString::make_from_string(idstr));
+        }
+      return true;
+    }
+  /* $, and $; and $. are all handled as separators */
+  else if (pc=='$' && (nc == ',' || nc==';' || nc=='.'))
+    {
+      consume(2);
+      return true;
+    }
+  /* handle $<name> as a dollarobj, or else a string */
+  else if (pc=='$' && nc<127 && isalpha(nc))
+    {
+      std::string dollstr;
+      consume(1);
+      while ((pc==peekbyte(0))>0 && pc<127 && (isalnum(pc) || pc=='_'))
+        {
+          dollstr += (char)pc;
+          consume(1);
+        }
+      if (_parnobuild)
+        {
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                             << " chunk dollarname nobuild dollstr=$" << dollstr);
+          return true;
+        }
+      auto pob = fetch_named_object(dollstr);
+      MomValue v = pob?chunk_dollarobj(pob):nullptr;
+      if (v)
+        {
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                             << " chunk dollarname dollar=" << dollstr << " v=" << v);
+          vecelem.push_back(v);
+        }
+      else
+        {
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                             << " chunk dollarname dollstr=$" << dollstr);
+          vecelem.push_back(MomString::make_from_string(std::string{"$"} + dollstr));
+        }
+      return true;
+    }
+  /* handle $%<value> as an embedded value */
+  else if (pc=='$' && nc=='%')
+    {
+      bool gotval = false;
+      consume(2);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                         << " chunk start embedded value");
+      auto embv = parse_value(&gotval);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                         << " chunk got embedded value" <<(_parnobuild?"!":" ") << embv);
+      auto v = _parnobuild?nullptr:chunk_value(embv);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                         << " chunk embedding value" <<(_parnobuild?"!":" ") << v);
+      if (!_parnobuild)
+        vecelem.push_back(v);
       return true;
     }
 #warning unimplemented MomParser::parse_chunk_element
