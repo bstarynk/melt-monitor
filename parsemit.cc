@@ -382,7 +382,7 @@ MomValue
 MomParser::parse_chunk(bool *pgotchunk)
 {
   std::vector<MomValue> vecelem;
-  auto inioff = _parlinoffset;
+  //auto inioff = _parlinoffset;
   auto inicol = _parcol;
   auto inilincnt = _parlincount;
   while (parse_chunk_element(vecelem))
@@ -405,7 +405,10 @@ MomParser::parse_chunk(bool *pgotchunk)
           }
       }))
           << std::endl);
-      if (_parnobuild) return nullptr;
+      if (pgotchunk)
+        *pgotchunk = true;
+      if (_parnobuild)
+        return nullptr;
       else
         {
           auto vch = chunk_value(vecelem);
@@ -427,7 +430,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
 {
   int pc = 0;
   int nc = 0;
-  auto inioff = _parlinoffset;
+  //auto inioff = _parlinoffset;
   auto inicol = _parcol;
   auto inilincnt = _parlincount;
   MomIdent id;
@@ -444,7 +447,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
     {
       next_line();
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                         << " chunk EOL");
+                         << " chunkelem EOL");
       if (!_parnobuild)
         vecelem.push_back(MomString::make_from_string("\n"));
       return true;
@@ -465,7 +468,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
           next_line();
         }
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                         << " chunk spacestr " << MomShowString(spacestr));
+                         << " chunkelem spacestr " << MomShowString(spacestr));
       if (!_parnobuild)
         vecelem.push_back(MomString::make_from_string(spacestr));
       return true;
@@ -484,13 +487,13 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       if (namv)
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                             << " chunk name " << namestr << " = " << namv);
+                             << " chunkelem name " << namestr << " = " << namv);
           vecelem.push_back(namv);
         }
       else
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                             << " chunk namestr " << namestr);
+                             << " chunkelem namestr " << namestr);
           if (!_parnobuild)
             vecelem.push_back(MomString::make_from_string(namestr));
         }
@@ -506,13 +509,13 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       if (vid)
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                             << " chunk id=" << id << " = " << vid);
+                             << " chunkelem id=" << id << " = " << vid);
           vecelem.push_back(vid);
         }
       else
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                             << " chunk idstr=" << idstr);
+                             << " chunkelem idstr=" << idstr);
           if (!_parnobuild)
             vecelem.push_back(MomString::make_from_string(idstr));
         }
@@ -537,7 +540,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       if (_parnobuild)
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                             << " chunk dollarname nobuild dollstr=$" << dollstr);
+                             << " chunkelem dollarname nobuild dollstr=$" << dollstr);
           return true;
         }
       auto pob = fetch_named_object(dollstr);
@@ -545,13 +548,13 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       if (v)
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                             << " chunk dollarname dollar=" << dollstr << " v=" << v);
+                             << " chunkelem dollarname dollar=" << dollstr << " v=" << v);
           vecelem.push_back(v);
         }
       else
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                             << " chunk dollarname dollstr=$" << dollstr);
+                             << " chunkelem dollarname dollstr=$" << dollstr);
           vecelem.push_back(MomString::make_from_string(std::string{"$"} + dollstr));
         }
       return true;
@@ -562,19 +565,42 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       bool gotval = false;
       consume(2);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                         << " chunk start embedded value");
+                         << " chunkelem start embedded value");
       auto embv = parse_value(&gotval);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                         << " chunk got embedded value" <<(_parnobuild?"!":" ") << embv);
+                         << " chunkelem got embedded value" <<(_parnobuild?"!":" ") << embv);
       auto v = _parnobuild?nullptr:chunk_value(embv);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
-                         << " chunk embedding value" <<(_parnobuild?"!":" ") << v);
+                         << " chunkelem embedding value" <<(_parnobuild?"!":" ") << v);
       if (!_parnobuild)
         vecelem.push_back(v);
       return true;
     }
-#warning unimplemented MomParser::parse_chunk_element
-  MOM_PARSE_FAILURE(this, "unimplemented MomParser::parse_chunk_element");
+  /* any other non-space non-letter non-dollar characters, is
+     agglomerated, hence handling UTF8; two dollars $$ are parsed as a
+     single one */
+  else
+    {
+      std::string str;
+      while ((pc = peekbyte(0))>0 && !eol() && !(isalpha(pc) || isspace(pc)))
+        {
+          nc = peekbyte(1);
+          if (pc=='$')
+            {
+              if (nc == '$')
+                consume(1);
+              else
+                break;
+            }
+          str += (char)pc;
+          consume(1);
+        }
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                         << " chunkelem other " << MomShowString(str));
+      if (!_parnobuild)
+        vecelem.push_back(MomString::make_from_string(str));
+      return true;
+    }
 } // end MomParser::parse_chunk_element
 
 
