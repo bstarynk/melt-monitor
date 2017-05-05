@@ -186,6 +186,7 @@ MomLoader::load(void)
     auto globthr = std::thread([&](void)
     {
       pthread_setname_np(pthread_self(), "moloademglob");
+      MomAnyVal::enable_allocation();
       nbglobob
         = load_empty_objects_from_db(_ld_globdbp.get(),IS_GLOBAL);
     });
@@ -195,6 +196,7 @@ MomLoader::load(void)
         userthr = std::thread([&](void)
         {
           pthread_setname_np(pthread_self(), "moloademuser");
+          MomAnyVal::enable_allocation();
           nbuserob
             = load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
         });
@@ -461,6 +463,7 @@ MomLoader::thread_load_fill_payload_objects(MomLoader*ld, int thix, std::deque<M
   char buf[24];
   snprintf(buf, sizeof(buf), "molopayl%d", thix);
   pthread_setname_np(pthread_self(), buf);
+  MomAnyVal::enable_allocation();
   MOM_ASSERT(ld != nullptr,
              "MomLoader::thread_load_fill_payload_objects null ld");
   MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
@@ -508,6 +511,7 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
   char buf[24];
   snprintf(buf, sizeof(buf), "moldcont%d", thix);
   pthread_setname_np(pthread_self(),buf);
+  MomAnyVal::enable_allocation();
   MOM_ASSERT(ld != nullptr,
              "MomLoader::thread_load_content_objects null ld");
   MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
@@ -612,6 +616,7 @@ void
 mom_load_from_directory(const char*dirname)
 {
   MomLoader ld(dirname);
+  MomAnyVal::enable_allocation();
   ld.load();
 } // end mom_load_from_directory
 
@@ -791,7 +796,7 @@ pid_t
 MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpath, const std::string& basepath)
 {
   MOM_DEBUGLOG(dump, "fork_dump_database start dbpath=" << dbpath << " sqlpath=" << sqlpath
-	       << " basepath=" << basepath);
+               << " basepath=" << basepath);
   std::string dumpshellscript = std::string{monimelt_directory} + '/' + "monimelt-dump-state.sh";
   pid_t p = fork();
   if (p==0)
@@ -800,11 +805,11 @@ MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpat
       int nfd = open("/dev/null", O_RDONLY);
       if (nfd>0) dup2(nfd, STDIN_FILENO);
       for (int ix=3; ix<64; ix++)
-	(void) close(ix);
+        (void) close(ix);
       nice(1);
       for (int sig=1; sig<SIGRTMIN; sig++) signal(sig, SIG_DFL);
       execlp(dumpshellscript.c_str(), dumpshellscript.c_str(),
-	     dbpath.c_str(), sqlpath.c_str(), basepath.c_str(), nullptr);
+             dbpath.c_str(), sqlpath.c_str(), basepath.c_str(), nullptr);
       perror((dumpshellscript + " execlp").c_str());
       _exit(EXIT_FAILURE);
     }

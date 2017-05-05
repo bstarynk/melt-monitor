@@ -22,3 +22,4 @@
 
 // see http://wiki.luajit.org/New-Garbage-Collector
 std::atomic<bool> MomGC::_forbid_allocation_;
+thread_local bool MomAnyVal::_allocok;

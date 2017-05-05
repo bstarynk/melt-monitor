@@ -1031,6 +1031,7 @@ public:
   static constexpr MomSize _max_size = 1 << 27; // 134217728
   static constexpr size_t _alignment = 2*sizeof(void*);
 private:
+  static thread_local bool _allocok;
   // we start with the vtable ptr, probably 64 bits
   // the header word contains:
   //// 3 bits for the kind (constant)
@@ -1040,6 +1041,14 @@ private:
   const MomHash _hashw;
   static std::atomic<std::uint64_t> _wordalloca;
 public:
+  static void enable_allocation(void)
+  {
+    _allocok = true;
+  };
+  static void forbid_allocation(void)
+  {
+    _allocok = false;
+  };
   static std::uint64_t allocation_word_count(void)
   {
     return _wordalloca.load();
@@ -2397,7 +2406,9 @@ void*
 MomAnyVal::operator new (size_t sz, MomNewTag, size_t gap)
 {
   if (MOM_UNLIKELY(MomGC::_forbid_allocation_.load()))
-    MOM_FAILURE("forbidden to allocate sz=" << sz << " gap=" << gap);
+    MOM_FAILURE("forbidden globally to allocate sz=" << sz << " gap=" << gap);
+  if (MOM_UNLIKELY(!_allocok))
+    MOM_FAILURE("forbidden thread to allocate sz=" << sz << " gap=" << gap);
   auto fulsiz = mom_align(sz) + mom_align(gap);
   _wordalloca.fetch_add(fulsiz / sizeof(void*));
   return ::operator new(fulsiz);

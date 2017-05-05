@@ -1506,6 +1506,7 @@ main (int argc_main, char **argv_main)
   if (mom_nb_jobs<MOM_MIN_JOBS) mom_nb_jobs = MOM_MIN_JOBS;
   if (mom_nb_jobs>MOM_MAX_JOBS) mom_nb_jobs = MOM_MAX_JOBS;
   parse_program_arguments_mom(&argc, &argv);
+  MomAnyVal::enable_allocation();
   MomObject::initialize_predefined();
   if (load_state_mom && load_state_mom[0] && load_state_mom[0] != '-')
     mom_load_from_directory(load_state_mom);
