@@ -110,7 +110,10 @@ MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
       const MomSet*iset = it->second;
       MOM_ASSERT(iset != nullptr, "null iset in buckix=" << buckix);
       if (MOM_UNLIKELY(iset->has_content(obarr, sz)))
-        return iset;
+        {
+          MomGC::the_garbcoll.scan_anyval(const_cast<MomSet*>(iset));
+          return iset;
+        }
     }
   res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomSet(obarr,sz,h);
   curmap.insert({h,res});
@@ -178,7 +181,10 @@ MomTuple::make_from_array(MomObject*const* obarr, MomSize sz)
       const MomTuple*ituple = it->second;
       MOM_ASSERT(ituple != nullptr, "null ituple in buckix=" << buckix);
       if (MOM_UNLIKELY(ituple->has_content(obarr, sz)))
-        return ituple;
+        {
+          MomGC::the_garbcoll.scan_anyval(const_cast<MomTuple*>(ituple));
+          return ituple;
+        }
     }
   res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomTuple(obarr,sz,h);
   curmap.insert({h,res});

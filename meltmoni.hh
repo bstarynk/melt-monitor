@@ -2474,13 +2474,14 @@ class MomGC
   std::deque<std::function<void(MomGC*)>> _gc_todoque;
   MomGC(const MomGC&) = delete;
   MomGC(MomGC&&) = delete;
-  void scan_anyval(MomAnyVal*);
+  MomGC();
+  ~MomGC();
 public:
+  static MomGC the_garbcoll;
+  void scan_anyval(MomAnyVal*);
   void scan_value(const MomValue);
   void scan_object(MomObject*);
   void add_todo(std::function<void(MomGC*)>);
-  MomGC();
-  ~MomGC();
 };				// end class MomGC
 
 ////////////////////////////////////////////////////////////////
@@ -2524,8 +2525,8 @@ MomAnyVal::operator new (size_t sz, MomNewTag, size_t gap)
 
 
 /// in state.cc
-extern "C" void mom_dump_in_directory(const char*dirname, MomGC*pgc=nullptr);
-extern "C" void mom_load_from_directory(const char*dirname, MomGC*pgc=nullptr);
+extern "C" void mom_dump_in_directory(const char*dirname);
+extern "C" void mom_load_from_directory(const char*dirname);
 extern "C" void mom_dump_todo_scan(MomDumper*du, std::function<void(MomDumper*)> todofun);
 extern "C" void mom_dump_todo_emit(MomDumper*du, std::function<void(MomDumper*)> todofun);
 extern "C" void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam);

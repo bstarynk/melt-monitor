@@ -24,6 +24,7 @@
 std::atomic<bool> MomGC::_forbid_allocation_;
 thread_local bool MomAnyVal::_allocok;
 
+MomGC MomGC::the_garbcoll;
 
 MomGC::MomGC()
   : _gc_thrid(std::this_thread::get_id())

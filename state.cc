@@ -37,7 +37,6 @@ class MomLoader
   // object map and its mutex
   std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _ld_objmap;
   std::mutex _ld_mtxobjmap;
-  MomGC* _ld_gc;
   std::unique_ptr<sqlite::database> load_database(const char*dbradix);
   MomObject* load_find_object_by_id(MomIdent id)
   {
@@ -59,7 +58,7 @@ class MomLoader
   static void thread_load_fill_payload_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&fillglobfun,const std::function<std::string(MomObject*)>&filluserfun);
   static void load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool user);
 public:
-  MomLoader(const std::string&dirnam, MomGC*pgc=nullptr);
+  MomLoader(const std::string&dirnam);
   static constexpr const bool IS_USER= true;
   static constexpr const bool IS_GLOBAL= false;
   void load(void);
@@ -127,14 +126,13 @@ MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
 } // end MomLoader::load_empty_objects_from_db
 
 
-MomLoader::MomLoader(const std::string& dirnam, MomGC*pgc)
+MomLoader::MomLoader(const std::string& dirnam)
   : _ld_dirname(dirnam),
     _ld_startrealtime(mom_elapsed_real_time()),
     _ld_startcputime(mom_process_cpu_time()),
     _ld_globdbp(nullptr), _ld_userdbp(nullptr),
     _ld_mtxglobdb(), _ld_mtxuserdb(),
-    _ld_objmap(), _ld_mtxobjmap(),
-    _ld_gc(pgc)
+    _ld_objmap(), _ld_mtxobjmap()
 {
   struct stat dirstat;
   memset (&dirstat, 0, sizeof(dirstat));
@@ -615,9 +613,9 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
 
 
 void
-mom_load_from_directory(const char*dirname, MomGC* pgc)
+mom_load_from_directory(const char*dirname)
 {
-  MomLoader ld(dirname,pgc);
+  MomLoader ld(dirname);
   MomAnyVal::enable_allocation();
   ld.load();
 } // end mom_load_from_directory
@@ -652,7 +650,6 @@ class MomDumper
   std::atomic_ulong _du_scancount;
   const MomSet* _du_predefvset;
   std::map<std::string,MomObject*> _du_globmap;
-  MomGC* _du_gc;
   void initialize_db(sqlite::database &db);
   static void dump_scan_thread(MomDumper*du, int ix);
   static void dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
@@ -664,7 +661,7 @@ public:
   std::string temporary_file_path(const std::string& path);
   static bool rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc=false); // return true if same files
   void rename_temporary_files(void);
-  MomDumper(const std::string&dirnam, MomGC*pgc=nullptr);
+  MomDumper(const std::string&dirnam);
   void open_databases(void);
   long nb_objects(void)
   {
@@ -733,7 +730,7 @@ public:
 
 
 
-MomDumper::MomDumper(const std::string&dirnam, MomGC*pgc)
+MomDumper::MomDumper(const std::string&dirnam)
   : _du_mtx(),
     _du_startrealtime(mom_elapsed_real_time()),
     _du_startcputime(mom_process_cpu_time()),
@@ -743,8 +740,7 @@ MomDumper::MomDumper(const std::string&dirnam, MomGC*pgc)
     _du_globdbmtx(), _du_userdbmtx(),
     _du_addedcondvar(),
     _du_setobj(), _du_queobj(), _du_scancount(ATOMIC_VAR_INIT(0ul)),
-    _du_predefvset(nullptr), _du_globmap{},
-    _du_gc(pgc)
+    _du_predefvset(nullptr), _du_globmap{}
 {
   struct stat dirstat;
   memset (&dirstat, 0, sizeof(dirstat));
@@ -1427,9 +1423,9 @@ MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pye
 } // end MomObject::unsync_emit_dump_payload
 
 void
-mom_dump_in_directory(const char*dirname, MomGC* pgc)
+mom_dump_in_directory(const char*dirname)
 {
-  MomDumper dumper(dirname,pgc);
+  MomDumper dumper(dirname);
   dumper.open_databases();
   dumper.scan_predefined();
   dumper.scan_globdata();

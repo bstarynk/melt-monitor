@@ -84,7 +84,10 @@ MomIntSq::make_from_array(const intptr_t* iarr, MomSize sz)
       const MomIntSq*isq = it->second;
       MOM_ASSERT(isq != nullptr, "null isq in buckix=" << buckix);
       if (MOM_UNLIKELY(isq->has_content(iarr, sz)))
-        return isq;
+        {
+          MomGC::the_garbcoll.scan_anyval(const_cast<MomIntSq*>(isq));
+          return isq;
+        }
     }
   res = new(mom_newtg, mom_align((sz-MOM_FLEXIBLE_DIM)*sizeof(intptr_t))) MomIntSq(iarr,sz,h);
   curmap.insert({h,res});
@@ -251,7 +254,10 @@ MomDoubleSq::make_from_array(const double* darr, MomSize sz)
       const MomDoubleSq*dsq = it->second;
       MOM_ASSERT(dsq != nullptr, "null dsq in buckix=" << buckix);
       if (MOM_UNLIKELY(dsq->has_content(darr, sz)))
-        return dsq;
+        {
+          MomGC::the_garbcoll.scan_anyval(const_cast<MomDoubleSq*>(dsq));
+          return dsq;
+        }
     }
   res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(double)) MomDoubleSq(darr,sz,h);
   curmap.insert({h,res});
@@ -347,7 +353,10 @@ MomString::make_from_cstr(const char*cstr)
       const MomString*strv = it->second;
       MOM_ASSERT(strv != nullptr, "null strv in buckix=" << buckix);
       if (MOM_UNLIKELY(strv->has_cstr_content(cstr, bylen)))
-        return strv;
+        {
+          MomGC::the_garbcoll.scan_anyval(const_cast<MomString*>(strv));
+          return strv;
+        }
     }
   res = new (mom_newtg, ((bylen+MOM_FLEXIBLE_DIM+1)|7)+1) MomString(cstr,sz,bylen,h);
   curmap.insert({h,res});
