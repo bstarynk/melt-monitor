@@ -1622,6 +1622,7 @@ class MomSet : public MomAnyObjSeq
   static constexpr unsigned k3 = 143093;
   static constexpr unsigned k4 = 14083;
   static constexpr const int _swidth_ = 256;
+  static constexpr const unsigned _chunklen_ = 256;
   static std::mutex _mtxarr_[_swidth_];
   static std::unordered_multimap<MomHash,const MomSet*> _maparr_[_swidth_];
   static unsigned slotindex(MomHash h)
@@ -1630,6 +1631,10 @@ class MomSet : public MomAnyObjSeq
   };
   MomSet(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagSetK, obarr,sz, h) {};
+  static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomSet*,_chunklen_> arrptr);
+public:
+  static void gc_todo_clear_marks(MomGC*gc);
 public:
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
   static const MomSet* make_from_ascending_array(MomObject*const* obarr, MomSize sz);
@@ -1655,6 +1660,9 @@ public:
   virtual std::mutex* valmtx() const;
 }; // end class MomSet
 
+
+
+
 ////////////////////////////////////////////////////////////////
 class MomTuple : public MomAnyObjSeq
 {
@@ -1666,12 +1674,17 @@ class MomTuple : public MomAnyObjSeq
   MomTuple(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagTupleK, obarr,sz, h) {};
   static constexpr const int _swidth_ = 256;
+  static constexpr const unsigned _chunklen_ = 256;
   static std::mutex _mtxarr_[_swidth_];
   static std::unordered_multimap<MomHash,const MomTuple*> _maparr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2327183)) % _swidth_;
   };
+  static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomTuple*,_chunklen_> arrptr);
+public:
+  static void gc_todo_clear_marks(MomGC*gc);
 public:
   static const MomTuple* make_from_array(MomObject*const* obarr, MomSize sz);
   static const MomTuple* make_from_objptr_vector(const MomObjptrVector&ovec)

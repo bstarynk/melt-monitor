@@ -65,6 +65,10 @@ MomAnyObjSeq::MomAnyObjSeq(MomKind kd, MomObject*const* obarr, MomSize sz, MomHa
   memcpy(const_cast<MomObject**>(_obseq), obarr, sz*sizeof(MomObject*));
 } // end MomAnyObjSeq::MomAnyObjSeq
 
+
+
+
+
 //////////////// sets
 
 std::mutex MomSet::_mtxarr_[MomSet::_swidth_];
@@ -80,6 +84,70 @@ MomSet::compute_hash(MomObject*const* obarr, unsigned sz)
          MomSet::k4>(obarr, sz);
 };
 
+
+void
+MomSet::gc_todo_clear_marks(MomGC* gc)
+{
+  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_marks start");
+  for (unsigned ix=0; ix<_swidth_; ix++)
+    gc->add_todo([=](MomGC*thisgc)
+    {
+      gc_todo_clear_mark_slot(thisgc,ix);
+    });
+  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_marks end");
+} // end MomSet::gc_todo_clear_marks
+
+
+
+void
+MomSet::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_slot invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_slot start slotix=" << slotix);
+  std::lock_guard<std::mutex> gu(_mtxarr_[slotix]);
+  unsigned chcnt = 0;
+  unsigned chunkix=0;
+  std::array<MomSet*,_chunklen_> arrptr;
+  for (auto p : _maparr_[slotix])
+    {
+      if (chcnt>=_chunklen_)
+        {
+          gc->add_todo([=](MomGC*thisgc)
+          {
+            gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
+          });
+          chunkix++;
+          chcnt=0;
+        }
+      arrptr[chcnt++] = const_cast<MomSet*>(p.second);
+    }
+  if (chcnt>0)
+    {
+      gc->add_todo([=](MomGC*thisgc)
+      {
+        gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
+      });
+      chunkix++;
+    }
+  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_slot end slotix=" << slotix
+               << " last chunkix=" << chunkix);
+} // end MomSet::gc_todo_clear_mark_slot
+
+void
+MomSet::gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomSet*,_chunklen_> arrptr)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_chunk invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_chunk start slotix=" << slotix
+               << " chunkix=" << chunkix);
+  /// we don't need to lock any mutex
+  for (MomSet*pis : arrptr)
+    {
+      if (!pis) break;
+      pis->gc_set_mark(gc,false);
+    }
+  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_chunk end slotix=" << slotix
+               << " chunkix=" << chunkix);
+} // end MomSet::gc_todo_clear_mark_chunk
 
 const MomSet*
 MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
@@ -194,6 +262,71 @@ MomTuple::make_from_array(MomObject*const* obarr, MomSize sz)
     }
   return res;
 } // end MomTuple::make_from_array
+
+void
+MomTuple::gc_todo_clear_marks(MomGC* gc)
+{
+  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_marks start");
+  for (unsigned ix=0; ix<_swidth_; ix++)
+    gc->add_todo([=](MomGC*thisgc)
+    {
+      gc_todo_clear_mark_slot(thisgc,ix);
+    });
+  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_marks end");
+} // end MomTuple::gc_todo_clear_marks
+
+
+
+void
+MomTuple::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_slot invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_mark_slot start slotix=" << slotix);
+  std::lock_guard<std::mutex> gu(_mtxarr_[slotix]);
+  unsigned chcnt = 0;
+  unsigned chunkix=0;
+  std::array<MomTuple*,_chunklen_> arrptr;
+  for (auto p : _maparr_[slotix])
+    {
+      if (chcnt>=_chunklen_)
+        {
+          gc->add_todo([=](MomGC*thisgc)
+          {
+            gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
+          });
+          chunkix++;
+          chcnt=0;
+        }
+      arrptr[chcnt++] = const_cast<MomTuple*>(p.second);
+    }
+  if (chcnt>0)
+    {
+      gc->add_todo([=](MomGC*thisgc)
+      {
+        gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
+      });
+      chunkix++;
+    }
+  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_mark_slot end slotix=" << slotix
+               << " last chunkix=" << chunkix);
+} // end MomTuple::gc_todo_clear_mark_slot
+
+void
+MomTuple::gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomTuple*,_chunklen_> arrptr)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_chunk invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_mark_chunk start slotix=" << slotix
+               << " chunkix=" << chunkix);
+  /// we don't need to lock any mutex
+  for (MomTuple*pis : arrptr)
+    {
+      if (!pis) break;
+      pis->gc_set_mark(gc,false);
+    }
+  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_mark_chunk end slotix=" << slotix
+               << " chunkix=" << chunkix);
+} // end MomTuple::gc_todo_clear_mark_chunk
+
 
 std::mutex*
 MomTuple::valmtx() const
