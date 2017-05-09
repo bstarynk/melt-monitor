@@ -80,6 +80,20 @@ MomGC::add_todo(std::function<void(MomGC*)> fun)
 {
   MOM_ASSERT(fun, "empty fun for GC add_todo");
   std::lock_guard<std::mutex>  gu(_gc_mtx);
-  _gc_todoque.push_back(fun);
+  unsync_add_todo(fun);
 } // end MomGC::add_todo
 
+
+void
+MomGC::unsync_start_gc_cycle(void)
+{
+  MOM_ASSERT(_gc_todoque.empty(), "unsync_start_gc_cycle nonempty todoque");
+  unsync_add_todo([=](MomGC*gc)
+  {
+    MomIntSq::gc_todo_clear_marks(gc);
+  });
+  unsync_add_todo([=](MomGC*gc)
+  {
+    MomDoubleSq::gc_todo_clear_marks(gc);
+  });
+} // end MomGC::unsync_start_gc_cycle

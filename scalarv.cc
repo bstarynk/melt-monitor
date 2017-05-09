@@ -275,6 +275,68 @@ MomDoubleSq::valmtx() const
 } // end MomDoubleSq::valmtx
 
 
+void
+MomDoubleSq::gc_todo_clear_marks(MomGC* gc)
+{
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_marks start");
+  for (unsigned ix=0; ix<_swidth_; ix++)
+    gc->add_todo([=](MomGC*thisgc)
+    {
+      gc_todo_clear_mark_slot(thisgc,ix);
+    });
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_marks end");
+} // end MomDoubleSq::gc_todo_clear_marks
+
+void
+MomDoubleSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_slot invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_slot start slotix=" << slotix);
+  std::lock_guard<std::mutex> gu(_mtxarr_[slotix]);
+  unsigned chcnt = 0;
+  unsigned chunkix=0;
+  std::array<MomDoubleSq*,_chunklen_> arrptr;
+  for (auto p : _maparr_[slotix])
+    {
+      if (chcnt>=_chunklen_)
+        {
+          gc->add_todo([=](MomGC*thisgc)
+          {
+            gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
+          });
+          chunkix++;
+          chcnt=0;
+        }
+      arrptr[chcnt++] = const_cast<MomDoubleSq*>(p.second);
+    }
+  if (chcnt>0)
+    {
+      gc->add_todo([=](MomGC*thisgc)
+      {
+        gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
+      });
+      chunkix++;
+    }
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_slot end slotix=" << slotix
+               << " last chunkix=" << chunkix);
+} // end MomDoubleSq::gc_todo_clear_mark_slot
+
+void
+MomDoubleSq::gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomDoubleSq*,_chunklen_> arrptr)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_chunk invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_chunk start slotix=" << slotix
+               << " chunkix=" << chunkix);
+  /// we don't need to lock any mutex
+  for (MomDoubleSq*pis : arrptr)
+    {
+      if (!pis) break;
+      pis->gc_set_mark(gc,false);
+    }
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_chunk end slotix=" << slotix
+               << " chunkix=" << chunkix);
+}
+
 ////////////////////////////////////////////////////////////////
 std::mutex MomString::_mtxarr_[MomString::_swidth_];
 std::unordered_multimap<MomHash,const MomString*> MomString::_maparr_[MomString::_swidth_];
