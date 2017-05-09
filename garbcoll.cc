@@ -100,4 +100,16 @@ MomGC::unsync_start_gc_cycle(void)
   {
     MomString::gc_todo_clear_marks(gc);
   });
+  unsync_add_todo([=](MomGC*gc)
+  {
+    MomSet::gc_todo_clear_marks(gc);
+  });
+  unsync_add_todo([=](MomGC*gc)
+  {
+    MomTuple::gc_todo_clear_marks(gc);
+  });
+  unsync_add_todo([=](MomGC*gc)
+  {
+    MomNode::gc_todo_clear_marks(gc);
+  });
 } // end MomGC::unsync_start_gc_cycle
