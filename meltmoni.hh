@@ -1476,12 +1476,17 @@ class MomString final : public MomAnyVal   // in scalarv.cc
   const char _bstr[MOM_FLEXIBLE_DIM];
   MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h);
   static constexpr const int _swidth_ = 256;
+  static constexpr const unsigned _chunklen_ = 512;
   static std::mutex _mtxarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2318021)) % _swidth_;
   };
   static std::unordered_multimap<MomHash,const MomString*> _maparr_[_swidth_];
+  static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomString*,_chunklen_> arrptr);
+public:
+  static void gc_todo_clear_marks(MomGC*gc);
 public:
   const char*cstr() const
   {

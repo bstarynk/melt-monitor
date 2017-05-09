@@ -96,4 +96,8 @@ MomGC::unsync_start_gc_cycle(void)
   {
     MomDoubleSq::gc_todo_clear_marks(gc);
   });
+  unsync_add_todo([=](MomGC*gc)
+  {
+    MomString::gc_todo_clear_marks(gc);
+  });
 } // end MomGC::unsync_start_gc_cycle
