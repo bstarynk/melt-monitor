@@ -1071,6 +1071,8 @@ public:
   friend class MomGC;
   static constexpr MomSize _max_size = 1 << 27; // 134217728
   static constexpr size_t _alignment = 2*sizeof(void*);
+  static constexpr std::uint32_t MARK_BIT = 1U<<27;
+  static constexpr std::uint32_t GREY_BIT = 1U<<28;
 private:
   static thread_local bool _allocok;
   // we start with the vtable ptr, probably 64 bits
@@ -1118,12 +1120,12 @@ public:
   {
     if (m)
       {
-        auto oldh = _headera.fetch_or(1U<<27);
+        auto oldh = _headera.fetch_or(MARK_BIT);
         return (oldh>>27) & 1;
       }
     else
       {
-        auto oldh = _headera.fetch_and(~(1U<<27));
+        auto oldh = _headera.fetch_and(~(MARK_BIT));
         return (oldh>>27) & 1;
       }
   }
@@ -1131,12 +1133,12 @@ public:
   {
     if (g)
       {
-        auto oldh = _headera.fetch_or(1U<<28);
+        auto oldh = _headera.fetch_or(GREY_BIT);
         return (oldh>>28) & 1;
       }
     else
       {
-        auto oldh = _headera.fetch_and(~(1U<<28));
+        auto oldh = _headera.fetch_and(~(GREY_BIT));
         return (oldh>>28) & 1;
       }
   }
@@ -1269,7 +1271,7 @@ protected:
   void* operator new (size_t sz) = delete;
   inline void* operator new (size_t sz, MomNewTag, size_t gap);
   MomAnyVal(MomKind k, MomSize sz, MomHash h) :
-    _headera(((std::uint32_t)k)<<29 | std::uint32_t(sz & (_max_size-1))),
+    _headera(((std::uint32_t)k)<<29 | GREY_BIT | std::uint32_t(sz & (_max_size-1))),
     _hashw(h)
   {
     MOM_ASSERT(k>MomKind::TagNoneK && k<MomKind::Tag_LastK, "MomAnyVal bad kind " << (int)k);
