@@ -261,3 +261,146 @@ MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*own,const M
   auto py = static_cast<const MomPaylNamed*>(payl);
 #warning unimplemented MomPaylNamed::Getmagic
 } // end   MomPaylNamed::Getmagic
+
+
+
+
+////////////////////////////////////////////////////////////////
+
+class MomPaylSet: public MomPayload
+{
+public:
+  friend struct MomVtablePayload_st;
+  friend class MomObject;
+  friend MomObject*mom_unsync_pset_object_proxy(MomObject*objn);
+  friend void mom_unsync_pset_object_set_proxy(MomObject*objn, MomObject*obproxy);
+private:
+  std::set<MomObject*,MomObjptrLess> _pset_set;
+  MomObject* _pset_proxy;
+  MomPaylSet(MomObject*own)
+    : MomPayload(&MOM_PAYLOADVTBL(set), own), _pset_set(), _pset_proxy(nullptr) {};
+  ~MomPaylSet()
+  {
+    _pset_set.clear();
+    _pset_proxy = nullptr;
+  };
+public:
+  static MomPyv_destr_sig Destroy;
+  static MomPyv_scangc_sig Scangc;
+  static MomPyv_scandump_sig Scandump;
+  static MomPyv_emitdump_sig Emitdump;
+  static MomPyv_initload_sig Initload;
+  static MomPyv_loadfill_sig Loadfill;
+  static MomPyv_getmagic_sig Getmagic;
+}; // end class MomPaylSet
+
+
+
+MomObject*
+mom_unsync_pset_object_proxy(MomObject*objs)
+{
+  if (!objs) return nullptr;
+  auto py = static_cast<MomPaylSet*>(objs->unsync_payload());
+  if (py-> _py_vtbl !=  &MOM_PAYLOADVTBL(set)) return nullptr;
+  return py->_pset_proxy;
+} // end mom_unsync_pset_object_proxy
+
+void mom_unsync_pset_object_set_proxy(MomObject*objn, MomObject*obproxy)
+{
+  if (!objn) return;
+  auto py = static_cast<MomPaylSet*>(objn->unsync_payload());
+  if (py-> _py_vtbl !=  &MOM_PAYLOADVTBL(set)) return;
+  py->_pset_proxy = obproxy;
+}
+
+const struct MomVtablePayload_st MOM_PAYLOADVTBL(set) __attribute__((section(".rodata"))) =
+{
+  /**   .pyv_magic=      */       MOM_PAYLOADVTBL_MAGIC,
+  /**   .pyv_size=       */       sizeof(MomPaylSet),
+  /**   .pyv_name=       */       "set",
+  /**   .pyv_module=     */       (const char*)nullptr,
+  /**   .pyv_destroy=    */       MomPaylSet::Destroy,
+  /**   .pyv_scangc=     */       MomPaylSet::Scangc,
+  /**   .pyv_scandump=   */       MomPaylSet::Scandump,
+  /**   .pyv_emitdump=   */       MomPaylSet::Emitdump,
+  /**   .pyv_initload=   */       MomPaylSet::Initload,
+  /**   .pyv_loadfill=   */       MomPaylSet::Loadfill,
+  /**   .pyv_getmagic=   */       MomPaylSet::Getmagic,
+  /**   .pyv_fetch=      */       nullptr,
+  /**   .pyv_update=     */       nullptr,
+  /**   .pyv_step=       */       nullptr,
+  /**   .pyv_spare1=     */       nullptr,
+  /**   .pyv_spare2=     */       nullptr,
+  /**   .pyv_spare3=     */       nullptr,
+};
+
+MomRegisterPayload mompy_set(MOM_PAYLOADVTBL(set));
+
+void
+MomPaylSet::Destroy (struct MomPayload*payl,MomObject*own)
+{
+  auto py = static_cast<MomPaylSet*>(payl);
+  delete py;
+} // end MomPaylSet::Destroy
+
+void
+MomPaylSet::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
+{
+  auto py = static_cast<const MomPaylSet*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
+             "invalid named payload for own=" << own);
+  if (py->_pset_proxy)
+    gc->scan_object(py->_pset_proxy);
+  for (MomObject* pob : py->_pset_set)
+    gc->scan_object(pob);
+} // end MomPaylSet::Scangc
+
+void
+MomPaylSet::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du)
+{
+  auto py = static_cast<const MomPaylSet*>(payl);
+  MOM_DEBUGLOG(dump, "PaylSet::Scandump own=" << own
+               << " proxy=" << py->_pset_proxy);
+  if (py->_pset_proxy)
+    py->_pset_proxy->scan_dump(du);
+  for (MomObject* pob : py->_pset_set)
+    pob->scan_dump(du);
+} // end MomPaylNamed::Scandump
+
+void
+MomPaylSet::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont)
+{
+  auto py = static_cast<const MomPaylSet*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
+             "invalid pset payload for own=" << own);
+  MOM_DEBUGLOG(dump, "PaylSet::Emitdump own=" << own
+               << " proxy=" << py->_pset_proxy);
+  empaylcont->out() << "@SET: ";
+#warning incomplete MomPaylSet::Emitdump
+} // end MomPaylSet::Emitdump
+
+MomPayload*
+MomPaylSet::Initload(MomObject*own,MomLoader*,const char*inits)
+{
+  MOM_DEBUGLOG(load,"PaylSet::Initload own=" << own << " inits='" << inits << "'");
+#warning incomplete MomPaylSet::Initload
+  //return own->unsync_payload();
+} // end MomPaylNamed::Initload
+
+void
+MomPaylSet::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills)
+{
+  auto py = static_cast< MomPaylNamed*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
+             "PaylSet::Loadfill invalid pset payload for own=" << own);
+  MOM_DEBUGLOG(load,"PaylNamed::Loadfill own=" << own
+               << " fills='" << fills << "'");
+#warning incomplete MomPaylSet::Loadfill
+} // end MomPaylSet::Loadfill
+
+MomValue
+MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
+{
+  auto py = static_cast<const MomPaylSet*>(payl);
+#warning unimplemented MomPaylSet::Getmagic
+} // end   MomPaylSet::Getmagic

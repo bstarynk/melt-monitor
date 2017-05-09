@@ -2580,4 +2580,7 @@ extern "C" const std::string mom_get_unsync_string_name(MomObject*obj);
 extern "C" MomObject*mom_unsync_named_object_proxy(MomObject*objn);
 extern "C" void mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy);
 extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(named);
+extern "C" MomObject*mom_unsync_pset_object_proxy(MomObject*objn);
+extern "C" void mom_unsync_pset_object_set_proxy(MomObject*objn, MomObject*obproxy);
+extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(set);
 #endif /*MONIMELT_INCLUDED_ */
