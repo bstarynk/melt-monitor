@@ -27,7 +27,8 @@ thread_local bool MomAnyVal::_allocok;
 MomGC MomGC::the_garbcoll;
 
 MomGC::MomGC()
-  : _gc_thrid(std::this_thread::get_id())
+  : _gc_thrid(std::this_thread::get_id()), _gc_mtx(), _gc_changecond(),
+    _gc_valque(), _gc_objque(), _gc_todoque()
 {
   MOM_DEBUGLOG(garbcoll, "MomGC created thrid=" << _gc_thrid);
 } // end MomGC::MomGC

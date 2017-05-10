@@ -2499,6 +2499,7 @@ class MomGC
   static std::atomic<bool> _forbid_allocation_;
   std::thread::id _gc_thrid;
   std::mutex _gc_mtx;
+  std::condition_variable _gc_changecond;
   std::deque<MomAnyVal*> _gc_valque;
   std::deque<MomObject*> _gc_objque;
   std::deque<std::function<void(MomGC*)>> _gc_todoque;
