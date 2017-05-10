@@ -1073,6 +1073,12 @@ public:
   static constexpr size_t _alignment = 2*sizeof(void*);
   static constexpr std::uint32_t MARK_BIT = 1U<<27;
   static constexpr std::uint32_t GREY_BIT = 1U<<28;
+  template <typename AnyValType> struct PtrBag
+  {
+    std::mutex _bag_mtx;
+    std::unordered_multimap<MomHash,AnyValType*> _bag_map;
+#warning PtrBag incomplete and not yet used
+  };				// end PtrBag
 private:
   static thread_local bool _allocok;
   // we start with the vtable ptr, probably 64 bits
