@@ -106,8 +106,8 @@ MomIntSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 } // end MomIntSq::gc_todo_clear_mark_slot
 
 ////////////////////////////////////////////////////////////////
-std::mutex MomDoubleSq::_mtxarr_[MomDoubleSq::_swidth_];
-std::unordered_multimap<MomHash,const MomDoubleSq*> MomDoubleSq::_maparr_[MomDoubleSq::_swidth_];
+
+MomDoubleSq::PtrBag<MomDoubleSq> MomDoubleSq::_bagarr_[MomDoubleSq::_swidth_];
 
 MomDoubleSq::MomDoubleSq(const double* darr, MomSize sz, MomHash h)
   : MomAnyVal(MomKind::TagDoubleSqK, sz, h),
@@ -175,41 +175,19 @@ const MomDoubleSq*
 MomDoubleSq::make_from_array(const double* darr, MomSize sz)
 {
   MomHash h = compute_hash(darr, sz);
-  MomDoubleSq* res = nullptr;
-  unsigned ix = slotindex(h);
-  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
-  constexpr unsigned minbuckcount = 16;
-  auto& curmap = _maparr_[ix];
-  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
-    curmap.rehash(minbuckcount);
-  size_t buckix = curmap.bucket(h);
-  auto buckbeg = curmap.begin(buckix);
-  auto buckend = curmap.end(buckix);
-  for (auto it = buckbeg; it != buckend; it++)
-    {
-      if (it->first != h)
-        continue;
-      const MomDoubleSq*dsq = it->second;
-      MOM_ASSERT(dsq != nullptr, "null dsq in buckix=" << buckix);
-      if (MOM_UNLIKELY(dsq->has_content(darr, sz)))
-        {
-          MomGC::the_garbcoll.scan_anyval(const_cast<MomDoubleSq*>(dsq));
-          return dsq;
-        }
-    }
-  res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(double)) MomDoubleSq(darr,sz,h);
-  curmap.insert({h,res});
-  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
-    {
-      curmap.reserve(9*curmap.size()/8 + 5);
-    }
-  return res;
+  unsigned slotix = slotindex(h);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> _gu(curbag._bag_mtx);
+  return curbag.unsync_bag_make_from_hash
+         (h,
+          mom_align((sz-MOM_FLEXIBLE_DIM)*sizeof(double)),
+          darr, sz);
 } // end MomDoubleSq::make_from_array
 
 std::mutex*
 MomDoubleSq::valmtx() const
 {
-  return _mtxarr_+slotindex(hash());
+  return &_bagarr_[slotindex(hash())]._bag_mtx;
 } // end MomDoubleSq::valmtx
 
 
@@ -230,50 +208,11 @@ MomDoubleSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 {
   MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_slot invalid slotix=" << slotix);
   MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_slot start slotix=" << slotix);
-  std::lock_guard<std::mutex> gu(_mtxarr_[slotix]);
-  unsigned chcnt = 0;
-  unsigned chunkix=0;
-  std::array<MomDoubleSq*,_chunklen_> arrptr;
-  for (auto p : _maparr_[slotix])
-    {
-      if (chcnt>=_chunklen_)
-        {
-          gc->add_todo([=](MomGC*thisgc)
-          {
-            gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
-          });
-          chunkix++;
-          chcnt=0;
-        }
-      arrptr[chcnt++] = const_cast<MomDoubleSq*>(p.second);
-    }
-  if (chcnt>0)
-    {
-      gc->add_todo([=](MomGC*thisgc)
-      {
-        gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
-      });
-      chunkix++;
-    }
-  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_slot end slotix=" << slotix
-               << " last chunkix=" << chunkix);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> gu(curbag._bag_mtx);
+  curbag.unsync_bag_gc_clear_marks(gc);
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_slot end slotix=" << slotix);
 } // end MomDoubleSq::gc_todo_clear_mark_slot
-
-void
-MomDoubleSq::gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomDoubleSq*,_chunklen_> arrptr)
-{
-  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_chunk invalid slotix=" << slotix);
-  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_chunk start slotix=" << slotix
-               << " chunkix=" << chunkix);
-  /// we don't need to lock any mutex
-  for (MomDoubleSq*pis : arrptr)
-    {
-      if (!pis) break;
-      pis->gc_set_mark(gc,false);
-    }
-  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_chunk end slotix=" << slotix
-               << " chunkix=" << chunkix);
-}
 
 ////////////////////////////////////////////////////////////////
 MomString::PtrBag<MomString> MomString::_bagarr_[MomString::_swidth_];

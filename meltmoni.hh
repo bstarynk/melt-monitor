@@ -1423,19 +1423,16 @@ public:
 class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
 {
   friend class MomGC;
+  friend class PtrBag<MomDoubleSq>;
   const double _dvalarr[MOM_FLEXIBLE_DIM];
   MomDoubleSq(const double* iarr, MomSize sz, MomHash h);
   static constexpr const int _swidth_ = 128;
-  static constexpr const unsigned _chunklen_ = 256;
-  static std::mutex _mtxarr_[_swidth_];
-  static std::unordered_multimap<MomHash,const MomDoubleSq*> _maparr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2317057)) % _swidth_;
   };
+  static PtrBag<MomDoubleSq>  _bagarr_[_swidth_];
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
-  static void gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomDoubleSq*,_chunklen_> arrptr);
-public:
   static void gc_todo_clear_marks(MomGC*gc);
 public:
   const double *begin() const
