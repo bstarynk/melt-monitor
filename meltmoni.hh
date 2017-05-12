@@ -1073,10 +1073,26 @@ public:
   static constexpr size_t _alignment = 2*sizeof(void*);
   static constexpr std::uint32_t MARK_BIT = 1U<<27;
   static constexpr std::uint32_t GREY_BIT = 1U<<28;
-  template <typename AnyValType> struct PtrBag
+  template <class AnyValType> struct PtrBag
   {
     std::mutex _bag_mtx;
-    std::unordered_multimap<MomHash,AnyValType*> _bag_map;
+    typedef std::unordered_multimap<MomHash,AnyValType*> BagMultiMap_ty;
+    BagMultiMap_ty _bag_map;
+    static constexpr unsigned _bag_minbuckcount_ = 16;
+    size_t unsync_bucket_index(MomHash h) const
+    {
+      return _bag_map.bucket(h);
+    };
+    auto unsync_bucket_begin(size_t buckix) const
+    {
+      return _bag_map.begin(buckix);
+    };
+    auto unsync_bucket_end(size_t buckix) const
+    {
+      return _bag_map.end(buckix);
+    };
+    template <typename ... MakePack>
+    inline const AnyValType* unsync_make_from_hash(MomHash h, unsigned gap, MakePack... args);
 #warning PtrBag incomplete and not yet used
   };				// end PtrBag
 private:
@@ -2523,11 +2539,45 @@ class MomGC
 public:
   static MomGC the_garbcoll;
   static void incremental_run(void);
-  void scan_anyval(MomAnyVal*);
+  void scan_anyval(const MomAnyVal*);
   void scan_value(const MomValue);
   void scan_object(MomObject*);
   void add_todo(std::function<void(MomGC*)>);
 };				// end class MomGC
+
+
+////////////////
+
+template <class AnyValType>
+template <typename ... MakePack>
+const AnyValType* MomAnyVal::PtrBag<AnyValType>::unsync_make_from_hash(MomHash h, unsigned gap, MakePack... args)
+{
+  AnyValType* res = nullptr;
+  if (MOM_UNLIKELY(_bag_map.bucket_count() < _bag_minbuckcount_))
+    _bag_map.rehash(_bag_minbuckcount_);
+  MOM_ASSERT(h != 0, "unsync_make_from_hash zero h");
+  size_t buckix = _bag_map.bucket(h);
+  auto buckbeg = _bag_map.begin(buckix);
+  auto buckend = _bag_map.end(buckix);
+  for (auto it = buckbeg; it != buckend; it++)
+    {
+      if (it->first != h)
+        continue;
+      const AnyValType* aval = it->second;
+      MOM_ASSERT(aval != nullptr,
+                 "unsync_make_from_hash null aval in buckix=" << buckix);
+      if (MOM_UNLIKELY(aval->has_content(args...)))
+        {
+          MomGC::the_garbcoll.scan_anyval(aval);
+          return aval;
+        }
+    };
+  res = new(mom_newtg, mom_align(gap)) AnyValType(args..., h);
+  _bag_map.insert({h,res});
+  if (MOM_UNLIKELY(MomRandom::random_32u() % _bag_minbuckcount_ == 0))
+    _bag_map.reserve(9*_bag_map.size()/8 + 5);
+  return res;
+}
 
 ////////////////////////////////////////////////////////////////
 void
