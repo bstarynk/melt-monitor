@@ -1357,18 +1357,16 @@ MomValue::hash() const
 class MomIntSq final : public MomAnyVal   // in scalarv.cc
 {
   friend class MomGC;
+  friend class PtrBag<MomIntSq>;
   const intptr_t _ivalarr[MOM_FLEXIBLE_DIM];
   MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h);
   static constexpr const int _swidth_ = 256;
-  static std::mutex _mtxarr_[_swidth_];
-  static std::unordered_multimap<MomHash,const MomIntSq*> _maparr_[_swidth_];
+  static PtrBag<MomIntSq>  _bagarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2316179)) % _swidth_;
   };
-  static constexpr const int _chunklen_ = 512;
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
-  static void gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomIntSq*,_chunklen_> arrptr);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
   intptr_t unsafe_at(unsigned ix) const
@@ -1506,7 +1504,7 @@ class MomString final : public MomAnyVal   // in scalarv.cc
     return (h ^ (h / 2318021)) % _swidth_;
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
-  bool has_content(const char*cstr, unsigned sz, unsigned bylen) const
+  bool has_content(const char*cstr, unsigned sz MOM_UNUSED, unsigned bylen) const
   {
     return has_cstr_content(cstr, bylen);
   }
