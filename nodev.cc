@@ -1,4 +1,4 @@
-// file nodev.cc - scalar values
+// file nodev.cc - node values
 
 /**   Copyright (C)  2017  Basile Starynkevitch and later the FSF
     MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -20,8 +20,9 @@
 
 #include "meltmoni.hh"
 
-std::mutex MomNode::_mtxarr_[MomNode::_swidth_];
-std::unordered_multimap<MomHash,const MomNode*> MomNode::_maparr_[MomNode::_swidth_];
+
+MomNode::PtrBag<MomNode> MomNode::_bagarr_[MomNode::_swidth_];
+
 
 MomHash
 MomNode::compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz)
@@ -63,34 +64,15 @@ MomNode::compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz)
 const MomNode*
 MomNode::make_from_array(const MomObject*conn, const MomValue*varr, MomSize sz)
 {
-  MomNode*res = nullptr;
   MomHash h = compute_hash(conn,varr,sz);
-  unsigned ix = slotindex(h);
-  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
-  constexpr unsigned minbuckcount = 16;
-  auto& curmap = _maparr_[ix];
-  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
-    curmap.rehash(minbuckcount);
-  size_t buckix = curmap.bucket(h);
-  auto buckbeg = curmap.begin(buckix);
-  auto buckend = curmap.end(buckix);
-  for (auto it = buckbeg; it != buckend; it++)
-    {
-      if (it->first != h)
-        continue;
-      const MomNode*ind = it->second;
-      MOM_ASSERT(ind != nullptr, "null ind in buckix=" << buckix);
-      if (MOM_UNLIKELY(ind->has_content(conn, varr, sz)))
-        return ind;
-    }
-  res = new(mom_newtg, mom_align((sz-MOM_FLEXIBLE_DIM)*sizeof(MomValue))) MomNode(conn,varr,sz,h);
-  curmap.insert({h,res});
-  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
-    {
-      curmap.reserve(9*curmap.size()/8 + 5);
-    }
-  return res;
+  unsigned slotix = slotindex(h);
+  auto& curbag = _bagarr_[slotix];
+  return curbag.unsync_bag_make_from_hash
+         (h,
+          mom_align((sz-MOM_FLEXIBLE_DIM)*sizeof(MomValue*)),
+          conn, varr, sz);
 } // end MomNode::make_from_array
+
 
 
 void
@@ -112,51 +94,11 @@ MomNode::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 {
   MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_slot invalid slotix=" << slotix);
   MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_clear_mark_slot start slotix=" << slotix);
-  std::lock_guard<std::mutex> gu(_mtxarr_[slotix]);
-  unsigned chcnt = 0;
-  unsigned chunkix=0;
-  std::array<MomNode*,_chunklen_> arrptr;
-  for (auto p : _maparr_[slotix])
-    {
-      if (chcnt>=_chunklen_)
-        {
-          gc->add_todo([=](MomGC*thisgc)
-          {
-            gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
-          });
-          chunkix++;
-          chcnt=0;
-        }
-      arrptr[chcnt++] = const_cast<MomNode*>(p.second);
-    }
-  if (chcnt>0)
-    {
-      gc->add_todo([=](MomGC*thisgc)
-      {
-        gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
-      });
-      chunkix++;
-    }
-  MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_clear_mark_slot end slotix=" << slotix
-               << " last chunkix=" << chunkix);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> gu(curbag._bag_mtx);
+  curbag.unsync_bag_gc_clear_marks(gc);
+  MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_clear_mark_slot end slotix=" << slotix);
 } // end MomNode::gc_todo_clear_mark_slot
-
-void
-MomNode::gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomNode*,_chunklen_> arrptr)
-{
-  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_chunk invalid slotix=" << slotix);
-  MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_clear_mark_chunk start slotix=" << slotix
-               << " chunkix=" << chunkix);
-  /// we don't need to lock any mutex
-  for (MomNode*pis : arrptr)
-    {
-      if (!pis) break;
-      pis->gc_set_mark(gc,false);
-    }
-  MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_clear_mark_chunk end slotix=" << slotix
-               << " chunkix=" << chunkix);
-} // end MomNode::gc_todo_clear_mark_chunk
-
 
 
 void
@@ -172,5 +114,5 @@ MomNode::scan_gc(MomGC*gc)const
 std::mutex*
 MomNode::valmtx() const
 {
-  return _mtxarr_+slotindex(hash());
+  return &_bagarr_[slotindex(hash())]._bag_mtx;
 } // end MomNode::valmtx

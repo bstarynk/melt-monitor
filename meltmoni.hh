@@ -1731,6 +1731,7 @@ public:
 ////////////////////////////////////////////////////////////////
 class MomNode final : public MomAnyVal // in nodev.cc
 {
+  friend class PtrBag<MomNode>;
   const MomObject* const _nod_conn;
   const MomValue _nod_sons[MOM_FLEXIBLE_DIM];
   MomNode(const MomObject*conn, const MomValue*sons, unsigned arity, MomHash h)
@@ -1739,15 +1740,12 @@ class MomNode final : public MomAnyVal // in nodev.cc
     memcpy (const_cast<MomValue*>(_nod_sons), sons, arity * sizeof(MomValue));
   };
   static constexpr const int _swidth_ = 512;
-  static constexpr const unsigned _chunklen_ = 512;
-  static std::mutex _mtxarr_[_swidth_];
-  static std::unordered_multimap<MomHash,const MomNode*> _maparr_[_swidth_];
+  static PtrBag<MomNode>  _bagarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h /3500183)) % _swidth_;
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
-  static void gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomNode*,_chunklen_> arrptr);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
 public:
