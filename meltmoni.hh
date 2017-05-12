@@ -1093,6 +1093,7 @@ public:
     };
     template <typename ... MakePack>
     inline const AnyValType* unsync_make_from_hash(MomHash h, unsigned gap, MakePack... args);
+    inline void unsync_gc_clear_marks_bag(MomGC*gc);
 #warning PtrBag incomplete and not yet used
   };				// end PtrBag
 private:
@@ -2577,7 +2578,21 @@ const AnyValType* MomAnyVal::PtrBag<AnyValType>::unsync_make_from_hash(MomHash h
   if (MOM_UNLIKELY(MomRandom::random_32u() % _bag_minbuckcount_ == 0))
     _bag_map.reserve(9*_bag_map.size()/8 + 5);
   return res;
-}
+} // end MomAnyVal::PtrBag<AnyValType>::unsync_make_from_hash
+
+
+
+template <class AnyValType>
+void
+MomAnyVal::PtrBag<AnyValType>::unsync_gc_clear_marks_bag(MomGC*gc)
+{
+  for (auto it : _bag_map)
+    {
+      AnyValType* ptr = it->second;
+      MOM_ASSERT(ptr != nullptr, "unsync_gc_clear_marks_bag null ptr");
+      ptr->gc_set_mark(gc,false);
+    }
+} // end MomAnyVal::PtrBag<AnyValType>::unsync_gc_clear_marks_bag
 
 ////////////////////////////////////////////////////////////////
 void
