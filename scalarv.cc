@@ -397,36 +397,13 @@ MomString::make_from_cstr(const char*cstr)
   MomSize sz = 0;
   uint32_t bylen = 0;
   MomHash h = compute_hash_dim(cstr, &sz, &bylen);
-  MomString* res = nullptr;
-  unsigned ix = slotindex(h);
-  auto& curbag = _bagarr_[ix];
-  std::lock_guard<std::mutex> _gu(curbag._bag_mtx);
-  constexpr unsigned minbuckcount = 16;
-  auto& curmap = curbag._bag_map;
-  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
-    curmap.rehash(minbuckcount);
-  size_t buckix = curmap.bucket(h);
-  auto buckbeg = curmap.begin(buckix);
-  auto buckend = curmap.end(buckix);
-  for (auto it = buckbeg; it != buckend; it++)
-    {
-      if (it->first != h)
-        continue;
-      const MomString*strv = it->second;
-      MOM_ASSERT(strv != nullptr, "null strv in buckix=" << buckix);
-      if (MOM_UNLIKELY(strv->has_cstr_content(cstr, bylen)))
-        {
-          MomGC::the_garbcoll.scan_anyval(const_cast<MomString*>(strv));
-          return strv;
-        }
-    }
-  res = new (mom_newtg, ((bylen+MOM_FLEXIBLE_DIM+1)|7)+1) MomString(cstr,sz,bylen,h);
-  curmap.insert({h,res});
-  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
-    {
-      curmap.reserve(9*curmap.size()/8 + 5);
-    }
-  return res;
+  unsigned slotix = slotindex(h);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> gu(curbag._bag_mtx);
+  return curbag.unsync_bag_make_from_hash
+         (h,
+          mom_align(sizeof(MomString)-bylen-MOM_FLEXIBLE_DIM),
+          cstr, sz, bylen);
 } // end MomString::make_from_cstr
 
 

@@ -1495,6 +1495,7 @@ public:
 class MomString final : public MomAnyVal   // in scalarv.cc
 {
   friend class MomGC;
+  friend class PtrBag<MomString>;
   const uint32_t _bylen;
   const char _bstr[MOM_FLEXIBLE_DIM];
   MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h);
@@ -1505,6 +1506,10 @@ class MomString final : public MomAnyVal   // in scalarv.cc
     return (h ^ (h / 2318021)) % _swidth_;
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  bool has_content(const char*cstr, unsigned sz, unsigned bylen) const
+  {
+    return has_cstr_content(cstr, bylen);
+  }
 public:
   static void gc_todo_clear_marks(MomGC*gc);
 public:
