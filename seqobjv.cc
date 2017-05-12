@@ -145,8 +145,8 @@ MomSet::valmtx() const
 
 //////////////// tuples
 
-std::mutex MomTuple::_mtxarr_[MomTuple::_swidth_];
-std::unordered_multimap<MomHash,const MomTuple*> MomTuple::_maparr_[MomTuple::_swidth_];
+MomTuple::PtrBag<MomTuple> MomTuple::_bagarr_[MomTuple::_swidth_];
+
 
 
 MomHash
@@ -164,35 +164,12 @@ const MomTuple*
 MomTuple::make_from_array(MomObject*const* obarr, MomSize sz)
 {
   MomHash h = compute_hash(obarr, sz);
-  MomTuple* res = nullptr;
-  unsigned ix = slotindex(h);
-  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
-  constexpr unsigned minbuckcount = 16;
-  auto& curmap = _maparr_[ix];
-  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
-    curmap.rehash(minbuckcount);
-  size_t buckix = curmap.bucket(h);
-  auto buckbeg = curmap.begin(buckix);
-  auto buckend = curmap.end(buckix);
-  for (auto it = buckbeg; it != buckend; it++)
-    {
-      if (it->first != h)
-        continue;
-      const MomTuple*ituple = it->second;
-      MOM_ASSERT(ituple != nullptr, "null ituple in buckix=" << buckix);
-      if (MOM_UNLIKELY(ituple->has_content(obarr, sz)))
-        {
-          MomGC::the_garbcoll.scan_anyval(const_cast<MomTuple*>(ituple));
-          return ituple;
-        }
-    }
-  res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomTuple(obarr,sz,h);
-  curmap.insert({h,res});
-  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
-    {
-      curmap.reserve(9*curmap.size()/8 + 5);
-    }
-  return res;
+  unsigned slotix = slotindex(h);
+  auto& curbag = _bagarr_[slotix];
+  return curbag.unsync_bag_make_from_hash
+         (h,
+          mom_align((sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)),
+          obarr, sz);
 } // end MomTuple::make_from_array
 
 void
@@ -214,54 +191,15 @@ MomTuple::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 {
   MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_slot invalid slotix=" << slotix);
   MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_mark_slot start slotix=" << slotix);
-  std::lock_guard<std::mutex> gu(_mtxarr_[slotix]);
-  unsigned chcnt = 0;
-  unsigned chunkix=0;
-  std::array<MomTuple*,_chunklen_> arrptr;
-  for (auto p : _maparr_[slotix])
-    {
-      if (chcnt>=_chunklen_)
-        {
-          gc->add_todo([=](MomGC*thisgc)
-          {
-            gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
-          });
-          chunkix++;
-          chcnt=0;
-        }
-      arrptr[chcnt++] = const_cast<MomTuple*>(p.second);
-    }
-  if (chcnt>0)
-    {
-      gc->add_todo([=](MomGC*thisgc)
-      {
-        gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
-      });
-      chunkix++;
-    }
-  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_mark_slot end slotix=" << slotix
-               << " last chunkix=" << chunkix);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> gu(curbag._bag_mtx);
+  curbag.unsync_bag_gc_clear_marks(gc);
+  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_mark_slot end slotix=" << slotix);
 } // end MomTuple::gc_todo_clear_mark_slot
-
-void
-MomTuple::gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomTuple*,_chunklen_> arrptr)
-{
-  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_chunk invalid slotix=" << slotix);
-  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_mark_chunk start slotix=" << slotix
-               << " chunkix=" << chunkix);
-  /// we don't need to lock any mutex
-  for (MomTuple*pis : arrptr)
-    {
-      if (!pis) break;
-      pis->gc_set_mark(gc,false);
-    }
-  MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_mark_chunk end slotix=" << slotix
-               << " chunkix=" << chunkix);
-} // end MomTuple::gc_todo_clear_mark_chunk
 
 
 std::mutex*
 MomTuple::valmtx() const
 {
-  return _mtxarr_+slotindex(hash());
+  return &_bagarr_[slotindex(hash())]._bag_mtx;
 } // end MomTuple::valmtx
