@@ -1636,15 +1636,15 @@ public:
 ////////////////////////////////////////////////////////////////
 class MomSet : public MomAnyObjSeq
 {
+  friend class MomGC;
+  friend class PtrBag<MomSet>;
   static constexpr unsigned hinit = 123017;
   static constexpr unsigned k1 = 103049;
   static constexpr unsigned k2 = 13063;
   static constexpr unsigned k3 = 143093;
   static constexpr unsigned k4 = 14083;
   static constexpr const int _swidth_ = 256;
-  static constexpr const unsigned _chunklen_ = 256;
-  static std::mutex _mtxarr_[_swidth_];
-  static std::unordered_multimap<MomHash,const MomSet*> _maparr_[_swidth_];
+  static PtrBag<MomSet>  _bagarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2325097)) % _swidth_;
@@ -1652,7 +1652,6 @@ class MomSet : public MomAnyObjSeq
   MomSet(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagSetK, obarr,sz, h) {};
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
-  static void gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomSet*,_chunklen_> arrptr);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
 public:

@@ -70,9 +70,7 @@ MomAnyObjSeq::MomAnyObjSeq(MomKind kd, MomObject*const* obarr, MomSize sz, MomHa
 
 
 //////////////// sets
-
-std::mutex MomSet::_mtxarr_[MomSet::_swidth_];
-std::unordered_multimap<MomHash,const MomSet*> MomSet::_maparr_[MomSet::_swidth_];
+MomSet::PtrBag<MomSet> MomSet::_bagarr_[MomSet::_swidth_];
 
 MomHash
 MomSet::compute_hash(MomObject*const* obarr, unsigned sz)
@@ -104,92 +102,23 @@ MomSet::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 {
   MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_slot invalid slotix=" << slotix);
   MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_slot start slotix=" << slotix);
-  std::lock_guard<std::mutex> gu(_mtxarr_[slotix]);
-  unsigned chcnt = 0;
-  unsigned chunkix=0;
-  std::array<MomSet*,_chunklen_> arrptr;
-  for (auto p : _maparr_[slotix])
-    {
-      if (chcnt>=_chunklen_)
-        {
-          gc->add_todo([=](MomGC*thisgc)
-          {
-            gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
-          });
-          chunkix++;
-          chcnt=0;
-        }
-      arrptr[chcnt++] = const_cast<MomSet*>(p.second);
-    }
-  if (chcnt>0)
-    {
-      gc->add_todo([=](MomGC*thisgc)
-      {
-        gc_todo_clear_mark_chunk(thisgc,slotix,chunkix,arrptr);
-      });
-      chunkix++;
-    }
-  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_slot end slotix=" << slotix
-               << " last chunkix=" << chunkix);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> gu(curbag._bag_mtx);
+  curbag.unsync_bag_gc_clear_marks(gc);
+  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_slot end slotix=" << slotix);
 } // end MomSet::gc_todo_clear_mark_slot
 
-void
-MomSet::gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomSet*,_chunklen_> arrptr)
-{
-  MOM_ASSERT(slotix<_swidth_, "gc_todo_clear_mark_chunk invalid slotix=" << slotix);
-  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_chunk start slotix=" << slotix
-               << " chunkix=" << chunkix);
-  /// we don't need to lock any mutex
-  for (MomSet*pis : arrptr)
-    {
-      if (!pis) break;
-      pis->gc_set_mark(gc,false);
-    }
-  MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_chunk end slotix=" << slotix
-               << " chunkix=" << chunkix);
-} // end MomSet::gc_todo_clear_mark_chunk
 
 const MomSet*
 MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
 {
   MomHash h = compute_hash(obarr, sz);
-  MomSet* res = nullptr;
-  for (unsigned ix=1; ix<sz; ix++)
-    {
-      const MomObject*curob = obarr[ix];
-      const MomObject*prevob = obarr[ix-1];
-      if (MOM_UNLIKELY(!prevob->less(curob)))
-        MOM_FAILURE("MomSet::make_from_ascending_array bad order at ix="
-                    << ix);
-    }
-  unsigned ix = slotindex(h);
-  std::lock_guard<std::mutex> _gu(_mtxarr_[ix]);
-  constexpr unsigned minbuckcount = 16;
-  auto& curmap = _maparr_[ix];
-  if (MOM_UNLIKELY(curmap.bucket_count() < minbuckcount))
-    curmap.rehash(minbuckcount);
-  size_t buckix = curmap.bucket(h);
-  auto buckbeg = curmap.begin(buckix);
-  auto buckend = curmap.end(buckix);
-  for (auto it = buckbeg; it != buckend; it++)
-    {
-      if (it->first != h)
-        continue;
-      const MomSet*iset = it->second;
-      MOM_ASSERT(iset != nullptr, "null iset in buckix=" << buckix);
-      if (MOM_UNLIKELY(iset->has_content(obarr, sz)))
-        {
-          MomGC::the_garbcoll.scan_anyval(const_cast<MomSet*>(iset));
-          return iset;
-        }
-    }
-  res = new(mom_newtg, (sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)) MomSet(obarr,sz,h);
-  curmap.insert({h,res});
-  if (MOM_UNLIKELY(MomRandom::random_32u() % minbuckcount == 0))
-    {
-      curmap.reserve(9*curmap.size()/8 + 5);
-    }
-  return res;
+  unsigned slotix = slotindex(h);
+  auto& curbag = _bagarr_[slotix];
+  return curbag.unsync_bag_make_from_hash
+         (h,
+          mom_align((sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)),
+          obarr, sz);
 } // end MomSet::make_from_ascending_array
 
 const MomSet*
@@ -208,8 +137,11 @@ MomSet::make_from_objptr_set(const MomObjptrSet&oset)
 std::mutex*
 MomSet::valmtx() const
 {
-  return _mtxarr_+slotindex(hash());
+  return &_bagarr_[slotindex(hash())]._bag_mtx;
 } // end MomSet::valmtx
+
+
+
 
 //////////////// tuples
 
