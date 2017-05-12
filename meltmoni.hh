@@ -1079,21 +1079,21 @@ public:
     typedef std::unordered_multimap<MomHash,AnyValType*> BagMultiMap_ty;
     BagMultiMap_ty _bag_map;
     static constexpr unsigned _bag_minbuckcount_ = 16;
-    size_t unsync_bucket_index(MomHash h) const
+    size_t unsync_bag_bucket_index(MomHash h) const
     {
       return _bag_map.bucket(h);
     };
-    auto unsync_bucket_begin(size_t buckix) const
+    auto unsync_bag_bucket_begin(size_t buckix) const
     {
       return _bag_map.begin(buckix);
     };
-    auto unsync_bucket_end(size_t buckix) const
+    auto unsync_bag_bucket_end(size_t buckix) const
     {
       return _bag_map.end(buckix);
     };
     template <typename ... MakePack>
-    inline const AnyValType* unsync_make_from_hash(MomHash h, unsigned gap, MakePack... args);
-    inline void unsync_gc_clear_marks_bag(MomGC*gc);
+    inline const AnyValType* unsync_bag_make_from_hash(MomHash h, unsigned gap, MakePack... args);
+    inline void unsync_bag_gc_clear_marks(MomGC*gc);
 #warning PtrBag incomplete and not yet used
   };				// end PtrBag
 private:
@@ -1499,15 +1499,12 @@ class MomString final : public MomAnyVal   // in scalarv.cc
   const char _bstr[MOM_FLEXIBLE_DIM];
   MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h);
   static constexpr const int _swidth_ = 256;
-  static constexpr const unsigned _chunklen_ = 512;
-  static std::mutex _mtxarr_[_swidth_];
+  static PtrBag<MomString>  _bagarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2318021)) % _swidth_;
   };
-  static std::unordered_multimap<MomHash,const MomString*> _maparr_[_swidth_];
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
-  static void gc_todo_clear_mark_chunk(MomGC*gc,unsigned slotix, unsigned chunkix, std::array<MomString*,_chunklen_> arrptr);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
 public:
@@ -2551,7 +2548,7 @@ public:
 
 template <class AnyValType>
 template <typename ... MakePack>
-const AnyValType* MomAnyVal::PtrBag<AnyValType>::unsync_make_from_hash(MomHash h, unsigned gap, MakePack... args)
+const AnyValType* MomAnyVal::PtrBag<AnyValType>::unsync_bag_make_from_hash(MomHash h, unsigned gap, MakePack... args)
 {
   AnyValType* res = nullptr;
   if (MOM_UNLIKELY(_bag_map.bucket_count() < _bag_minbuckcount_))
@@ -2584,11 +2581,11 @@ const AnyValType* MomAnyVal::PtrBag<AnyValType>::unsync_make_from_hash(MomHash h
 
 template <class AnyValType>
 void
-MomAnyVal::PtrBag<AnyValType>::unsync_gc_clear_marks_bag(MomGC*gc)
+MomAnyVal::PtrBag<AnyValType>::unsync_bag_gc_clear_marks(MomGC*gc)
 {
   for (auto it : _bag_map)
     {
-      AnyValType* ptr = it->second;
+      AnyValType* ptr = it.second;
       MOM_ASSERT(ptr != nullptr, "unsync_gc_clear_marks_bag null ptr");
       ptr->gc_set_mark(gc,false);
     }
