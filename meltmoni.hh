@@ -1094,7 +1094,7 @@ public:
     template <typename ... MakePack>
     inline const AnyValType* unsync_bag_make_from_hash(MomHash h, unsigned gap, MakePack... args);
     inline void unsync_bag_gc_clear_marks(MomGC*gc);
-#warning PtrBag incomplete and not yet used
+    inline void unsync_bag_gc_delete_unmarked_values(MomGC*gc);
   };				// end PtrBag
 private:
   static thread_local bool _allocok;
@@ -2585,6 +2585,24 @@ MomAnyVal::PtrBag<AnyValType>::unsync_bag_gc_clear_marks(MomGC*gc)
       ptr->gc_set_mark(gc,false);
     }
 } // end MomAnyVal::PtrBag<AnyValType>::unsync_gc_clear_marks_bag
+
+template <class AnyValType>
+void
+MomAnyVal::PtrBag<AnyValType>::unsync_bag_gc_delete_unmarked_values(MomGC*gc)
+{
+  for (auto it = _bag_map.begin(); it != _bag_map.end(); )
+    {
+      AnyValType*curv = it->second;
+      if (curv && !curv->gc_mark(gc))
+        {
+          it->second = nullptr;
+          delete curv;
+          it = _bag_map.erase(it);
+        }
+      else
+        ++it;
+    };
+} // end MomAnyVal::PtrBag<AnyValType>::unsync_bag_gc_delete_unmarked_values
 
 ////////////////////////////////////////////////////////////////
 void
