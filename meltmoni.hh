@@ -1366,6 +1366,7 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
   {
     return (h ^ (h / 2316179)) % _swidth_;
   };
+  static std::atomic<unsigned> _nbclearedbags_;
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
@@ -1432,6 +1433,7 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
     return (h ^ (h / 2317057)) % _swidth_;
   };
   static MomPtrBag<MomDoubleSq>  _bagarr_[_swidth_];
+  static std::atomic<unsigned> _nbclearedbags_;
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
   static void gc_todo_clear_marks(MomGC*gc);
 public:
@@ -1496,6 +1498,7 @@ class MomString final : public MomAnyVal   // in scalarv.cc
   MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h);
   static constexpr const int _swidth_ = 256;
   static MomPtrBag<MomString>  _bagarr_[_swidth_];
+  static std::atomic<unsigned> _nbclearedbags_;
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2318021)) % _swidth_;
@@ -1649,6 +1652,7 @@ class MomSet : public MomAnyObjSeq
   {
     return (h ^ (h / 2325097)) % _swidth_;
   };
+  static std::atomic<unsigned> _nbclearedbags_;
   MomSet(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagSetK, obarr,sz, h) {};
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
@@ -1700,6 +1704,7 @@ class MomTuple : public MomAnyObjSeq
     return (h ^ (h / 2327183)) % _swidth_;
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static std::atomic<unsigned> _nbclearedbags_;
 public:
   static void gc_todo_clear_marks(MomGC*gc);
 public:
@@ -1741,6 +1746,7 @@ class MomNode final : public MomAnyVal // in nodev.cc
   };
   static constexpr const int _swidth_ = 512;
   static MomPtrBag<MomNode>  _bagarr_[_swidth_];
+  static std::atomic<unsigned> _nbclearedbags_;
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h /3500183)) % _swidth_;

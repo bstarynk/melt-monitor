@@ -22,7 +22,7 @@
 
 
 MomNode::MomPtrBag<MomNode> MomNode::_bagarr_[MomNode::_swidth_];
-
+std::atomic<unsigned> MomNode::_nbclearedbags_;
 
 MomHash
 MomNode::compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz)
@@ -79,10 +79,12 @@ void
 MomNode::gc_todo_clear_marks(MomGC* gc)
 {
   MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_clear_marks start");
+  _nbclearedbags_.store(0);
   for (unsigned ix=0; ix<_swidth_; ix++)
     gc->add_todo([=](MomGC*thisgc)
     {
       gc_todo_clear_mark_slot(thisgc,ix);
+      _nbclearedbags_.fetch_add(1);
     });
   MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_clear_marks end");
 } // end MomNode::gc_todo_clear_marks

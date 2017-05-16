@@ -24,6 +24,7 @@
 std::atomic<std::uint64_t> MomAnyVal::_wordalloca;
 
 MomIntSq::MomPtrBag<MomIntSq> MomIntSq::_bagarr_[MomIntSq::_swidth_];
+std::atomic<unsigned> MomIntSq::_nbclearedbags_;
 
 MomIntSq::MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h)
   : MomAnyVal(MomKind::TagIntSqK, sz, h),
@@ -86,10 +87,12 @@ void
 MomIntSq::gc_todo_clear_marks(MomGC* gc)
 {
   MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_clear_marks start");
+  _nbclearedbags_.store(0);
   for (unsigned ix=0; ix<_swidth_; ix++)
     gc->add_todo([=](MomGC*thisgc)
     {
       gc_todo_clear_mark_slot(thisgc,ix);
+      _nbclearedbags_.fetch_add(1);
     });
   MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_clear_marks end");
 } // end MomIntSq::gc_todo_clear_marks
@@ -108,6 +111,7 @@ MomIntSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 ////////////////////////////////////////////////////////////////
 
 MomDoubleSq::MomPtrBag<MomDoubleSq> MomDoubleSq::_bagarr_[MomDoubleSq::_swidth_];
+std::atomic<unsigned> MomDoubleSq::_nbclearedbags_;
 
 MomDoubleSq::MomDoubleSq(const double* darr, MomSize sz, MomHash h)
   : MomAnyVal(MomKind::TagDoubleSqK, sz, h),
@@ -195,10 +199,12 @@ void
 MomDoubleSq::gc_todo_clear_marks(MomGC* gc)
 {
   MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_marks start");
+  _nbclearedbags_.store(0);
   for (unsigned ix=0; ix<_swidth_; ix++)
     gc->add_todo([=](MomGC*thisgc)
     {
       gc_todo_clear_mark_slot(thisgc,ix);
+      _nbclearedbags_.fetch_add(1);
     });
   MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_marks end");
 } // end MomDoubleSq::gc_todo_clear_marks
@@ -216,6 +222,8 @@ MomDoubleSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 
 ////////////////////////////////////////////////////////////////
 MomString::MomPtrBag<MomString> MomString::_bagarr_[MomString::_swidth_];
+std::atomic<unsigned> MomString::_nbclearedbags_;
+
 
 MomHash
 MomString::compute_hash_dim(const char*cstr, MomSize*psiz, uint32_t*pbylen)
@@ -322,10 +330,12 @@ void
 MomString::gc_todo_clear_marks(MomGC* gc)
 {
   MOM_DEBUGLOG(garbcoll, "MomString::gc_todo_clear_marks start");
+  _nbclearedbags_.store(0);
   for (unsigned ix=0; ix<_swidth_; ix++)
     gc->add_todo([=](MomGC*thisgc)
     {
       gc_todo_clear_mark_slot(thisgc,ix);
+      _nbclearedbags_.fetch_add(1);
     });
   MOM_DEBUGLOG(garbcoll, "MomString::gc_todo_clear_marks end");
 } // end MomString::gc_todo_clear_marks

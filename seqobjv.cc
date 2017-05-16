@@ -71,6 +71,7 @@ MomAnyObjSeq::MomAnyObjSeq(MomKind kd, MomObject*const* obarr, MomSize sz, MomHa
 
 //////////////// sets
 MomSet::MomPtrBag<MomSet> MomSet::_bagarr_[MomSet::_swidth_];
+std::atomic<unsigned> MomSet::_nbclearedbags_;
 
 MomHash
 MomSet::compute_hash(MomObject*const* obarr, unsigned sz)
@@ -87,10 +88,12 @@ void
 MomSet::gc_todo_clear_marks(MomGC* gc)
 {
   MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_marks start");
+  _nbclearedbags_.store(0);
   for (unsigned ix=0; ix<_swidth_; ix++)
     gc->add_todo([=](MomGC*thisgc)
     {
       gc_todo_clear_mark_slot(thisgc,ix);
+      _nbclearedbags_.fetch_add(1);
     });
   MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_marks end");
 } // end MomSet::gc_todo_clear_marks
@@ -146,8 +149,7 @@ MomSet::valmtx() const
 //////////////// tuples
 
 MomTuple::MomPtrBag<MomTuple> MomTuple::_bagarr_[MomTuple::_swidth_];
-
-
+std::atomic<unsigned> MomTuple::_nbclearedbags_;
 
 MomHash
 MomTuple::compute_hash(MomObject*const* obarr, unsigned sz)
@@ -176,10 +178,12 @@ void
 MomTuple::gc_todo_clear_marks(MomGC* gc)
 {
   MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_marks start");
+  _nbclearedbags_.store(0);
   for (unsigned ix=0; ix<_swidth_; ix++)
     gc->add_todo([=](MomGC*thisgc)
     {
       gc_todo_clear_mark_slot(thisgc,ix);
+      _nbclearedbags_.fetch_add(1);
     });
   MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_marks end");
 } // end MomTuple::gc_todo_clear_marks
