@@ -1073,7 +1073,7 @@ public:
   static constexpr size_t _alignment = 2*sizeof(void*);
   static constexpr std::uint32_t MARK_BIT = 1U<<27;
   static constexpr std::uint32_t GREY_BIT = 1U<<28;
-  template <class AnyValType> struct PtrBag
+  template <class AnyValType> struct MomPtrBag
   {
     std::mutex _bag_mtx;
     typedef std::unordered_multimap<MomHash,AnyValType*> BagMultiMap_ty;
@@ -1095,7 +1095,7 @@ public:
     inline const AnyValType* unsync_bag_make_from_hash(MomHash h, unsigned gap, MakePack... args);
     inline void unsync_bag_gc_clear_marks(MomGC*gc);
     inline void unsync_bag_gc_delete_unmarked_values(MomGC*gc);
-  };				// end PtrBag
+  };				// end MomPtrBag
 private:
   static thread_local bool _allocok;
   // we start with the vtable ptr, probably 64 bits
@@ -1357,11 +1357,11 @@ MomValue::hash() const
 class MomIntSq final : public MomAnyVal   // in scalarv.cc
 {
   friend class MomGC;
-  friend class PtrBag<MomIntSq>;
+  friend class MomPtrBag<MomIntSq>;
   const intptr_t _ivalarr[MOM_FLEXIBLE_DIM];
   MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h);
   static constexpr const int _swidth_ = 256;
-  static PtrBag<MomIntSq>  _bagarr_[_swidth_];
+  static MomPtrBag<MomIntSq>  _bagarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2316179)) % _swidth_;
@@ -1423,7 +1423,7 @@ public:
 class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
 {
   friend class MomGC;
-  friend class PtrBag<MomDoubleSq>;
+  friend class MomPtrBag<MomDoubleSq>;
   const double _dvalarr[MOM_FLEXIBLE_DIM];
   MomDoubleSq(const double* iarr, MomSize sz, MomHash h);
   static constexpr const int _swidth_ = 128;
@@ -1431,7 +1431,7 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
   {
     return (h ^ (h / 2317057)) % _swidth_;
   };
-  static PtrBag<MomDoubleSq>  _bagarr_[_swidth_];
+  static MomPtrBag<MomDoubleSq>  _bagarr_[_swidth_];
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
   static void gc_todo_clear_marks(MomGC*gc);
 public:
@@ -1490,12 +1490,12 @@ public:
 class MomString final : public MomAnyVal   // in scalarv.cc
 {
   friend class MomGC;
-  friend class PtrBag<MomString>;
+  friend class MomPtrBag<MomString>;
   const uint32_t _bylen;
   const char _bstr[MOM_FLEXIBLE_DIM];
   MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h);
   static constexpr const int _swidth_ = 256;
-  static PtrBag<MomString>  _bagarr_[_swidth_];
+  static MomPtrBag<MomString>  _bagarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2318021)) % _swidth_;
@@ -1637,14 +1637,14 @@ public:
 class MomSet : public MomAnyObjSeq
 {
   friend class MomGC;
-  friend class PtrBag<MomSet>;
+  friend class MomPtrBag<MomSet>;
   static constexpr unsigned hinit = 123017;
   static constexpr unsigned k1 = 103049;
   static constexpr unsigned k2 = 13063;
   static constexpr unsigned k3 = 143093;
   static constexpr unsigned k4 = 14083;
   static constexpr const int _swidth_ = 256;
-  static PtrBag<MomSet>  _bagarr_[_swidth_];
+  static MomPtrBag<MomSet>  _bagarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2325097)) % _swidth_;
@@ -1690,11 +1690,11 @@ class MomTuple : public MomAnyObjSeq
   static constexpr unsigned k2 = 35671;
   static constexpr unsigned k3 = 5693;
   static constexpr unsigned k4 = 56873;
-  friend class PtrBag<MomTuple>;
+  friend class MomPtrBag<MomTuple>;
   MomTuple(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagTupleK, obarr,sz, h) {};
   static constexpr const int _swidth_ = 256;
-  static PtrBag<MomTuple>  _bagarr_[_swidth_];
+  static MomPtrBag<MomTuple>  _bagarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2327183)) % _swidth_;
@@ -1731,7 +1731,7 @@ public:
 ////////////////////////////////////////////////////////////////
 class MomNode final : public MomAnyVal // in nodev.cc
 {
-  friend class PtrBag<MomNode>;
+  friend class MomPtrBag<MomNode>;
   const MomObject* const _nod_conn;
   const MomValue _nod_sons[MOM_FLEXIBLE_DIM];
   MomNode(const MomObject*conn, const MomValue*sons, unsigned arity, MomHash h)
@@ -1740,7 +1740,7 @@ class MomNode final : public MomAnyVal // in nodev.cc
     memcpy (const_cast<MomValue*>(_nod_sons), sons, arity * sizeof(MomValue));
   };
   static constexpr const int _swidth_ = 512;
-  static PtrBag<MomNode>  _bagarr_[_swidth_];
+  static MomPtrBag<MomNode>  _bagarr_[_swidth_];
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h /3500183)) % _swidth_;
@@ -2543,7 +2543,7 @@ public:
 
 template <class AnyValType>
 template <typename ... MakePack>
-const AnyValType* MomAnyVal::PtrBag<AnyValType>::unsync_bag_make_from_hash(MomHash h, unsigned gap, MakePack... args)
+const AnyValType* MomAnyVal::MomPtrBag<AnyValType>::unsync_bag_make_from_hash(MomHash h, unsigned gap, MakePack... args)
 {
   AnyValType* res = nullptr;
   if (MOM_UNLIKELY(_bag_map.bucket_count() < _bag_minbuckcount_))
@@ -2570,13 +2570,13 @@ const AnyValType* MomAnyVal::PtrBag<AnyValType>::unsync_bag_make_from_hash(MomHa
   if (MOM_UNLIKELY(MomRandom::random_32u() % _bag_minbuckcount_ == 0))
     _bag_map.reserve(9*_bag_map.size()/8 + 5);
   return res;
-} // end MomAnyVal::PtrBag<AnyValType>::unsync_make_from_hash
+} // end MomAnyVal::MomPtrBag<AnyValType>::unsync_make_from_hash
 
 
 
 template <class AnyValType>
 void
-MomAnyVal::PtrBag<AnyValType>::unsync_bag_gc_clear_marks(MomGC*gc)
+MomAnyVal::MomPtrBag<AnyValType>::unsync_bag_gc_clear_marks(MomGC*gc)
 {
   for (auto it : _bag_map)
     {
@@ -2584,11 +2584,11 @@ MomAnyVal::PtrBag<AnyValType>::unsync_bag_gc_clear_marks(MomGC*gc)
       MOM_ASSERT(ptr != nullptr, "unsync_gc_clear_marks_bag null ptr");
       ptr->gc_set_mark(gc,false);
     }
-} // end MomAnyVal::PtrBag<AnyValType>::unsync_gc_clear_marks_bag
+} // end MomAnyVal::MomPtrBag<AnyValType>::unsync_gc_clear_marks_bag
 
 template <class AnyValType>
 void
-MomAnyVal::PtrBag<AnyValType>::unsync_bag_gc_delete_unmarked_values(MomGC*gc)
+MomAnyVal::MomPtrBag<AnyValType>::unsync_bag_gc_delete_unmarked_values(MomGC*gc)
 {
   for (auto it = _bag_map.begin(); it != _bag_map.end(); )
     {
@@ -2602,7 +2602,7 @@ MomAnyVal::PtrBag<AnyValType>::unsync_bag_gc_delete_unmarked_values(MomGC*gc)
       else
         ++it;
     };
-} // end MomAnyVal::PtrBag<AnyValType>::unsync_bag_gc_delete_unmarked_values
+} // end MomAnyVal::MomPtrBag<AnyValType>::unsync_bag_gc_delete_unmarked_values
 
 ////////////////////////////////////////////////////////////////
 void

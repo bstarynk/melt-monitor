@@ -21,7 +21,7 @@
 #include "meltmoni.hh"
 
 
-MomNode::PtrBag<MomNode> MomNode::_bagarr_[MomNode::_swidth_];
+MomNode::MomPtrBag<MomNode> MomNode::_bagarr_[MomNode::_swidth_];
 
 
 MomHash

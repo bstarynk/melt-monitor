@@ -23,7 +23,7 @@
 
 std::atomic<std::uint64_t> MomAnyVal::_wordalloca;
 
-MomIntSq::PtrBag<MomIntSq> MomIntSq::_bagarr_[MomIntSq::_swidth_];
+MomIntSq::MomPtrBag<MomIntSq> MomIntSq::_bagarr_[MomIntSq::_swidth_];
 
 MomIntSq::MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h)
   : MomAnyVal(MomKind::TagIntSqK, sz, h),
@@ -107,7 +107,7 @@ MomIntSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 
 ////////////////////////////////////////////////////////////////
 
-MomDoubleSq::PtrBag<MomDoubleSq> MomDoubleSq::_bagarr_[MomDoubleSq::_swidth_];
+MomDoubleSq::MomPtrBag<MomDoubleSq> MomDoubleSq::_bagarr_[MomDoubleSq::_swidth_];
 
 MomDoubleSq::MomDoubleSq(const double* darr, MomSize sz, MomHash h)
   : MomAnyVal(MomKind::TagDoubleSqK, sz, h),
@@ -215,7 +215,7 @@ MomDoubleSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 } // end MomDoubleSq::gc_todo_clear_mark_slot
 
 ////////////////////////////////////////////////////////////////
-MomString::PtrBag<MomString> MomString::_bagarr_[MomString::_swidth_];
+MomString::MomPtrBag<MomString> MomString::_bagarr_[MomString::_swidth_];
 
 MomHash
 MomString::compute_hash_dim(const char*cstr, MomSize*psiz, uint32_t*pbylen)

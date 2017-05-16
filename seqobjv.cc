@@ -70,7 +70,7 @@ MomAnyObjSeq::MomAnyObjSeq(MomKind kd, MomObject*const* obarr, MomSize sz, MomHa
 
 
 //////////////// sets
-MomSet::PtrBag<MomSet> MomSet::_bagarr_[MomSet::_swidth_];
+MomSet::MomPtrBag<MomSet> MomSet::_bagarr_[MomSet::_swidth_];
 
 MomHash
 MomSet::compute_hash(MomObject*const* obarr, unsigned sz)
@@ -145,7 +145,7 @@ MomSet::valmtx() const
 
 //////////////// tuples
 
-MomTuple::PtrBag<MomTuple> MomTuple::_bagarr_[MomTuple::_swidth_];
+MomTuple::MomPtrBag<MomTuple> MomTuple::_bagarr_[MomTuple::_swidth_];
 
 
 

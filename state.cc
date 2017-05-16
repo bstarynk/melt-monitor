@@ -280,10 +280,10 @@ MomLoader::load_all_objects_content(void)
     std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun start pob=" << pob);
     std::string res;
-    globstmt.reset();
+    //globstmt.reset();
     globstmt << pob->id().to_string() >> res;
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun pob=" << pob << " res=" << res);
-    globstmt.reset();
+    //globstmt.reset();
     return res;
   };
   std::function<std::string(MomObject*)> getuserfun;
@@ -297,10 +297,10 @@ MomLoader::load_all_objects_content(void)
         std::lock_guard<std::mutex> gu(_ld_mtxuserdb);
         MOM_DEBUGLOG(load,"load_all_objects_content getuserfun start pob=" << pob);
         std::string res;
-        userstmt.reset();
+        //userstmt.reset();
         userstmt << pob->id().to_string() >> res;
         MOM_DEBUGLOG(load,"load_all_objects_content getuserfun pob=" << pob << " res=" << res);
-        userstmt.reset();
+        //userstmt.reset();
         return res;
       };
     }
@@ -399,7 +399,7 @@ MomLoader::load_all_objects_payload_fill(void)
     std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
     std::string res;
     globstmt << pob->id().to_string() >> res;
-    globstmt.reset();
+    //globstmt.reset();
     MOM_DEBUGLOG(load,"load_all_objects_payload_fill fillglobfun pob=" << pob << " res=" << res);
     return res;
   };
@@ -414,7 +414,7 @@ MomLoader::load_all_objects_payload_fill(void)
         std::lock_guard<std::mutex> gu(_ld_mtxuserdb);
         std::string res;
         userstmt << pob->id().to_string() >> res;
-        userstmt.reset();
+        //userstmt.reset();
         MOM_DEBUGLOG(load,"load_all_objects_payload_fill filluserfun pob=" << pob << " res=" << res);
         return res;
       };
@@ -1051,13 +1051,13 @@ MomDumper::dump_emit_globdata(void) {
       MOM_DEBUGLOG(dump, "dump_emit_globdata nam=" << nam << " pob=" << pob << ", sp#" << (pob?((int)pob->space()):0));
       if (pob && du->is_dumped(pob)) {
 	if (pob->space()!=MomSpace::UserSp) {
-	  globstmt.reset();
+	  //globstmt.reset();
 	  globstmt << nam << pob->id().to_string();
 	  MOM_DEBUGLOG(dump, "dump_emit_globdata globstmt="<< globstmt.sql());
 	  globstmt.execute();
 	}
 	else {
-	  userstmt.reset();
+	  //userstmt.reset();
 	  userstmt << nam << pob->id().to_string();
 	  MOM_DEBUGLOG(dump, "dump_emit_globdata userstmt="<< userstmt.sql());
 	  userstmt.execute();
@@ -1247,12 +1247,12 @@ MomDumper::dump_emit_loop(void) {
     char mtimbuf[40];
     memset(mtimbuf, 0, sizeof(mtimbuf));
     snprintf(mtimbuf, sizeof(mtimbuf), "%.2f", mtim);
-    globstmt.reset();
+    //globstmt.reset();
     globstmt << pob->id().to_string() << mtimbuf << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf pob=" << pob << " globstmt=" << globstmt.sql());
     globstmt.execute();
-    globstmt.reset();
+    //globstmt.reset();
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpglobf did thix#" << thix << " pob=" << pob);
   };
   auto userstmt = *_du_userdbp  << "INSERT /*userdb*/ INTO t_objects VALUES(?,?,?,?,?,?)";
@@ -1268,12 +1268,12 @@ MomDumper::dump_emit_loop(void) {
     char mtimbuf[40];
     memset(mtimbuf, 0, sizeof(mtimbuf));
     snprintf(mtimbuf, sizeof(mtimbuf), "%.2f", mtim);
-    userstmt.reset();
+    //userstmt.reset();
     userstmt << pob->id().to_string() << mtimbuf << contentstr
     << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf pob=" << pob << " userstmt=" << userstmt.sql());
     userstmt.execute();
-    userstmt.reset();
+    //userstmt.reset();
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf did thix#" << thix << " pob=" << pob);
   };
   std::vector<std::vector<MomObject*>> vecobjob(mom_nb_jobs);
