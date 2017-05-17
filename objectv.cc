@@ -476,3 +476,11 @@ MomObject::initialize_predefined(void)
 } while(0);
 #include "_mom_predef.h"
 } // end MomObject::initialize_predefined
+
+void
+MomObject::gc_todo_clear_marks(MomGC*gc)
+{
+  MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_clear_marks start");
+#warning MomObject::gc_todo_clear_marks incomplete
+  MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_clear_marks end");
+} // end MomObject::gc_todo_clear_marks

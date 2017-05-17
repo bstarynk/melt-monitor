@@ -1852,6 +1852,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   friend struct MomPayload;
   friend class MomDumper;
   friend class MomLoader;
+#warning should probably define a MomBucketObj internal class
   static std::mutex _bumtxarr_[MomSerial63::_maxbucket_];
   static std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _bumaparr_[MomSerial63::_maxbucket_];
   static std::mutex _predefmtx_;
@@ -1866,6 +1867,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   MomPayload* _ob_payl;
   MomObject(const MomIdent id, MomHash h);
 public:
+  static void gc_todo_clear_marks(MomGC*gc);
   struct PayloadEmission
   {
     std::string pye_kind;
