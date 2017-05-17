@@ -92,7 +92,11 @@ MomIntSq::gc_todo_clear_marks(MomGC* gc)
     gc->add_todo([=](MomGC*thisgc)
     {
       gc_todo_clear_mark_slot(thisgc,ix);
-      _nbclearedbags_.fetch_add(1);
+      if (1+_nbclearedbags_.fetch_add(1) >= _swidth_)
+        thisgc->add_todo([=](MomGC*ourgc)
+        {
+          ourgc->maybe_start_scan();
+        });
     });
   MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_clear_marks end");
 } // end MomIntSq::gc_todo_clear_marks
@@ -204,7 +208,11 @@ MomDoubleSq::gc_todo_clear_marks(MomGC* gc)
     gc->add_todo([=](MomGC*thisgc)
     {
       gc_todo_clear_mark_slot(thisgc,ix);
-      _nbclearedbags_.fetch_add(1);
+      if (1+_nbclearedbags_.fetch_add(1) >= _swidth_)
+        thisgc->add_todo([=](MomGC*ourgc)
+        {
+          ourgc->maybe_start_scan();
+        });
     });
   MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_marks end");
 } // end MomDoubleSq::gc_todo_clear_marks
@@ -335,7 +343,11 @@ MomString::gc_todo_clear_marks(MomGC* gc)
     gc->add_todo([=](MomGC*thisgc)
     {
       gc_todo_clear_mark_slot(thisgc,ix);
-      _nbclearedbags_.fetch_add(1);
+      if (1+_nbclearedbags_.fetch_add(1) >= _swidth_)
+        thisgc->add_todo([=](MomGC*ourgc)
+        {
+          ourgc->maybe_start_scan();
+        });
     });
   MOM_DEBUGLOG(garbcoll, "MomString::gc_todo_clear_marks end");
 } // end MomString::gc_todo_clear_marks
