@@ -115,3 +115,10 @@ MomGC::unsync_start_gc_cycle(void)
     MomNode::gc_todo_clear_marks(gc);
   });
 } // end MomGC::unsync_start_gc_cycle
+
+void
+MomGC::maybe_start_scan(void)
+{
+#warning unimplemented MomGC::maybe_start_scan
+  MOM_FATAPRINTF("unimplemented MomGC::maybe_start_scan");
+} // end MomGC::maybe_start_scan
