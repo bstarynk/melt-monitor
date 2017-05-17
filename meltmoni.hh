@@ -1370,6 +1370,10 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static bool gc_all_bags_cleared(MomGC*)
+  {
+    return _nbclearedbags_.load() >= _swidth_;
+  };
   intptr_t unsafe_at(unsigned ix) const
   {
     return _ivalarr[ix];
@@ -1436,6 +1440,10 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
   static std::atomic<unsigned> _nbclearedbags_;
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
   static void gc_todo_clear_marks(MomGC*gc);
+  static bool gc_all_bags_cleared(MomGC*)
+  {
+    return _nbclearedbags_.load() >= _swidth_;
+  };
 public:
   const double *begin() const
   {
@@ -1510,6 +1518,10 @@ class MomString final : public MomAnyVal   // in scalarv.cc
   }
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static bool gc_all_bags_cleared(MomGC*)
+  {
+    return _nbclearedbags_.load() >= _swidth_;
+  };
 public:
   const char*cstr() const
   {
@@ -1658,6 +1670,10 @@ class MomSet : public MomAnyObjSeq
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static bool gc_all_bags_cleared(MomGC*)
+  {
+    return _nbclearedbags_.load() >= _swidth_;
+  };
 public:
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
   static const MomSet* make_from_ascending_array(MomObject*const* obarr, MomSize sz);
@@ -1707,6 +1723,10 @@ class MomTuple : public MomAnyObjSeq
   static std::atomic<unsigned> _nbclearedbags_;
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static bool gc_all_bags_cleared(MomGC*)
+  {
+    return _nbclearedbags_.load() >= _swidth_;
+  };
 public:
   static const MomTuple* make_from_array(MomObject*const* obarr, MomSize sz);
   static const MomTuple* make_from_objptr_vector(const MomObjptrVector&ovec)
@@ -1754,6 +1774,10 @@ class MomNode final : public MomAnyVal // in nodev.cc
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static bool gc_all_bags_cleared(MomGC*)
+  {
+    return _nbclearedbags_.load() >= _swidth_;
+  };
 public:
   static MomHash compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz);
   bool has_content(const MomObject*conn, const MomValue*varr, MomSize sz) const
@@ -2541,6 +2565,7 @@ public:
   void scan_anyval(const MomAnyVal*);
   void scan_value(const MomValue);
   void scan_object(MomObject*);
+  void maybe_start_scan(void);
   void add_todo(std::function<void(MomGC*)>);
 };				// end class MomGC
 
