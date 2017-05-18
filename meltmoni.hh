@@ -1914,7 +1914,7 @@ public:
   static MomObject*make_object(void); // of random id
   static void initialize_predefined(void);
   static const MomSet* predefined_set(void);
-  // do a function for each predefined, until that function gives false
+  // do a function for each predefined, until that function gives true
   static void do_each_predefined(std::function<bool(MomObject*)>fun);
   MomSpace space() const
   {
@@ -2093,7 +2093,7 @@ public:
       return it->second;
     return nullptr;
   };
-  static void every_globdata(std::function<bool(const std::string&nam,std::atomic<MomObject*>*pdata)> f)
+  static void every_globdata(std::function<bool(const std::string&nam, std::atomic<MomObject*>*pdata)> f)
   {
     std::lock_guard<std::mutex> gu(_gd_mtx_);
     for (auto p : _gd_dict_)

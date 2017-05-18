@@ -475,7 +475,7 @@ MomObject::do_each_predefined(std::function<bool(MomObject*)>fun)
     {
       MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
                  "do_each_predefined bad pob");
-      if (!fun(pob)) return;
+      if (fun(pob)) return;
     }
 } // end MomObject::do_each_predefined
 
