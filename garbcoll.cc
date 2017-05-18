@@ -119,27 +119,39 @@ MomGC::unsync_start_gc_cycle(void)
 void
 MomGC::maybe_start_scan(void)
 {
-  if (true
-      && MomIntSq::gc_all_bags_cleared(this)
-      && MomDoubleSq::gc_all_bags_cleared(this)
-      && MomString::gc_all_bags_cleared(this)
-      && MomSet::gc_all_bags_cleared(this)
-      && MomTuple::gc_all_bags_cleared(this)
-      && MomNode::gc_all_bags_cleared(this)
-      && MomObject::gc_all_buckets_cleared(this)
-     )
+  const char* reason = nullptr;
+  if (false) {}
+  else if (!MomIntSq::gc_all_bags_cleared(this))
+    reason = "ints";
+  else if (!MomDoubleSq::gc_all_bags_cleared(this))
+    reason = "doubles";
+  else if (!MomString::gc_all_bags_cleared(this))
+    reason = "strings";
+  else if (!MomSet::gc_all_bags_cleared(this))
+    reason = "sets";
+  else if (!MomTuple::gc_all_bags_cleared(this))
+    reason = "tuples";
+  else if (!MomNode::gc_all_bags_cleared(this))
+    reason = "nodes";
+  else if (!MomObject::gc_all_buckets_cleared(this))
+    reason = "objects";
+  else
     {
       MOM_DEBUGLOG(garbcoll, "maybe_start_scan is starting scanning");
       add_todo([=](MomGC*thisgc)
       {
         thisgc->initialize_scan();
       });
+      return;
     }
-  else
-    {
-      MOM_DEBUGLOG(garbcoll, "maybe_start_scan dont start scanning");
-    }
+  {
+    MOM_DEBUGLOG(garbcoll, "maybe_start_scan dont start scanning,"
+                 << " should still clear " << reason);
+  }
 } // end MomGC::maybe_start_scan
+
+
+
 
 void
 MomGC::initialize_scan(void)
@@ -161,8 +173,8 @@ MomGC::initialize_scan(void)
     scan_object(pob);
     return false;
   });
-  MOM_FATAPRINTF("unimplemented MomGC::initialize_scan");
-#warning  unimplemented MomGC::initialize_scan
+  MOM_BACKTRACELOG("incomplete MomGC::initialize_scan");
+#warning incomplete MomGC::initialize_scan
   // should scan the globals and the local of every non-worker threads
   MOM_DEBUGLOG(garbcoll, "MomGC::initialize_scan end");
 } // end MomGC::initialize_scan
