@@ -468,6 +468,18 @@ MomObject::predefined_set(void)
 } // end of MomObject::predefined_set
 
 void
+MomObject::do_each_predefined(std::function<bool(MomObject*)>fun)
+{
+  std::lock_guard<std::mutex> _gu{_predefmtx_};
+  for (MomObject*pob : _predefset_)
+    {
+      MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
+                 "do_each_predefined bad pob");
+      if (!fun(pob)) return;
+    }
+} // end MomObject::do_each_predefined
+
+void
 MomObject::initialize_predefined(void)
 {
 #define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) do {		\

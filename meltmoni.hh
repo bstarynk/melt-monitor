@@ -1914,6 +1914,8 @@ public:
   static MomObject*make_object(void); // of random id
   static void initialize_predefined(void);
   static const MomSet* predefined_set(void);
+  // do a function for each predefined, until that function gives false
+  static void do_each_predefined(std::function<bool(MomObject*)>fun);
   MomSpace space() const
   {
     return std::atomic_load(&_ob_space);
