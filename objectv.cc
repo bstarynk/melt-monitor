@@ -315,8 +315,8 @@ failure:
 
 ////////////////////////////////////////////////////////////////
 
-std::mutex MomObject::_bumtxarr_[MomSerial63::_maxbucket_];
-std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> MomObject::_bumaparr_[MomSerial63::_maxbucket_];
+
+MomObject::MomBucketObj MomObject::_ob_bucketarr_[MomObject::_obmaxbucket_];
 
 std::mutex MomObject::_predefmtx_;
 MomObjptrSet MomObject::_predefset_;
@@ -326,12 +326,12 @@ MomObject::find_object_of_id(const MomIdent id)
 {
   if (id.is_null()) return nullptr;
   unsigned buix = id.bucketnum();
-  std::lock_guard<std::mutex> _gu(_bumtxarr_[buix]);
-  auto& curmap = _bumaparr_[buix];
-  if (MOM_UNLIKELY(curmap.bucket_count() < _bumincount_))
-    curmap.rehash(_bumincount_);
-  auto it = curmap.find(id);
-  if (it != curmap.end())
+  auto& curbuck = _ob_bucketarr_[buix];
+  std::lock_guard<std::mutex> _gu(curbuck._obu_mtx);
+  if (MOM_UNLIKELY(curbuck._obu_map.bucket_count() < _bumincount_))
+    curbuck._obu_map.rehash(_bumincount_);
+  auto it = curbuck._obu_map.find(id);
+  if (it != curbuck._obu_map.end())
     return it->second;
   return nullptr;
 } // end of MomObject::find_object_of_id
@@ -368,21 +368,22 @@ MomObject::make_object_of_id(const MomIdent id)
 {
   if (id.is_null()) return nullptr;
   unsigned buix = id.bucketnum();
-  std::lock_guard<std::mutex> _gu(_bumtxarr_[buix]);
-  auto& curmap = _bumaparr_[buix];
-  if (MOM_UNLIKELY(curmap.bucket_count() < _bumincount_))
-    curmap.rehash(_bumincount_);
-  auto it = curmap.find(id);
-  if (it != curmap.end())
+  auto& curbuck = _ob_bucketarr_[buix];
+  std::lock_guard<std::mutex> _gu(curbuck._obu_mtx);
+  if (MOM_UNLIKELY(curbuck._obu_map.bucket_count() < _bumincount_))
+    curbuck._obu_map.rehash(_bumincount_);
+  auto it = curbuck._obu_map.find(id);
+  if (it != curbuck._obu_map.end())
     return it->second;
   MomObject*resob = new(mom_newtg,0) MomObject(id,id.hash());
-  curmap.insert({id,resob});
+  curbuck._obu_map.insert({id,resob});
   if (MOM_UNLIKELY(MomRandom::random_32u() % _bumincount_ == 0))
     {
-      curmap.reserve(9*curmap.size()/8 + 5);
+      curbuck._obu_map.reserve(9*curbuck._obu_map.size()/8 + 5);
     }
   return resob;
 } // end of MomObject::make_object_of_id
+
 
 MomObject*
 MomObject::make_object(void)
@@ -390,23 +391,23 @@ MomObject::make_object(void)
   MomIdent id = MomIdent::make_random();
   if (id.is_null()) return nullptr;
   unsigned buix = id.bucketnum();
-  std::lock_guard<std::mutex> _gu(_bumtxarr_[buix]);
-  auto& curmap = _bumaparr_[buix];
-  if (MOM_UNLIKELY(curmap.bucket_count() < _bumincount_))
-    curmap.rehash(_bumincount_);
-  auto it = curmap.end();
+  auto& curbuck = _ob_bucketarr_[buix];
+  std::lock_guard<std::mutex> _gu(curbuck._obu_mtx);
+  if (MOM_UNLIKELY(curbuck._obu_map.bucket_count() < _bumincount_))
+    curbuck._obu_map.rehash(_bumincount_);
+  auto it = curbuck._obu_map.end();
   for(;;)
     {
-      it = curmap.find(id);
-      if (MOM_LIKELY(it == curmap.end()))
+      it = curbuck._obu_map.find(id);
+      if (MOM_LIKELY(it == curbuck._obu_map.end()))
         break;
       id = MomIdent::make_random_of_bucket(buix);
     };
   MomObject*resob = new(mom_newtg,0) MomObject(id,id.hash());
-  curmap.insert({id,resob});
+  curbuck._obu_map.insert({id,resob});
   if (MOM_UNLIKELY(MomRandom::random_32u() % _bumincount_ == 0))
     {
-      curmap.reserve(9*curmap.size()/8 + 5);
+      curbuck._obu_map.reserve(9*curbuck._obu_map.size()/8 + 5);
     }
   return resob;
 } // end MomObject::make_object
@@ -415,7 +416,7 @@ MomObject::make_object(void)
 std::mutex*
 MomObject::valmtx() const
 {
-  return _bumtxarr_+_ob_id.bucketnum();
+  return &(_ob_bucketarr_+_ob_id.bucketnum())->_obu_mtx;
 } // end MomObject::valmtx
 
 void

@@ -1852,9 +1852,6 @@ class MomObject final : public MomAnyVal // in objectv.cc
   friend struct MomPayload;
   friend class MomDumper;
   friend class MomLoader;
-#warning should probably define a MomBucketObj internal class
-  static std::mutex _bumtxarr_[MomSerial63::_maxbucket_];
-  static std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _bumaparr_[MomSerial63::_maxbucket_];
   static std::mutex _predefmtx_;
   static MomObjptrSet _predefset_;
   static constexpr unsigned _bumincount_ = 16;
@@ -1866,6 +1863,13 @@ class MomObject final : public MomAnyVal // in objectv.cc
   std::vector<MomValue> _ob_comps;
   MomPayload* _ob_payl;
   MomObject(const MomIdent id, MomHash h);
+  struct MomBucketObj
+  {
+    std::mutex _obu_mtx;
+    std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _obu_map;
+  };
+  static constexpr unsigned _obmaxbucket_ = MomSerial63::_maxbucket_;
+  static MomBucketObj _ob_bucketarr_[_obmaxbucket_];
 public:
   static void gc_todo_clear_marks(MomGC*gc);
   struct PayloadEmission
