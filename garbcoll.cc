@@ -145,8 +145,14 @@ void
 MomGC::initialize_scan(void)
 {
   MOM_DEBUGLOG(garbcoll, "MomGC::initialize_scan start");
+  // scan the predefined
+  MomObject::do_each_predefined([=](MomObject*pob)
+  {
+    scan_object(pob);
+    return true;
+  });
   MOM_FATAPRINTF("unimplemented MomGC::initialize_scan");
 #warning  unimplemented MomGC::initialize_scan
-  // should scan the predefined and the globals and the local of every non-worker threads
+  // should scan the globals and the local of every non-worker threads
   MOM_DEBUGLOG(garbcoll, "MomGC::initialize_scan end");
 } // end MomGC::initialize_scan
