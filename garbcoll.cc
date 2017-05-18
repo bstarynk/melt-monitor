@@ -145,11 +145,21 @@ void
 MomGC::initialize_scan(void)
 {
   MOM_DEBUGLOG(garbcoll, "MomGC::initialize_scan start");
-  // scan the predefined
+  // scan the current predefined
   MomObject::do_each_predefined([=](MomObject*pob)
   {
     scan_object(pob);
-    return true;
+    return false;
+  });
+  // scan the current globdata
+  MomRegisterGlobData::every_globdata
+  ([=](const std::string&nam, std::atomic<MomObject*>*pdata)
+  {
+    MOM_ASSERT(!nam.empty(), "empty globdata name");
+    MomObject*pob = pdata->load();
+    if (pob == nullptr) return false;
+    scan_object(pob);
+    return false;
   });
   MOM_FATAPRINTF("unimplemented MomGC::initialize_scan");
 #warning  unimplemented MomGC::initialize_scan
