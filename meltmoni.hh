@@ -2579,6 +2579,7 @@ public:
   void scan_value(const MomValue);
   void scan_object(MomObject*);
   void maybe_start_scan(void);
+  void initialize_scan(void);
   void add_todo(std::function<void(MomGC*)>);
 };				// end class MomGC
 

@@ -119,6 +119,34 @@ MomGC::unsync_start_gc_cycle(void)
 void
 MomGC::maybe_start_scan(void)
 {
-#warning unimplemented MomGC::maybe_start_scan
-  MOM_FATAPRINTF("unimplemented MomGC::maybe_start_scan");
+  if (true
+      && MomIntSq::gc_all_bags_cleared(this)
+      && MomDoubleSq::gc_all_bags_cleared(this)
+      && MomString::gc_all_bags_cleared(this)
+      && MomSet::gc_all_bags_cleared(this)
+      && MomTuple::gc_all_bags_cleared(this)
+      && MomNode::gc_all_bags_cleared(this)
+      && MomObject::gc_all_buckets_cleared(this)
+     )
+    {
+      MOM_DEBUGLOG(garbcoll, "maybe_start_scan is starting scanning");
+      add_todo([=](MomGC*thisgc)
+      {
+        thisgc->initialize_scan();
+      });
+    }
+  else
+    {
+      MOM_DEBUGLOG(garbcoll, "maybe_start_scan dont start scanning");
+    }
 } // end MomGC::maybe_start_scan
+
+void
+MomGC::initialize_scan(void)
+{
+  MOM_DEBUGLOG(garbcoll, "MomGC::initialize_scan start");
+  MOM_FATAPRINTF("unimplemented MomGC::initialize_scan");
+#warning  unimplemented MomGC::initialize_scan
+  // should scan the predefined and the globals and the local of every non-worker threads
+  MOM_DEBUGLOG(garbcoll, "MomGC::initialize_scan end");
+} // end MomGC::initialize_scan
