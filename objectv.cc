@@ -317,7 +317,7 @@ failure:
 
 
 MomObject::MomBucketObj MomObject::_ob_bucketarr_[MomObject::_obmaxbucket_];
-
+std::atomic<unsigned> MomObject::_ob_nbclearedbuckets_;
 std::mutex MomObject::_predefmtx_;
 MomObjptrSet MomObject::_predefset_;
 
@@ -482,6 +482,38 @@ void
 MomObject::gc_todo_clear_marks(MomGC*gc)
 {
   MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_clear_marks start");
-#warning MomObject::gc_todo_clear_marks incomplete
+  _ob_nbclearedbuckets_.store(0);
+  for (unsigned ix=0; ix<_obmaxbucket_; ix++)
+    gc->add_todo([=](MomGC*thisgc)
+    {
+      gc_todo_clear_mark_bucket(thisgc,ix);
+      if (1+_ob_nbclearedbuckets_.fetch_add(1) >= _obmaxbucket_)
+        thisgc->add_todo([=](MomGC*ourgc)
+        {
+          ourgc->maybe_start_scan();
+        });
+    });
   MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_clear_marks end");
 } // end MomObject::gc_todo_clear_marks
+
+void
+MomObject::gc_todo_clear_mark_bucket(MomGC*gc,unsigned buckix)
+{
+  MOM_ASSERT(buckix<_obmaxbucket_, "gc_todo_clear_mark_bucket invalid buckix=" << buckix);
+  MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_clear_mark_bucket start buckix=" << buckix);
+  auto& curbuck = _ob_bucketarr_[buckix];
+  std::lock_guard<std::mutex> gu(curbuck._obu_mtx);
+  curbuck.unsync_buck_gc_clear_marks(gc);
+  MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_clear_mark_bucket end buckix=" << buckix);
+} // end MomObject::gc_todo_clear_mark_bucket
+
+void
+MomObject::MomBucketObj::unsync_buck_gc_clear_marks(MomGC*gc)
+{
+  for (auto it : _obu_map)
+    {
+      MomObject* pob = it.second;
+      MOM_ASSERT(pob != nullptr, "unsync_buck_gc_clear_marks null pob");
+      pob->gc_set_mark(gc,false);
+    }
+} // end MomObject::MomBucketObj::unsync_buck_gc_clear_marks

@@ -1867,11 +1867,18 @@ class MomObject final : public MomAnyVal // in objectv.cc
   {
     std::mutex _obu_mtx;
     std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _obu_map;
+    void unsync_buck_gc_clear_marks(MomGC* gc);
   };
   static constexpr unsigned _obmaxbucket_ = MomSerial63::_maxbucket_;
   static MomBucketObj _ob_bucketarr_[_obmaxbucket_];
+  static std::atomic<unsigned> _ob_nbclearedbuckets_;
+  static void gc_todo_clear_mark_bucket(MomGC*gc,unsigned buckix);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static bool gc_all_buckets_cleared(MomGC*)
+  {
+    return _ob_nbclearedbuckets_.load() >= _obmaxbucket_;
+  };
   struct PayloadEmission
   {
     std::string pye_kind;
