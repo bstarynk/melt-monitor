@@ -173,8 +173,38 @@ MomGC::initialize_scan(void)
     scan_object(pob);
     return false;
   });
+  // collect and run the scan functions
+  std::vector<std::function<void(MomGC*)>> scanfunvec;
+  {
+    std::lock_guard<std::mutex>  gu(_gc_mtx);
+    scanfunvec.reserve(_gc_scanfunmap.size());
+    for (auto it: _gc_scanfunmap)
+      scanfunvec.push_back(it.second);
+  }
+  for (auto fun: scanfunvec)
+    {
+      fun(this);
+    }
+  scanfunvec.clear();
   MOM_BACKTRACELOG("incomplete MomGC::initialize_scan");
 #warning incomplete MomGC::initialize_scan
-  // should scan the globals and the local of every non-worker threads
+  // should todo several scan object contents
   MOM_DEBUGLOG(garbcoll, "MomGC::initialize_scan end");
 } // end MomGC::initialize_scan
+
+unsigned
+MomGC::add_scan_function(std::function<void(MomGC*)> fun)
+{
+  MOM_ASSERT(fun, "empty function to MomGC::add_scan_function");
+  std::lock_guard<std::mutex>  gu(_gc_mtx);
+  unsigned nbh = 1+_gc_scanfunmap.size();
+  _gc_scanfunmap.insert({nbh,fun});
+  return nbh;
+} // end MomGC::add_scan_function
+
+void
+MomGC::remove_scan_handle(unsigned rk)
+{
+  std::lock_guard<std::mutex>  gu(_gc_mtx);
+  _gc_scanfunmap.erase(rk);
+} // end MomGC::remove_scan_handle

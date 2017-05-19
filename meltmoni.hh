@@ -2563,6 +2563,7 @@ class MomGC
   std::deque<MomAnyVal*> _gc_valque;
   std::deque<MomObject*> _gc_objque;
   std::deque<std::function<void(MomGC*)>> _gc_todoque;
+  std::map<unsigned, std::function<void(MomGC*)>> _gc_scanfunmap;
   MomGC(const MomGC&) = delete;
   MomGC(MomGC&&) = delete;
   MomGC();
@@ -2576,6 +2577,8 @@ class MomGC
   }
 public:
   static MomGC the_garbcoll;
+  unsigned add_scan_function(std::function<void(MomGC*)>);
+  void remove_scan_handle(unsigned);
   static void incremental_run(void);
   void scan_anyval(const MomAnyVal*);
   void scan_value(const MomValue);
