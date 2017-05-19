@@ -2586,6 +2586,7 @@ public:
   void maybe_start_scan(void);
   void initialize_scan(void);
   void add_todo(std::function<void(MomGC*)>);
+  void todo_some_scan(void);
 };				// end class MomGC
 
 

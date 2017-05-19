@@ -208,3 +208,43 @@ MomGC::remove_scan_handle(unsigned rk)
   std::lock_guard<std::mutex>  gu(_gc_mtx);
   _gc_scanfunmap.erase(rk);
 } // end MomGC::remove_scan_handle
+
+void
+MomGC::todo_some_scan(void)
+{
+  constexpr unsigned chkvalsiz = 4;
+  constexpr unsigned chkobjsiz = 3;
+  bool donescanning = false;
+  unsigned nbscanvaltodos = 2 + MomRandom::random_32u() % (5 * mom_nb_jobs / 4 + 2);
+  unsigned nbscanobjtodos = 2 + MomRandom::random_32u() % (5 * mom_nb_jobs / 4 + 3);
+  unsigned nbval = chkvalsiz * nbscanvaltodos;
+  std::vector<MomAnyVal*> vecval;
+  vecval.reserve(nbval);
+  std::vector<MomObject*> vecobj;
+  unsigned nbobj = chkobjsiz * nbscanobjtodos;
+  vecobj.reserve(nbobj);
+  {
+    std::lock_guard<std::mutex>  gu(_gc_mtx);
+    if (_gc_valque.empty() && _gc_objque.empty())
+      donescanning = true;
+    else
+      {
+        while (vecval.size() < nbval && !_gc_valque.empty())
+          {
+            MomAnyVal* curval =_gc_valque.front();
+            _gc_valque.pop_front();
+            if (curval)
+              vecval.push_back(curval);
+          }
+        while (vecobj.size() < nbobj && !_gc_objque.empty())
+          {
+            MomObject* curobj = _gc_objque.front();
+            _gc_objque.pop_front();
+            if (curobj)
+              vecobj.push_back(curobj);
+          }
+      }
+  }
+  // should add_todo chunks
+#warning MomGC::todo_some_scan incomplete
+} // end MomGC::todo_some_scan
