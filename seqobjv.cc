@@ -115,6 +115,13 @@ MomSet::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
   MOM_DEBUGLOG(garbcoll, "MomSet::gc_todo_clear_mark_slot end slotix=" << slotix);
 } // end MomSet::gc_todo_clear_mark_slot
 
+void
+MomSet::gc_todo_destroy_dead(MomGC* gc)
+{
+  MOM_FATAPRINTF("MomSet::gc_todo_destroy_dead unimplemented");
+#warning MomSet::gc_todo_destroy_dead unimplemented
+} // end MomSet::gc_todo_destroy_dead
+
 
 const MomSet*
 MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
@@ -195,6 +202,15 @@ MomTuple::gc_todo_clear_marks(MomGC* gc)
     });
   MOM_DEBUGLOG(garbcoll, "MomTuple::gc_todo_clear_marks end");
 } // end MomTuple::gc_todo_clear_marks
+
+
+
+void
+MomTuple::gc_todo_destroy_dead(MomGC* gc)
+{
+  MOM_FATAPRINTF("MomTuple::gc_todo_destroy_dead unimplemented");
+#warning MomTuple::gc_todo_destroy_dead unimplemented
+} // end MomTuple::gc_todo_destroy_dead
 
 
 

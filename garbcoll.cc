@@ -216,13 +216,17 @@ MomGC::todo_some_scan(void)
   constexpr unsigned chkobjsiz = 3;
   bool donescanning = false;
   unsigned nbscanvaltodos = 2 + MomRandom::random_32u() % (5 * mom_nb_jobs / 4 + 2);
-  unsigned nbscanobjtodos = 2 + MomRandom::random_32u() % (5 * mom_nb_jobs / 4 + 3);
   unsigned nbval = chkvalsiz * nbscanvaltodos;
   std::vector<MomAnyVal*> vecval;
   vecval.reserve(nbval);
   std::vector<MomObject*> vecobj;
+  unsigned nbscanobjtodos = 2 + MomRandom::random_32u() % (5 * mom_nb_jobs / 4 + 3);
   unsigned nbobj = chkobjsiz * nbscanobjtodos;
   vecobj.reserve(nbobj);
+  MOM_DEBUGLOG(garbcoll, "MomGC::todo_some_scan nbscanvaltodos=" << nbscanvaltodos
+               << " nbval=" << nbval
+               << " nbscanobjtodos=" << nbscanobjtodos
+               << " nbobj=" << nbobj);
   {
     std::lock_guard<std::mutex>  gu(_gc_mtx);
     if (_gc_valque.empty() && _gc_objque.empty())
@@ -245,8 +249,16 @@ MomGC::todo_some_scan(void)
           }
       }
   }
+  MOM_DEBUGLOG(garbcoll, "MomGC::todo_some_scan scanning "
+               << (donescanning?"done":"incomplete"));
   if (donescanning)
     {
+      // we probably should todo MomIntSq::gc_todo_destroy_dead,
+      // MomDoubleSq::gc_todo_destroy_dead,
+      // MomString::gc_todo_destroy_dead,
+      // MomSet::gc_todo_destroy_dead,
+      // MomTuple::gc_todo_destroy_dead,
+      // MomObject::gc_todo_destroy_dead,
 #warning MomGC::todo_some_scan incomplete when donescanning
       MOM_FATAPRINTF("MomGC::todo_some_scan incomplete when donescanning");
     }

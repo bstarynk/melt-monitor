@@ -112,6 +112,13 @@ MomIntSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
   MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_clear_mark_slot end slotix=" << slotix);
 } // end MomIntSq::gc_todo_clear_mark_slot
 
+void
+MomIntSq::gc_todo_destroy_dead(MomGC* gc)
+{
+  MOM_FATAPRINTF("MomIntSq::gc_todo_destroy_dead unimplemented");
+#warning MomIntSq::gc_todo_destroy_dead unimplemented
+} // end MomIntSq::gc_todo_destroy_dead
+
 ////////////////////////////////////////////////////////////////
 
 MomDoubleSq::MomPtrBag<MomDoubleSq> MomDoubleSq::_bagarr_[MomDoubleSq::_swidth_];
@@ -227,6 +234,14 @@ MomDoubleSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
   curbag.unsync_bag_gc_clear_marks(gc);
   MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_clear_mark_slot end slotix=" << slotix);
 } // end MomDoubleSq::gc_todo_clear_mark_slot
+
+
+void
+MomDoubleSq::gc_todo_destroy_dead(MomGC* gc)
+{
+  MOM_FATAPRINTF("MomDoubleSq::gc_todo_destroy_dead unimplemented");
+#warning MomDoubleSq::gc_todo_destroy_dead unimplemented
+} // end MomDoubleSq::gc_todo_destroy_dead
 
 ////////////////////////////////////////////////////////////////
 MomString::MomPtrBag<MomString> MomString::_bagarr_[MomString::_swidth_];
@@ -363,3 +378,10 @@ MomString::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
   MOM_DEBUGLOG(garbcoll, "MomString::gc_todo_clear_mark_slot end slotix=" << slotix);
 } // end MomString::gc_todo_clear_mark_slot
 
+
+void
+MomString::gc_todo_destroy_dead(MomGC* gc)
+{
+  MOM_FATAPRINTF("MomString::gc_todo_destroy_dead unimplemented");
+#warning MomString::gc_todo_destroy_dead unimplemented
+} // end MomString::gc_todo_destroy_dead

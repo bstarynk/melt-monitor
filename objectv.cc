@@ -529,3 +529,12 @@ MomObject::MomBucketObj::unsync_buck_gc_clear_marks(MomGC*gc)
       pob->gc_set_mark(gc,false);
     }
 } // end MomObject::MomBucketObj::unsync_buck_gc_clear_marks
+
+
+void
+MomObject::gc_todo_destroy_dead(MomGC* gc)
+{
+  MOM_FATAPRINTF("MomObject::gc_todo_destroy_dead unimplemented");
+#warning MomObject::gc_todo_destroy_dead unimplemented
+} // end MomObject::gc_todo_destroy_dead
+

@@ -1370,10 +1370,13 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+#warning we probably need some _nbsweepedbags_ atomic unsigned
+  static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
   };
+#warning we could need a gc_all_bags_sweeped static function
   intptr_t unsafe_at(unsigned ix) const
   {
     return _ivalarr[ix];
@@ -1440,6 +1443,7 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
   static std::atomic<unsigned> _nbclearedbags_;
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
   static void gc_todo_clear_marks(MomGC*gc);
+  static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
@@ -1518,6 +1522,7 @@ class MomString final : public MomAnyVal   // in scalarv.cc
   }
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
@@ -1670,6 +1675,7 @@ class MomSet : public MomAnyObjSeq
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
@@ -1723,6 +1729,7 @@ class MomTuple : public MomAnyObjSeq
   static std::atomic<unsigned> _nbclearedbags_;
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
@@ -1774,6 +1781,7 @@ class MomNode final : public MomAnyVal // in nodev.cc
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
@@ -1875,6 +1883,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   static void gc_todo_clear_mark_bucket(MomGC*gc,unsigned buckix);
 public:
   static void gc_todo_clear_marks(MomGC*gc);
+  static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_buckets_cleared(MomGC*)
   {
     return _ob_nbclearedbuckets_.load() >= _obmaxbucket_;
