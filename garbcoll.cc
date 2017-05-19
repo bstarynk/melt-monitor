@@ -245,6 +245,52 @@ MomGC::todo_some_scan(void)
           }
       }
   }
-  // should add_todo chunks
-#warning MomGC::todo_some_scan incomplete
+  if (donescanning)
+    {
+#warning MomGC::todo_some_scan incomplete when donescanning
+      MOM_FATAPRINTF("MomGC::todo_some_scan incomplete when donescanning");
+    }
+  else
+    {
+      unsigned ixval = 0;
+      unsigned sizval = vecval.size();
+      while (ixval<sizval)
+        {
+          std::array<MomAnyVal*,chkvalsiz> chkval;
+          for (unsigned j=0; j<chkvalsiz; j++)
+            if (ixval<sizval) chkval[j]=vecval[ixval++];
+          add_todo([=](MomGC*thisgc)
+          {
+            for (MomAnyVal* curval: chkval)
+              {
+                if (curval == nullptr)
+                  continue;
+                curval->gc_set_mark(thisgc, true);
+                curval->scan_gc(thisgc);
+              }
+          });
+        }
+      unsigned ixobj = 0;
+      unsigned sizobj = vecobj.size();
+      while (ixobj<sizobj)
+        {
+          std::array<MomObject*,chkobjsiz> chkobj;
+          for (unsigned j=0; j<chkobjsiz; j++)
+            if (ixobj<sizobj) chkobj[j]=vecobj[ixobj++];
+          add_todo([=](MomGC*thisgc)
+          {
+            for (MomObject* curpob: chkobj)
+              {
+                if (curpob == nullptr)
+                  continue;
+                curpob->gc_set_mark(thisgc, true);
+                curpob->scan_gc(thisgc);
+              }
+          });
+        }
+      add_todo([=](MomGC*thisgc)
+      {
+        thisgc->todo_some_scan();
+      });
+    }
 } // end MomGC::todo_some_scan
