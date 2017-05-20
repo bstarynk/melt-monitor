@@ -1848,6 +1848,7 @@ class MomNode final : public MomAnyVal // in nodev.cc
     return (h ^ (h /3500183)) % _swidth_;
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_zero_clear_count(MomGC*)
   {

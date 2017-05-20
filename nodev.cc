@@ -128,7 +128,29 @@ MomNode::valmtx() const
 void
 MomNode::gc_todo_destroy_dead(MomGC* gc)
 {
-  MOM_FATAPRINTF("MomNode::gc_todo_destroy_dead unimplemented");
-#warning MomNode::gc_todo_destroy_dead unimplemented
+  MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_destroy_dead start");
+  _nbsweepedbags_.store(0);
+  for (unsigned ix=0; ix<_swidth_; ix++)
+    gc->add_todo([=](MomGC*thisgc)
+    {
+      gc_todo_sweep_destroy_slot(thisgc,ix);
+      if (1+_nbsweepedbags_.fetch_add(1) >= _swidth_)
+        thisgc->add_todo([=](MomGC*ourgc)
+        {
+          ourgc->maybe_done_sweep();
+        });
+    });
+  MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_destroy_dead end");
 } // end MomNode::gc_todo_destroy_dead
 
+
+void
+MomNode::gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_sweep_destroy_slot invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_sweep_destroy_slot start slotix=" << slotix);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> gu(curbag._bag_mtx);
+  curbag.unsync_bag_gc_delete_unmarked_values(gc);
+  MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_sweep_destroy_slot end slotix=" << slotix);
+} // end MomNode::gc_todo_clear_mark_slot
