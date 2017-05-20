@@ -113,12 +113,37 @@ MomIntSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
   MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_clear_mark_slot end slotix=" << slotix);
 } // end MomIntSq::gc_todo_clear_mark_slot
 
+
+
+////////////////
 void
 MomIntSq::gc_todo_destroy_dead(MomGC* gc)
 {
-  MOM_FATAPRINTF("MomIntSq::gc_todo_destroy_dead unimplemented");
-#warning MomIntSq::gc_todo_destroy_dead unimplemented
+  MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_destroy_dead start");
+  _nbsweepedbags_.store(0);
+  for (unsigned ix=0; ix<_swidth_; ix++)
+    gc->add_todo([=](MomGC*thisgc)
+    {
+      gc_todo_sweep_destroy_slot(thisgc,ix);
+      if (1+_nbsweepedbags_.fetch_add(1) >= _swidth_)
+        thisgc->add_todo([=](MomGC*ourgc)
+        {
+          ourgc->maybe_done_sweep();
+        });
+    });
+  MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_destroy_dead end");
 } // end MomIntSq::gc_todo_destroy_dead
+
+void
+MomIntSq::gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_sweep_destroy_slot invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_sweep_destroy_slot start slotix=" << slotix);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> gu(curbag._bag_mtx);
+  curbag.unsync_bag_gc_delete_unmarked_values(gc);
+  MOM_DEBUGLOG(garbcoll, "MomIntSq::gc_todo_sweep_destroy_slot end slotix=" << slotix);
+} // end MomIntSq::gc_todo_clear_mark_slot
 
 ////////////////////////////////////////////////////////////////
 
@@ -241,9 +266,31 @@ MomDoubleSq::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 void
 MomDoubleSq::gc_todo_destroy_dead(MomGC* gc)
 {
-  MOM_FATAPRINTF("MomDoubleSq::gc_todo_destroy_dead unimplemented");
-#warning MomDoubleSq::gc_todo_destroy_dead unimplemented
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_destroy_dead start");
+  _nbsweepedbags_.store(0);
+  for (unsigned ix=0; ix<_swidth_; ix++)
+    gc->add_todo([=](MomGC*thisgc)
+    {
+      gc_todo_sweep_destroy_slot(thisgc,ix);
+      if (1+_nbsweepedbags_.fetch_add(1) >= _swidth_)
+        thisgc->add_todo([=](MomGC*ourgc)
+        {
+          ourgc->maybe_done_sweep();
+        });
+    });
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_destroy_dead end");
 } // end MomDoubleSq::gc_todo_destroy_dead
+
+void
+MomDoubleSq::gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_sweep_destroy_slot invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_sweep_destroy_slot start slotix=" << slotix);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> gu(curbag._bag_mtx);
+  curbag.unsync_bag_gc_delete_unmarked_values(gc);
+  MOM_DEBUGLOG(garbcoll, "MomDoubleSq::gc_todo_sweep_destroy_slot end slotix=" << slotix);
+} // end MomDoubleSq::gc_todo_clear_mark_slot
 
 ////////////////////////////////////////////////////////////////
 MomString::MomPtrBag<MomString> MomString::_bagarr_[MomString::_swidth_];
@@ -385,6 +432,28 @@ MomString::gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix)
 void
 MomString::gc_todo_destroy_dead(MomGC* gc)
 {
-  MOM_FATAPRINTF("MomString::gc_todo_destroy_dead unimplemented");
-#warning MomString::gc_todo_destroy_dead unimplemented
+  MOM_DEBUGLOG(garbcoll, "MomString::gc_todo_destroy_dead start");
+  _nbsweepedbags_.store(0);
+  for (unsigned ix=0; ix<_swidth_; ix++)
+    gc->add_todo([=](MomGC*thisgc)
+    {
+      gc_todo_sweep_destroy_slot(thisgc,ix);
+      if (1+_nbsweepedbags_.fetch_add(1) >= _swidth_)
+        thisgc->add_todo([=](MomGC*ourgc)
+        {
+          ourgc->maybe_done_sweep();
+        });
+    });
+  MOM_DEBUGLOG(garbcoll, "MomString::gc_todo_destroy_dead end");
 } // end MomString::gc_todo_destroy_dead
+
+void
+MomString::gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix)
+{
+  MOM_ASSERT(slotix<_swidth_, "gc_todo_sweep_destroy_slot invalid slotix=" << slotix);
+  MOM_DEBUGLOG(garbcoll, "MomString::gc_todo_sweep_destroy_slot start slotix=" << slotix);
+  auto& curbag = _bagarr_[slotix];
+  std::lock_guard<std::mutex> gu(curbag._bag_mtx);
+  curbag.unsync_bag_gc_delete_unmarked_values(gc);
+  MOM_DEBUGLOG(garbcoll, "MomString::gc_todo_sweep_destroy_slot end slotix=" << slotix);
+} // end MomString::gc_todo_clear_mark_slot

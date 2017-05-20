@@ -1369,6 +1369,7 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
   static std::atomic<unsigned> _nbclearedbags_;
   static std::atomic<unsigned> _nbsweepedbags_;
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_zero_clear_count(MomGC*)
   {
@@ -1462,6 +1463,7 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
     _nbsweepedbags_.store(0);
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix);
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
@@ -1541,6 +1543,7 @@ class MomString final : public MomAnyVal   // in scalarv.cc
     return (h ^ (h / 2318021)) % _swidth_;
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix);
   bool has_content(const char*cstr, unsigned sz MOM_UNUSED, unsigned bylen) const
   {
     return has_cstr_content(cstr, bylen);
@@ -1792,6 +1795,10 @@ public:
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
+  };
+  static bool gc_all_bags_sweeped(MomGC*)
+  {
+    return _nbsweepedbags_.load() >= _swidth_;
   };
 public:
   static const MomTuple* make_from_array(MomObject*const* obarr, MomSize sz);
@@ -2680,6 +2687,7 @@ public:
   void scan_value(const MomValue);
   void scan_object(MomObject*);
   void maybe_start_scan(void);
+  void maybe_done_sweep(void);
   void initialize_scan(void);
   void add_todo(std::function<void(MomGC*)>);
   void todo_some_scan(void);

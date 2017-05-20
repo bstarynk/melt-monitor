@@ -342,3 +342,37 @@ MomGC::todo_some_scan(void)
       });
     }
 } // end MomGC::todo_some_scan
+
+
+void
+MomGC::maybe_done_sweep(void)
+{
+  MOM_DEBUGLOG(garbcoll, "MomGC::maybe_done_sweep start");
+  const char* reason = nullptr;
+  if (false) {}
+  else if (!MomIntSq::gc_all_bags_sweeped(this))
+    reason = "ints";
+  else if (!MomDoubleSq::gc_all_bags_sweeped(this))
+    reason = "doubles";
+  else if (!MomString::gc_all_bags_sweeped(this))
+    reason = "strings";
+  else if (!MomSet::gc_all_bags_sweeped(this))
+    reason = "sets";
+  else if (!MomTuple::gc_all_bags_sweeped(this))
+    reason = "tuples";
+  else if (!MomNode::gc_all_bags_sweeped(this))
+    reason = "nodes";
+  else if (!MomObject::gc_all_buckets_sweeped(this))
+    reason = "objects";
+  else
+    {
+#warning maybe_done_sweep completed GC cycle
+      MOM_BACKTRACELOG("MomGC::maybe_done_sweep completed GC cycle");
+      return;
+    }
+  {
+    MOM_DEBUGLOG(garbcoll, "maybe_done_sweep still sweeping "
+                 << reason);
+  }
+  MOM_DEBUGLOG(garbcoll, "MomGC::maybe_done_sweep end");
+} // end MomGC::maybe_done_sweep
