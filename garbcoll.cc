@@ -90,6 +90,14 @@ void
 MomGC::unsync_start_gc_cycle(void)
 {
   MOM_ASSERT(_gc_todoque.empty(), "unsync_start_gc_cycle nonempty todoque");
+  // we zero all the clear counts, to be sure that the
+  // gc_all_bags_cleared methods works well afterwards...
+  MomIntSq::gc_zero_clear_count(this);
+  MomDoubleSq::gc_zero_clear_count(this);
+  MomString::gc_zero_clear_count(this);
+  MomSet::gc_zero_clear_count(this);
+  MomTuple::gc_zero_clear_count(this);
+  MomNode::gc_zero_clear_count(this);
   unsync_add_todo([=](MomGC*gc)
   {
     MomIntSq::gc_todo_clear_marks(gc);
@@ -253,14 +261,34 @@ MomGC::todo_some_scan(void)
                << (donescanning?"done":"incomplete"));
   if (donescanning)
     {
-      // we probably should todo MomIntSq::gc_todo_destroy_dead,
-      // MomDoubleSq::gc_todo_destroy_dead,
-      // MomString::gc_todo_destroy_dead,
-      // MomSet::gc_todo_destroy_dead,
-      // MomTuple::gc_todo_destroy_dead,
-      // MomObject::gc_todo_destroy_dead,
-#warning MomGC::todo_some_scan incomplete when donescanning
-      MOM_FATAPRINTF("MomGC::todo_some_scan incomplete when donescanning");
+      add_todo([=](MomGC*thisgc)
+      {
+        MomIntSq::gc_todo_destroy_dead(thisgc);
+      });
+      add_todo([=](MomGC*thisgc)
+      {
+        MomDoubleSq::gc_todo_destroy_dead(thisgc);
+      });
+      add_todo([=](MomGC*thisgc)
+      {
+        MomString::gc_todo_destroy_dead(thisgc);
+      });
+      add_todo([=](MomGC*thisgc)
+      {
+        MomSet::gc_todo_destroy_dead(thisgc);
+      });
+      add_todo([=](MomGC*thisgc)
+      {
+        MomTuple::gc_todo_destroy_dead(thisgc);
+      });
+      add_todo([=](MomGC*thisgc)
+      {
+        MomNode::gc_todo_destroy_dead(thisgc);
+      });
+      add_todo([=](MomGC*thisgc)
+      {
+        MomObject::gc_todo_destroy_dead(thisgc);
+      });
     }
   else
     {

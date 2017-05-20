@@ -1369,6 +1369,10 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
   static std::atomic<unsigned> _nbclearedbags_;
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
+  static void gc_zero_clear_count(MomGC*)
+  {
+    _nbclearedbags_.store(0);
+  };
   static void gc_todo_clear_marks(MomGC*gc);
 #warning we probably need some _nbsweepedbags_ atomic unsigned
   static void gc_todo_destroy_dead(MomGC*gc);
@@ -1441,6 +1445,10 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
   };
   static MomPtrBag<MomDoubleSq>  _bagarr_[_swidth_];
   static std::atomic<unsigned> _nbclearedbags_;
+  static void gc_zero_clear_count(MomGC*)
+  {
+    _nbclearedbags_.store(0);
+  };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
@@ -1521,6 +1529,10 @@ class MomString final : public MomAnyVal   // in scalarv.cc
     return has_cstr_content(cstr, bylen);
   }
 public:
+  static void gc_zero_clear_count(MomGC*)
+  {
+    _nbclearedbags_.store(0);
+  };
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
@@ -1674,6 +1686,10 @@ class MomSet : public MomAnyObjSeq
     : MomAnyObjSeq(MomKind::TagSetK, obarr,sz, h) {};
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
+  static void gc_zero_clear_count(MomGC*)
+  {
+    _nbclearedbags_.store(0);
+  };
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
@@ -1728,6 +1744,10 @@ class MomTuple : public MomAnyObjSeq
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
   static std::atomic<unsigned> _nbclearedbags_;
 public:
+  static void gc_zero_clear_count(MomGC*)
+  {
+    _nbclearedbags_.store(0);
+  };
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
@@ -1780,6 +1800,10 @@ class MomNode final : public MomAnyVal // in nodev.cc
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
+  static void gc_zero_clear_count(MomGC*)
+  {
+    _nbclearedbags_.store(0);
+  };
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)

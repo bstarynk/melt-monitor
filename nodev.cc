@@ -122,3 +122,12 @@ MomNode::valmtx() const
 {
   return &_bagarr_[slotindex(hash())]._bag_mtx;
 } // end MomNode::valmtx
+
+
+void
+MomNode::gc_todo_destroy_dead(MomGC* gc)
+{
+  MOM_FATAPRINTF("MomNode::gc_todo_destroy_dead unimplemented");
+#warning MomNode::gc_todo_destroy_dead unimplemented
+} // end MomNode::gc_todo_destroy_dead
+
