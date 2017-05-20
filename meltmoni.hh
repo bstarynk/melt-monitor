@@ -1958,12 +1958,14 @@ class MomObject final : public MomAnyVal // in objectv.cc
     std::mutex _obu_mtx;
     std::unordered_map<MomIdent,MomObject*,MomIdentBucketHash> _obu_map;
     void unsync_buck_gc_clear_marks(MomGC* gc);
+    void unsync_buck_gc_sweep_destroy(MomGC* gc);
   };
   static constexpr unsigned _obmaxbucket_ = MomSerial63::_maxbucket_;
   static MomBucketObj _ob_bucketarr_[_obmaxbucket_];
   static std::atomic<unsigned> _ob_nbclearedbuckets_;
   static std::atomic<unsigned> _ob_nbsweepedbuckets_;
   static void gc_todo_clear_mark_bucket(MomGC*gc,unsigned buckix);
+  static void gc_todo_sweep_bucket(MomGC*gc,unsigned buckix);
 public:
   static void gc_zero_clear_count(MomGC*)
   {

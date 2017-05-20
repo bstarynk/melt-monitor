@@ -535,7 +535,49 @@ MomObject::MomBucketObj::unsync_buck_gc_clear_marks(MomGC*gc)
 void
 MomObject::gc_todo_destroy_dead(MomGC* gc)
 {
-  MOM_FATAPRINTF("MomObject::gc_todo_destroy_dead unimplemented");
-#warning MomObject::gc_todo_destroy_dead unimplemented
+  MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_destroy_dead end");
+  _ob_nbsweepedbuckets_.store(0);
+  for (unsigned ix=0; ix<_obmaxbucket_; ix++)
+    gc->add_todo([=](MomGC*thisgc)
+    {
+      gc_todo_sweep_bucket(thisgc,ix);
+      if (1+_ob_nbsweepedbuckets_.fetch_add(1) >= _obmaxbucket_)
+        thisgc->add_todo([=](MomGC*ourgc)
+        {
+          ourgc->maybe_done_sweep();
+        });
+    });
+  MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_destroy_dead end");
 } // end MomObject::gc_todo_destroy_dead
 
+void
+MomObject::gc_todo_sweep_bucket(MomGC*gc, unsigned buckix)
+{
+  MOM_ASSERT(buckix<_obmaxbucket_, "gc_todo_sweep_bucket invalid buckix=" << buckix);
+  MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_sweep_bucket start buckix=" << buckix);
+  auto& curbuck = _ob_bucketarr_[buckix];
+  std::lock_guard<std::mutex> gu(curbuck._obu_mtx);
+  curbuck.unsync_buck_gc_sweep_destroy(gc);
+  MOM_DEBUGLOG(garbcoll, "MomObject::gc_todo_clear_mark_bucket end buckix=" << buckix);
+} // end MomObject::gc_todo_sweep_bucket
+
+void
+MomObject::MomBucketObj::unsync_buck_gc_sweep_destroy(MomGC*gc)
+{
+  std::vector<MomIdent> delidvec;
+  auto nbent = _obu_map.size();
+  delidvec.reserve(nbent/8+30);
+  for (auto it : _obu_map)
+    {
+      MomObject* pob = it.second;
+      if (pob)
+        {
+          delidvec.push_back(it.first);
+          it.second = nullptr;
+          delete pob;
+        }
+    }
+  for (auto id: delidvec)
+    _obu_map.erase(id);
+  _obu_map.rehash(0);
+} // end MomObject::MomBucketObj::unsync_buck_gc_clear_marks
