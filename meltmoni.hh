@@ -1367,20 +1367,27 @@ class MomIntSq final : public MomAnyVal   // in scalarv.cc
     return (h ^ (h / 2316179)) % _swidth_;
   };
   static std::atomic<unsigned> _nbclearedbags_;
+  static std::atomic<unsigned> _nbsweepedbags_;
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_zero_clear_count(MomGC*)
   {
     _nbclearedbags_.store(0);
   };
+  static void gc_zero_sweep_count(MomGC*)
+  {
+    _nbsweepedbags_.store(0);
+  };
   static void gc_todo_clear_marks(MomGC*gc);
-#warning we probably need some _nbsweepedbags_ atomic unsigned
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
   };
-#warning we could need a gc_all_bags_sweeped static function
+  static bool gc_all_bags_sweeped(MomGC*)
+  {
+    return _nbsweepedbags_.load() >= _swidth_;
+  };
   intptr_t unsafe_at(unsigned ix) const
   {
     return _ivalarr[ix];
@@ -1445,9 +1452,14 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
   };
   static MomPtrBag<MomDoubleSq>  _bagarr_[_swidth_];
   static std::atomic<unsigned> _nbclearedbags_;
+  static std::atomic<unsigned> _nbsweepedbags_;
   static void gc_zero_clear_count(MomGC*)
   {
     _nbclearedbags_.store(0);
+  };
+  static void gc_zero_sweep_count(MomGC*)
+  {
+    _nbsweepedbags_.store(0);
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
   static void gc_todo_clear_marks(MomGC*gc);
@@ -1455,6 +1467,10 @@ class MomDoubleSq final : public MomAnyVal   // in scalarv.cc
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
+  };
+  static bool gc_all_bags_sweeped(MomGC*)
+  {
+    return _nbsweepedbags_.load() >= _swidth_;
   };
 public:
   const double *begin() const
@@ -1519,6 +1535,7 @@ class MomString final : public MomAnyVal   // in scalarv.cc
   static constexpr const int _swidth_ = 256;
   static MomPtrBag<MomString>  _bagarr_[_swidth_];
   static std::atomic<unsigned> _nbclearedbags_;
+  static std::atomic<unsigned> _nbsweepedbags_;
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h / 2318021)) % _swidth_;
@@ -1533,11 +1550,19 @@ public:
   {
     _nbclearedbags_.store(0);
   };
+  static void gc_zero_sweep_count(MomGC*)
+  {
+    _nbsweepedbags_.store(0);
+  };
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
+  };
+  static bool gc_all_bags_sweeped(MomGC*)
+  {
+    return _nbsweepedbags_.load() >= _swidth_;
   };
 public:
   const char*cstr() const
@@ -1682,6 +1707,7 @@ class MomSet : public MomAnyObjSeq
     return (h ^ (h / 2325097)) % _swidth_;
   };
   static std::atomic<unsigned> _nbclearedbags_;
+  static std::atomic<unsigned> _nbsweepedbags_;
   MomSet(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagSetK, obarr,sz, h) {};
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
@@ -1690,11 +1716,19 @@ public:
   {
     _nbclearedbags_.store(0);
   };
+  static void gc_zero_sweep_count(MomGC*)
+  {
+    _nbsweepedbags_.store(0);
+  };
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
+  };
+  static bool gc_all_bags_sweeped(MomGC*)
+  {
+    return _nbsweepedbags_.load() >= _swidth_;
   };
 public:
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
@@ -1743,10 +1777,15 @@ class MomTuple : public MomAnyObjSeq
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
   static std::atomic<unsigned> _nbclearedbags_;
+  static std::atomic<unsigned> _nbsweepedbags_;
 public:
   static void gc_zero_clear_count(MomGC*)
   {
     _nbclearedbags_.store(0);
+  };
+  static void gc_zero_sweep_count(MomGC*)
+  {
+    _nbsweepedbags_.store(0);
   };
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
@@ -1794,6 +1833,7 @@ class MomNode final : public MomAnyVal // in nodev.cc
   static constexpr const int _swidth_ = 512;
   static MomPtrBag<MomNode>  _bagarr_[_swidth_];
   static std::atomic<unsigned> _nbclearedbags_;
+  static std::atomic<unsigned> _nbsweepedbags_;
   static unsigned slotindex(MomHash h)
   {
     return (h ^ (h /3500183)) % _swidth_;
@@ -1804,11 +1844,19 @@ public:
   {
     _nbclearedbags_.store(0);
   };
+  static void gc_zero_sweep_count(MomGC*)
+  {
+    _nbsweepedbags_.store(0);
+  };
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_bags_cleared(MomGC*)
   {
     return _nbclearedbags_.load() >= _swidth_;
+  };
+  static bool gc_all_bags_sweeped(MomGC*)
+  {
+    return _nbsweepedbags_.load() >= _swidth_;
   };
 public:
   static MomHash compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz);
@@ -1904,13 +1952,26 @@ class MomObject final : public MomAnyVal // in objectv.cc
   static constexpr unsigned _obmaxbucket_ = MomSerial63::_maxbucket_;
   static MomBucketObj _ob_bucketarr_[_obmaxbucket_];
   static std::atomic<unsigned> _ob_nbclearedbuckets_;
+  static std::atomic<unsigned> _ob_nbsweepedbuckets_;
   static void gc_todo_clear_mark_bucket(MomGC*gc,unsigned buckix);
 public:
+  static void gc_zero_clear_count(MomGC*)
+  {
+    _ob_nbclearedbuckets_.store(0);
+  };
+  static void gc_zero_sweep_count(MomGC*)
+  {
+    _ob_nbsweepedbuckets_.store(0);
+  }
   static void gc_todo_clear_marks(MomGC*gc);
   static void gc_todo_destroy_dead(MomGC*gc);
   static bool gc_all_buckets_cleared(MomGC*)
   {
     return _ob_nbclearedbuckets_.load() >= _obmaxbucket_;
+  };
+  static bool gc_all_buckets_sweeped(MomGC*)
+  {
+    return _ob_nbsweepedbuckets_.load() >= _obmaxbucket_;
   };
   struct PayloadEmission
   {
@@ -2062,6 +2123,8 @@ public:
     return static_cast<PaylClass*>(py);
   }
 }; // end class MomObject
+////////////////
+
 
 
 inline std::ostream& operator << (std::ostream& out, const MomObject*pob)

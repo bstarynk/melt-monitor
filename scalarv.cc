@@ -25,6 +25,7 @@ std::atomic<std::uint64_t> MomAnyVal::_wordalloca;
 
 MomIntSq::MomPtrBag<MomIntSq> MomIntSq::_bagarr_[MomIntSq::_swidth_];
 std::atomic<unsigned> MomIntSq::_nbclearedbags_;
+std::atomic<unsigned> MomIntSq::_nbsweepedbags_;
 
 MomIntSq::MomIntSq(const intptr_t* iarr, MomSize sz, MomHash h)
   : MomAnyVal(MomKind::TagIntSqK, sz, h),
@@ -123,6 +124,7 @@ MomIntSq::gc_todo_destroy_dead(MomGC* gc)
 
 MomDoubleSq::MomPtrBag<MomDoubleSq> MomDoubleSq::_bagarr_[MomDoubleSq::_swidth_];
 std::atomic<unsigned> MomDoubleSq::_nbclearedbags_;
+std::atomic<unsigned> MomDoubleSq::_nbsweepedbags_;
 
 MomDoubleSq::MomDoubleSq(const double* darr, MomSize sz, MomHash h)
   : MomAnyVal(MomKind::TagDoubleSqK, sz, h),
@@ -246,6 +248,7 @@ MomDoubleSq::gc_todo_destroy_dead(MomGC* gc)
 ////////////////////////////////////////////////////////////////
 MomString::MomPtrBag<MomString> MomString::_bagarr_[MomString::_swidth_];
 std::atomic<unsigned> MomString::_nbclearedbags_;
+std::atomic<unsigned> MomString::_nbsweepedbags_;
 
 
 MomHash

@@ -98,6 +98,7 @@ MomGC::unsync_start_gc_cycle(void)
   MomSet::gc_zero_clear_count(this);
   MomTuple::gc_zero_clear_count(this);
   MomNode::gc_zero_clear_count(this);
+  MomObject::gc_zero_clear_count(this);
   unsync_add_todo([=](MomGC*gc)
   {
     MomIntSq::gc_todo_clear_marks(gc);
@@ -261,6 +262,13 @@ MomGC::todo_some_scan(void)
                << (donescanning?"done":"incomplete"));
   if (donescanning)
     {
+      MomIntSq::gc_zero_sweep_count(this);
+      MomDoubleSq::gc_zero_sweep_count(this);
+      MomString::gc_zero_sweep_count(this);
+      MomSet::gc_zero_sweep_count(this);
+      MomTuple::gc_zero_sweep_count(this);
+      MomNode::gc_zero_sweep_count(this);
+      MomObject::gc_zero_sweep_count(this);
       add_todo([=](MomGC*thisgc)
       {
         MomIntSq::gc_todo_destroy_dead(thisgc);

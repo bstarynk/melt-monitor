@@ -23,6 +23,7 @@
 
 MomNode::MomPtrBag<MomNode> MomNode::_bagarr_[MomNode::_swidth_];
 std::atomic<unsigned> MomNode::_nbclearedbags_;
+std::atomic<unsigned> MomNode::_nbsweepedbags_;
 
 MomHash
 MomNode::compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz)

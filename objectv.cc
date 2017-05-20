@@ -318,6 +318,7 @@ failure:
 
 MomObject::MomBucketObj MomObject::_ob_bucketarr_[MomObject::_obmaxbucket_];
 std::atomic<unsigned> MomObject::_ob_nbclearedbuckets_;
+std::atomic<unsigned> MomObject::_ob_nbsweepedbuckets_;
 std::mutex MomObject::_predefmtx_;
 MomObjptrSet MomObject::_predefset_;
 
