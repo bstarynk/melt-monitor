@@ -1714,6 +1714,7 @@ class MomSet : public MomAnyObjSeq
   MomSet(MomObject*const* obarr, MomSize sz, MomHash h)
     : MomAnyObjSeq(MomKind::TagSetK, obarr,sz, h) {};
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix);
 public:
   static void gc_zero_clear_count(MomGC*)
   {
@@ -1779,6 +1780,7 @@ class MomTuple : public MomAnyObjSeq
     return (h ^ (h / 2327183)) % _swidth_;
   };
   static void gc_todo_clear_mark_slot(MomGC*gc,unsigned slotix);
+  static void gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix);
   static std::atomic<unsigned> _nbclearedbags_;
   static std::atomic<unsigned> _nbsweepedbags_;
 public:
