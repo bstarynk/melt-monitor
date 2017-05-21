@@ -46,6 +46,7 @@ END TRANSACTION; ---- for t_names
 BEGIN TRANSACTION; --- for t_objects
 INSERT INTO t_objects VALUES('_1jJjA6LcXiX_1V4ZcXlje09',1493382726.98,'
 ///$name
+@MAGIC!
 
 ','named','name','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_2mYaTh9kH4I_7ENiXcymRmy',1493382726.98,'
