@@ -2428,6 +2428,7 @@ public:
     _parhaschunk = haschunk;
     return *this;
   };
+  MomParser& set_loader_for_object(MomLoader*ld, MomObject*pob, const char*tit = "loading");
   MomParser& set_make_from_id(bool mf)
   {
     _parmakefromid=mf;
@@ -2871,6 +2872,7 @@ extern "C" void mom_load_from_directory(const char*dirname);
 extern "C" void mom_dump_todo_scan(MomDumper*du, std::function<void(MomDumper*)> todofun);
 extern "C" void mom_dump_todo_emit(MomDumper*du, std::function<void(MomDumper*)> todofun);
 extern "C" void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam);
+extern "C" bool mom_dump_is_dumpable_object(MomDumper*du, MomObject*pob);
 
 
 /// in paylsimple.cc

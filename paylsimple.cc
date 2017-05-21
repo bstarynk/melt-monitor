@@ -230,13 +230,7 @@ MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const c
   std::string fillstr{fills};
   std::istringstream infill(fillstr);
   MomParser fillpars(infill);
-  char title[80];
-  memset(title,0,sizeof(title));
-  char idbuf[32];
-  memset(idbuf, 0, sizeof(idbuf));
-  own->id().to_cbuf32(idbuf);
-  snprintf(title, sizeof(title), "*fillname %s*", idbuf);
-  fillpars.set_name(std::string{title}).set_make_from_id(true);
+  fillpars.set_loader_for_object(ld, own, "Named fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
   if (fillpars.eof())
@@ -376,7 +370,7 @@ MomPaylSet::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du)
     py->_pset_proxy->scan_dump(du);
   for (MomObject* pob : py->_pset_set)
     pob->scan_dump(du);
-} // end MomPaylNamed::Scandump
+} // end MomPaylSet::Scandump
 
 void
 MomPaylSet::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont)
@@ -387,31 +381,70 @@ MomPaylSet::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, Mo
   MOM_DEBUGLOG(dump, "PaylSet::Emitdump own=" << own
                << " proxy=" << py->_pset_proxy);
   empaylcont->out() << "@SET: ";
-#warning incomplete MomPaylSet::Emitdump
+  for (MomObject* pob : py->_pset_set)
+    {
+      if (!mom_dump_is_dumpable_object(du, pob))
+        continue;
+      empaylcont->emit_space(1);
+      empaylcont->emit_objptr(pob);
+    }
+  if (py->_pset_proxy)
+    {
+      empaylcont->emit_newline(0);
+      empaylcont->out() << "@SETPROXY: ";
+      empaylcont->emit_objptr(py->_pset_proxy);
+    }
 } // end MomPaylSet::Emitdump
 
 MomPayload*
 MomPaylSet::Initload(MomObject*own,MomLoader*,const char*inits)
 {
   MOM_DEBUGLOG(load,"PaylSet::Initload own=" << own << " inits='" << inits << "'");
-#warning incomplete MomPaylSet::Initload
-  //return own->unsync_payload();
+  auto py = own->unsync_make_payload<MomPaylSet>();
+  return py;
 } // end MomPaylNamed::Initload
+
 
 void
 MomPaylSet::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills)
 {
-  auto py = static_cast< MomPaylNamed*>(payl);
+  auto py = static_cast< MomPaylSet*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
              "PaylSet::Loadfill invalid pset payload for own=" << own);
-  MOM_DEBUGLOG(load,"PaylNamed::Loadfill own=" << own
+  MOM_DEBUGLOG(load,"PaylSet::Loadfill own=" << own
                << " fills='" << fills << "'");
-#warning incomplete MomPaylSet::Loadfill
+  std::string fillstr{fills};
+  std::istringstream infill(fillstr);
+  MomParser fillpars(infill);
+  fillpars.set_loader_for_object(ld, own, "Set fill").set_make_from_id(true);
+  fillpars.next_line();
+  fillpars.skip_spaces();
+  if (fillpars.hasdelim("@SET:"))
+    {
+      MomObject* pob = nullptr;
+      bool gotpob = false;
+      while ((pob = fillpars.parse_objptr(&gotpob)), gotpob)
+        {
+          if (pob)
+            py->_pset_set.insert(pob);
+        }
+    };
+  if (fillpars.hasdelim("@SETPROXY:"))
+    {
+      bool gotpob = false;
+      MomObject* pob =fillpars.parse_objptr(&gotpob);
+      if (pob)
+        py->_pset_proxy = pob;
+    }
 } // end MomPaylSet::Loadfill
+
+
+
 
 MomValue
 MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
 {
   auto py = static_cast<const MomPaylSet*>(payl);
+  // should probably handle the SET and CARDINAL magic attributes
 #warning unimplemented MomPaylSet::Getmagic
 } // end   MomPaylSet::Getmagic

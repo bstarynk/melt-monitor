@@ -1416,6 +1416,14 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
   }
 } // end MomObject::unsync_emit_dump_content
 
+bool mom_dump_is_dumpable_object(MomDumper*du, MomObject*pob)
+{
+  if (!du) return false;
+  if (!pob) return false;
+  return du->is_dumped(pob);
+} // end  mom_dump_is_dumpable_object
+
+
 void 
 MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pyem) const
 {

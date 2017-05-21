@@ -23,6 +23,28 @@
 #define MOM_PARSERDEBUGLOG(Pa,Log) do { if ((Pa)->_pardebug) MOM_DEBUGLOG(parse,Log); } while(0)
 #define MOM_THISPARSDBGLOG(Log) MOM_PARSERDEBUGLOG(this,Log)
 
+MomParser&
+MomParser::set_loader_for_object(MomLoader*ld, MomObject*pob, const char*tit)
+{
+  if (!ld)
+    MOM_FATALOG("set_loader_for_object missing ld tit=" << tit);
+  char idbuf[32];
+  memset(idbuf, 0, sizeof(idbuf));
+  if (pob)
+    pob->id().to_cbuf32(idbuf);
+  std::string titstr{"*"};
+  if (tit) titstr += tit;
+  if (pob)
+    {
+      titstr += " " ;
+      titstr += idbuf;
+      titstr += "*";
+    };
+  set_name(titstr);
+  return *this;
+} // end MomParser::set_loader_for_object
+
+
 MomValue
 MomParser::parse_value(bool *pgotval)
 {
