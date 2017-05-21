@@ -2094,6 +2094,7 @@ public:
   void unsync_emit_dump_payload(MomDumper*du, PayloadEmission&) const; // in state.cc
   inline void unsync_clear_payload();
   void unsync_clear_all();
+  inline MomValue unsync_get_magic_attr(const MomObject*pobattr) const;
   MomValue unsync_get_phys_attr(const MomObject*pobattr) const
   {
     if (!pobattr)
@@ -2102,6 +2103,18 @@ public:
     if (it != _ob_attrs.end())
       return it->second;
     return MomValue{nullptr};
+  }
+  MomValue unsync_get(const MomObject*pobattr) const
+  {
+    if (!pobattr)
+      return MomValue{nullptr};
+    if (pobattr->is_magic())
+      {
+        auto v = unsync_get_magic_attr(pobattr);
+        if (v)
+          return v;
+      }
+    return unsync_get_phys_attr(pobattr);
   }
   void unsync_put_phys_attr(const MomObject*pobattr, const MomValue valattr)
   {
@@ -2832,6 +2845,21 @@ MomAnyVal::operator new (size_t sz, MomNewTag, size_t gap)
   return ::operator new(fulsiz);
 } // end MomAnyVal::operator new
 
+
+MomValue
+MomObject::unsync_get_magic_attr(const MomObject*pobattr) const
+{
+  auto payl = _ob_payl;
+  if (payl)
+    {
+      const MomVtablePayload_st*pyvt = payl->_py_vtbl;
+      MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
+                 "unsync_get_magic_attr bad pyvt");
+      if (pyvt->pyv_getmagic)
+        return pyvt->pyv_getmagic(payl,this,pobattr);
+    };
+  return nullptr;
+} // end MomObject::unsync_get_magic_attr
 
 /// in state.cc
 extern "C" void mom_dump_in_directory(const char*dirname);
