@@ -29,7 +29,7 @@ public:
   friend void mom_register_unsync_named(MomObject*obj, const char*name);
   friend void mom_forget_unsync_named_object(MomObject*obj);
   friend MomObject*mom_find_named(const char*name);
-  friend const char* mom_get_unsync_name(MomObject*obj);
+  friend const char* mom_get_unsync_name(const MomObject*obj);
   friend const std::string mom_get_unsync_string_name(MomObject*obj);
   friend void mom_forget_name(const char*name);
   friend MomObject*mom_unsync_named_object_proxy(MomObject*objn);
@@ -118,7 +118,7 @@ mom_find_named(const char*name)
 
 
 const char*
-mom_get_unsync_name(MomObject*obj)
+mom_get_unsync_name(const MomObject*obj)
 {
   auto py = static_cast<MomPaylNamed*>(obj->unsync_payload());
   if (!py || py-> _py_vtbl !=  &MOM_PAYLOADVTBL(named)) return nullptr;
@@ -259,7 +259,15 @@ MomValue
 MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
-#warning unimplemented MomPaylNamed::Getmagic
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
+             "PaylNamed::Getmagic invalid named payload for own=" << own);
+  if (attrob == MOMP_name)
+    return MomString::make_from_string(py->_nam_str);
+  else if (py->_nam_proxy)
+    {
+#warning MomPaylNamed::Getmagic should use proxy
+    }
+  return nullptr;
 } // end   MomPaylNamed::Getmagic
 
 

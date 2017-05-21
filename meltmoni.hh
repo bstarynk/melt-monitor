@@ -1947,6 +1947,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   static constexpr unsigned _bumincount_ = 16;
   const MomIdent _ob_id;
   std::atomic<MomSpace> _ob_space;
+  std::atomic<bool> _ob_magic;
   double _ob_mtime;
   mutable std::shared_mutex _ob_shmtx;
   std::unordered_map<MomObject*,MomValue,MomObjptrHash> _ob_attrs;
@@ -2026,7 +2027,16 @@ public:
   {
     return std::atomic_load(&_ob_space);
   };
+  bool is_magic() const
+  {
+    return _ob_magic.load();
+  };
   MomObject* set_space(MomSpace sp);
+  MomObject* set_magic(bool mag= false)
+  {
+    _ob_magic.store(mag);
+    return this;
+  };
   bool same(const MomObject*ob) const
   {
     return this == ob;
@@ -2521,6 +2531,11 @@ public:
           }
         else if (isspace(peekbyte()))
           _parcol++;
+        else if (peekbyte(0) == '/' && peekbyte(1) == '/')
+          {
+            next_line();
+            continue;
+          }
         else break;
       }
     return *this;
@@ -2831,7 +2846,7 @@ extern "C" void mom_register_unsync_named(MomObject*obj, const char*name);
 extern "C" void mom_forget_unsync_named_object(MomObject*obj);
 extern "C" void mom_forget_name(const char*name);
 extern "C" MomObject*mom_find_named(const char*name);
-extern "C" const char* mom_get_unsync_name(MomObject*obj);
+extern "C" const char* mom_get_unsync_name(const MomObject*obj);
 extern "C" const std::string mom_get_unsync_string_name(MomObject*obj);
 extern "C" MomObject*mom_unsync_named_object_proxy(MomObject*objn);
 extern "C" void mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy);

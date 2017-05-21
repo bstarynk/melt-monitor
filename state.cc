@@ -221,9 +221,20 @@ MomLoader::load(void)
   }
   char cputimbuf[24], realtimbuf[24];
   snprintf(cputimbuf, sizeof(cputimbuf), "%.3f", mom_process_cpu_time() - _ld_startcputime);
-  snprintf(realtimbuf, sizeof(realtimbuf), "%.2f", mom_elapsed_real_time() - _ld_startrealtime);
-  MOM_INFORMLOG("loaded " << nbglobob << " global, " << nbuserob << " user objects from " << _ld_dirname
-                << " in " << realtimbuf << " real, "  << cputimbuf << " cpu seconds" << std::endl);
+  snprintf(realtimbuf, sizeof(realtimbuf), "%.3f", mom_elapsed_real_time() - _ld_startrealtime);
+  char cpupotbuf[24], realpotbuf[24];
+  snprintf(cpupotbuf, sizeof(cpupotbuf), "%.3f",
+           ((mom_process_cpu_time() - _ld_startcputime)*1.0e6)
+           /(nbglobob+nbuserob));
+  snprintf(realpotbuf, sizeof(realpotbuf), "%.3f",
+           ((mom_elapsed_real_time() - _ld_startrealtime)*1.0e6)
+           /(nbglobob+nbuserob));
+  MOM_INFORMLOG("loaded " << nbglobob << " global, " << nbuserob
+                << " user = "
+                << (nbglobob+nbuserob) << " objects from " << _ld_dirname
+                << std::endl
+                << "... in " << realtimbuf << " real, "  << cputimbuf << " cpu seconds"
+                << " = " << realpotbuf << " real, "  << cpupotbuf << " cpu µs/ob" << std::endl);
 } // end MomLoader::load
 
 
@@ -319,11 +330,22 @@ MomLoader::load_all_objects_content(void)
   }
   std::vector<std::thread> vecthr(mom_nb_jobs);
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
-    vecthr[ix-1] = std::thread(thread_load_content_objects, this, ix, &vecobjque[ix-1], getglobfun, getuserfun);
+    {
+      vecthr[ix-1] = std::thread(thread_load_content_objects, this, ix, &vecobjque[ix-1], getglobfun, getuserfun);
+      MOM_DEBUGLOG(load,
+                   "load_all_objects_content thread ix=" << ix
+                   << " of id:" << vecthr[ix-1].get_id());
+    }
   std::this_thread::yield();
+  MOM_DEBUGLOG(load,
+               "load_all_objects_content started contentload mom_nb_jobs="
+               << mom_nb_jobs);
   std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
   for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
-    vecthr[ix-1].join();
+    {
+      vecthr[ix-1].join();
+      MOM_DEBUGLOG(load,"load_all_objects_content joined ix=" << ix);
+    }
   globstmt.used(true);
   userstmt.used(true);
   MOM_DEBUGLOG(load,"load_all_objects_content end");
@@ -570,6 +592,9 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
     {
       contpars.skip_spaces();
       if (contpars.eof()) break;
+      MOM_DEBUGLOG(load,"load_object_content pob=" << pob
+                   << "contpars::"<< contpars.location_str()
+                   << " " << MomShowString(contpars.peekchars()));
       if (contpars.hasdelim("@:"))
         {
           bool gotattr = false;
@@ -600,6 +625,8 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           });
           nbcomp++;
         }
+      else if (contpars.hasdelim("@MAGIC!"))
+        pob->set_magic(true);
     }
   MOM_DEBUGLOG(load,"load_object_content end pob=" << pob << " thix=" << thix
                << " nbattr=" << nbattr << " nbcomp=" << nbcomp);
@@ -1358,6 +1385,15 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
 	     "MomObject::unsync_emit_dump_content bad object@" << (const void*)this);
   if (space()==MomSpace::TransientSp) return;
   em.emit_newline(0);
+  const char*nam = mom_get_unsync_name(this);
+  if (nam) {
+    em.out() << "///$" << nam;
+    em.emit_newline(0);
+  }
+  if (is_magic()) {
+    em.out() << "@MAGIC!";
+    em.emit_newline(0);
+  }
   for (auto &p: _ob_attrs) {
     const MomObject*pobattr = p.first;
     if (!pobattr)

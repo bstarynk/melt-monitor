@@ -343,6 +343,7 @@ MomObject::MomObject(const MomIdent id, MomHash h)
   : MomAnyVal(MomKind::TagObjectK, 0, h),
     _ob_id(id),
     _ob_space(ATOMIC_VAR_INIT(MomSpace::TransientSp)),
+    _ob_magic(false),
     _ob_mtime(0.0),
     _ob_shmtx(),
     _ob_attrs{},
