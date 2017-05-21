@@ -259,13 +259,16 @@ MomValue
 MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
+  MomObject*proxob = nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
              "PaylNamed::Getmagic invalid named payload for own=" << own);
   if (attrob == MOMP_name)
     return MomString::make_from_string(py->_nam_str);
-  else if (py->_nam_proxy)
+#warning perhaps we need to have some lazy pseudo-value. What about cycles of proxys and locking...
+  else if ((proxob=py->_nam_proxy) != nullptr)
     {
-#warning MomPaylNamed::Getmagic should use proxy
+      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      return proxob->unsync_get_magic_attr(attrob);
     }
   return nullptr;
 } // end   MomPaylNamed::Getmagic
