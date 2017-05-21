@@ -28,6 +28,8 @@ MomGC MomGC::the_garbcoll;
 
 MomGC::MomGC()
   : _gc_thrid(std::this_thread::get_id()), _gc_mtx(), _gc_changecond(),
+    _gc_timestart(0.0), _gc_allocstart(0), _gc_cycle(0),
+    _gc_active(false),
     _gc_valque(), _gc_objque(), _gc_todoque()
 {
   MOM_DEBUGLOG(garbcoll, "MomGC created thrid=" << _gc_thrid);
@@ -85,11 +87,22 @@ MomGC::add_todo(std::function<void(MomGC*)> fun)
   unsync_add_todo(fun);
 } // end MomGC::add_todo
 
+void
+MomGC::set_end_notify(std::function<void(MomGC*)> fun)
+{
+  std::lock_guard<std::mutex>  gu(_gc_mtx);
+  unsync_set_end_notify(fun);
+} // end MomGC::set_end_notify
+
 
 void
 MomGC::unsync_start_gc_cycle(void)
 {
   MOM_ASSERT(_gc_todoque.empty(), "unsync_start_gc_cycle nonempty todoque");
+  if (MOM_UNLIKELY(!_gc_active.exchange(true)))
+    MOM_FATAPRINTF("unsync_start_gc_cycle still active GC");
+  _gc_timestart.store(mom_clock_time (CLOCK_MONOTONIC));
+  _gc_allocstart.store(MomAnyVal::allocation_word_count());
   // we zero all the clear counts, to be sure that the
   // gc_all_bags_cleared methods works well afterwards...
   MomIntSq::gc_zero_clear_count(this);
@@ -366,6 +379,15 @@ MomGC::maybe_done_sweep(void)
     reason = "objects";
   else
     {
+      std::function<void(MomGC*)> endfun;
+      {
+
+        std::lock_guard<std::mutex>  gu(_gc_mtx);
+        endfun = _gc_notifyendcycle;
+      }
+      _gc_active.store(false);
+      if (endfun)
+        endfun(this);
 #warning maybe_done_sweep completed GC cycle
       MOM_BACKTRACELOG("MomGC::maybe_done_sweep completed GC cycle");
       return;

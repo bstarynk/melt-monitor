@@ -2668,10 +2668,15 @@ class MomGC
   std::thread::id _gc_thrid;
   std::mutex _gc_mtx;
   std::condition_variable _gc_changecond;
+  std::atomic<double> _gc_timestart; // time of CLOCK_MONOTONIC
+  std::atomic<std::uint64_t> _gc_allocstart;
+  std::atomic<std::uint64_t> _gc_cycle;
+  std::atomic<bool> _gc_active;
   std::deque<MomAnyVal*> _gc_valque;
   std::deque<MomObject*> _gc_objque;
   std::deque<std::function<void(MomGC*)>> _gc_todoque;
   std::map<unsigned, std::function<void(MomGC*)>> _gc_scanfunmap;
+  std::function<void(MomGC*)> _gc_notifyendcycle;
   MomGC(const MomGC&) = delete;
   MomGC(MomGC&&) = delete;
   MomGC();
@@ -2682,10 +2687,19 @@ class MomGC
     MOM_ASSERT(fun, "empty fun for GC unsync_add_todo");
     _gc_todoque.push_back(fun);
 
-  }
+  };
+  void unsync_set_end_notify(std::function<void(MomGC*)> fun)
+  {
+    _gc_notifyendcycle = fun;
+  };
 public:
   static MomGC the_garbcoll;
-  unsigned add_scan_function(std::function<void(MomGC*)>);
+  double start_time(void)
+  {
+    return _gc_timestart.load();
+  };
+  unsigned add_scan_function(std::function<void(MomGC*)> f= nullptr);
+  void set_end_notify(std::function<void(MomGC*)> fun);
   void remove_scan_handle(unsigned);
   static void incremental_run(void);
   void scan_anyval(const MomAnyVal*);
