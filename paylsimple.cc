@@ -299,6 +299,8 @@ public:
   static MomPyv_initload_sig Initload;
   static MomPyv_loadfill_sig Loadfill;
   static MomPyv_getmagic_sig Getmagic;
+  static MomPyv_fetch_sig Fetch;
+  static MomPyv_update_sig Update;
 }; // end class MomPaylSet
 
 
@@ -333,8 +335,8 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(set) __attribute__((section(".r
   /**   .pyv_initload=   */       MomPaylSet::Initload,
   /**   .pyv_loadfill=   */       MomPaylSet::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylSet::Getmagic,
-  /**   .pyv_fetch=      */       nullptr,
-  /**   .pyv_update=     */       nullptr,
+  /**   .pyv_fetch=      */       MomPaylSet::Fetch,
+  /**   .pyv_update=     */       MomPaylSet::Update,
   /**   .pyv_step=       */       nullptr,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
@@ -465,3 +467,59 @@ MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const Mom
     }
   return nullptr;
 } // end   MomPaylSet::Getmagic
+
+
+MomValue
+MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+{
+  auto py = static_cast<const MomPaylSet*>(payl);
+  MomObject*proxob=nullptr;
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
+             "MomPaylSet::Fetch invalid set payload for own=" << own);
+  if (attrob == MOMP_get)
+    {
+      auto elemval = vecarr[0].to_val();
+      MomObject*elemob =
+        elemval
+        ?const_cast<MomObject*>(elemval->to_object())
+        :nullptr;
+#warning something wrong in MomPaylSet::Fetch
+      /*
+      if (elemob && py->_pset_set.find(elemob) != py->_pset_set.end())
+      return elemob;
+      else return nullptr;
+      */
+    };
+  if ((proxob=py->_pset_proxy) != nullptr)
+    {
+      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+#warning should define some unsync_fetch....
+    }
+  return nullptr;
+} // end MomPaylSet::Fetch
+
+
+
+void
+MomPaylSet::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+{
+  auto py = static_cast< MomPaylSet*>(payl);
+  MomObject*proxob=nullptr;
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
+             "MomPaylSet::Update invalid set payload for own=" << own);
+  if (attrob == MOMP_put)
+    {
+      for (unsigned ix=0; ix<veclen; ix++)
+        {
+          auto elemval = vecarr[ix].to_val();
+          auto elemob = elemval?const_cast<MomObject*>(elemval->to_object()):nullptr;
+          if (elemob)
+            py->_pset_set.insert(elemob);
+        };
+    }
+  if ((proxob=py->_pset_proxy) != nullptr)
+    {
+      std::unique_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+#warning should define some unsync_update....
+    }
+} // end MomPaylSet::Update
