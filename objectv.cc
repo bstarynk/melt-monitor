@@ -470,10 +470,10 @@ MomObject::predefined_set(void)
 } // end of MomObject::predefined_set
 
 void
-MomObject::do_each_predefined(std::function<bool(MomObject*)>fun)
+MomObject::do_each_predefined(std::function<bool(const MomObject*)>fun)
 {
   std::lock_guard<std::mutex> _gu{_predefmtx_};
-  for (MomObject*pob : _predefset_)
+  for (const MomObject*pob : _predefset_)
     {
       MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
                  "do_each_predefined bad pob");

@@ -180,9 +180,9 @@ MomGC::initialize_scan(void)
 {
   MOM_DEBUGLOG(garbcoll, "MomGC::initialize_scan start");
   // scan the current predefined
-  MomObject::do_each_predefined([=](MomObject*pob)
+  MomObject::do_each_predefined([=](const MomObject*pob)
   {
-    scan_object(pob);
+    scan_object(const_cast<MomObject*>(pob));
     return false;
   });
   // scan the current globdata

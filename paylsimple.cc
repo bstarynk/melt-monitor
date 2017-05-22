@@ -282,7 +282,7 @@ public:
   friend MomObject*mom_unsync_pset_object_proxy(MomObject*objn);
   friend void mom_unsync_pset_object_set_proxy(MomObject*objn, MomObject*obproxy);
 private:
-  std::set<MomObject*,MomObjptrLess> _pset_set;
+  std::set<const MomObject*,MomObjptrLess> _pset_set;
   MomObject* _pset_proxy;
   MomPaylSet(MomObject*own)
     : MomPayload(&MOM_PAYLOADVTBL(set), own), _pset_set(), _pset_proxy(nullptr) {};
@@ -362,8 +362,8 @@ MomPaylSet::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
              "invalid set payload for own=" << own);
   if (py->_pset_proxy)
     gc->scan_object(py->_pset_proxy);
-  for (MomObject* pob : py->_pset_set)
-    gc->scan_object(pob);
+  for (const MomObject* pob : py->_pset_set)
+    gc->scan_object(const_cast<MomObject*>(pob));
 } // end MomPaylSet::Scangc
 
 void
@@ -374,7 +374,7 @@ MomPaylSet::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du)
                << " proxy=" << py->_pset_proxy);
   if (py->_pset_proxy)
     py->_pset_proxy->scan_dump(du);
-  for (MomObject* pob : py->_pset_set)
+  for (const MomObject* pob : py->_pset_set)
     pob->scan_dump(du);
 } // end MomPaylSet::Scandump
 
@@ -387,9 +387,9 @@ MomPaylSet::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, Mo
   MOM_DEBUGLOG(dump, "PaylSet::Emitdump own=" << own
                << " proxy=" << py->_pset_proxy);
   empaylcont->out() << "@SET: ";
-  for (MomObject* pob : py->_pset_set)
+  for (const MomObject* pob : py->_pset_set)
     {
-      if (!mom_dump_is_dumpable_object(du, pob))
+      if (!mom_dump_is_dumpable_object(du, const_cast<MomObject*>(pob)))
         continue;
       empaylcont->emit_space(1);
       empaylcont->emit_objptr(pob);
@@ -483,12 +483,9 @@ MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObje
         elemval
         ?const_cast<MomObject*>(elemval->to_object())
         :nullptr;
-#warning something wrong in MomPaylSet::Fetch
-      /*
       if (elemob && py->_pset_set.find(elemob) != py->_pset_set.end())
-      return elemob;
+        return elemob;
       else return nullptr;
-      */
     };
   if ((proxob=py->_pset_proxy) != nullptr)
     {

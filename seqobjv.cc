@@ -148,15 +148,15 @@ MomSet::gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix)
 
 
 const MomSet*
-MomSet::make_from_ascending_array(MomObject*const* obarr, MomSize sz)
+MomSet::make_from_ascending_array(const MomObject*const* obarr, MomSize sz)
 {
-  MomHash h = compute_hash(obarr, sz);
+  MomHash h = compute_hash(const_cast<MomObject*const*>(obarr), sz);
   unsigned slotix = slotindex(h);
   auto& curbag = _bagarr_[slotix];
   return curbag.unsync_bag_make_from_hash
          (h,
           mom_align((sz-MOM_FLEXIBLE_DIM)*sizeof(MomObject*)),
-          obarr, sz);
+          const_cast<MomObject**>(obarr), sz);
 } // end MomSet::make_from_ascending_array
 
 const MomSet*
@@ -164,7 +164,7 @@ MomSet::make_from_objptr_set(const MomObjptrSet&oset)
 {
   MomObjptrVector vec;
   vec.reserve(oset.size());
-  for (MomObject* pob : oset)
+  for (const MomObject* pob : oset)
     {
       if (MOM_LIKELY(pob != nullptr))
         vec.push_back(pob);

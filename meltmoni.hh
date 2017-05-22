@@ -1630,7 +1630,7 @@ public:
 
 struct MomObjptrLess
 {
-  inline bool operator()  (const MomObject*, const MomObject*);
+  inline bool operator()  (const MomObject*, const MomObject*) const;
 };				// end MomObjptrLess
 
 struct MomIdentBucketHash
@@ -1648,8 +1648,8 @@ struct MomObjptrHash
   inline size_t operator() (const MomObject*pob) const;
 };				// end MomObjptrHash
 
-typedef std::set<MomObject*,MomObjptrLess> MomObjptrSet;
-typedef std::vector<MomObject*> MomObjptrVector;
+typedef std::set<const MomObject*,MomObjptrLess> MomObjptrSet;
+typedef std::vector<const MomObject*> MomObjptrVector;
 
 // common super class for sets and tuples of objects
 
@@ -1756,9 +1756,9 @@ public:
   };
 public:
   static MomHash compute_hash(MomObject*const* obarr, unsigned sz);
-  static const MomSet* make_from_ascending_array(MomObject*const* obarr, MomSize sz);
+  static const MomSet* make_from_ascending_array(const MomObject*const* obarr, MomSize sz);
   static const MomSet* make_from_objptr_set(const MomObjptrSet&oset);
-  static const MomSet* make_from_objptr_ilist(std::initializer_list<MomObject*> il)
+  static const MomSet* make_from_objptr_ilist(std::initializer_list<const MomObject*> il)
   {
     MomObjptrSet set(il);
     return make_from_objptr_set(set);
@@ -1766,7 +1766,7 @@ public:
   template <typename... Ts>
   static const MomSet* make_from_objptrs(Ts... args)
   {
-    return make_from_objptr_ilist(std::initializer_list<MomObject*> {args...});
+    return make_from_objptr_ilist(std::initializer_list<const MomObject*> {args...});
   };
   static const MomSet* make_from_ascending_objptr_vector(const MomObjptrVector&ovec)
   {
@@ -1826,7 +1826,7 @@ public:
   static const MomTuple* make_from_array(MomObject*const* obarr, MomSize sz);
   static const MomTuple* make_from_objptr_vector(const MomObjptrVector&ovec)
   {
-    return make_from_array(ovec.data(), ovec.size());
+    return make_from_array(const_cast<MomObject*const*>(ovec.data()), ovec.size());
   };
   static const MomTuple* make_from_objptr_ilist(std::initializer_list<MomObject*> il)
   {
@@ -2046,7 +2046,7 @@ public:
   static void initialize_predefined(void);
   static const MomSet* predefined_set(void);
   // do a function for each predefined, until that function gives true
-  static void do_each_predefined(std::function<bool(MomObject*)>fun);
+  static void do_each_predefined(std::function<bool(const MomObject*)>fun);
   MomSpace space() const
   {
     return std::atomic_load(&_ob_space);
@@ -2196,7 +2196,7 @@ inline std::ostream& operator << (std::ostream& out, const MomObject*pob)
 } // end operator << for MomObject*
 
 bool
-MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2)
+MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2) const
 {
   return MomObject::less2(ob1, ob2);
 }      // end MomObjptrLess::operator
