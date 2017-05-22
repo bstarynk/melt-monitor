@@ -347,6 +347,8 @@ void
 MomPaylSet::Destroy (struct MomPayload*payl,MomObject*own)
 {
   auto py = static_cast<MomPaylSet*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
+             "invalid set payload for own=" << own);
   delete py;
 } // end MomPaylSet::Destroy
 
@@ -355,7 +357,7 @@ MomPaylSet::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
 {
   auto py = static_cast<const MomPaylSet*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
-             "invalid named payload for own=" << own);
+             "invalid set payload for own=" << own);
   if (py->_pset_proxy)
     gc->scan_object(py->_pset_proxy);
   for (MomObject* pob : py->_pset_set)

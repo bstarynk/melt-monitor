@@ -36,12 +36,16 @@ MOM_HAS_PREDEF(_7QeFDN33m7B_3dQv2OqqbH6,6582227469305954919,2705343238047192876,
 
 #undef MOM_HAS_PREDEF
 
+#undef MOMP_get
 #undef MOMP_name
 #undef MOMP_proxy
+#undef MOMP_put
 #undef MOMP_set
 #undef MOMP_size
 
+#define MOMP_get       MOM_PREDEF(_7QeFDN33m7B_3dQv2OqqbH6)
 #define MOMP_name      MOM_PREDEF(_1jJjA6LcXiX_1V4ZcXlje09)
 #define MOMP_proxy     MOM_PREDEF(_4w339hT5dXd_1tUZFvU4fWx)
+#define MOMP_put       MOM_PREDEF(_3bMUJDWlMMQ_2j2bm7EeIbv)
 #define MOMP_set       MOM_PREDEF(_2mYaTh9kH4I_7ENiXcymRmy)
 #define MOMP_size      MOM_PREDEF(_3SFtXTTy3kj_89fO24X2HFo)
