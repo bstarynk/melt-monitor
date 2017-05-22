@@ -1068,6 +1068,7 @@ public:
   friend class MomSet;
   friend class MomTuple;
   friend class MomNode;
+  friend class MomObject;
   friend class MomGC;
   static constexpr MomSize _max_size = 1 << 27; // 134217728
   static constexpr size_t _alignment = 2*sizeof(void*);
@@ -1225,6 +1226,22 @@ public:
     if (is_string()) return  reinterpret_cast<const MomString*>(this);
     else return def;
   }
+  // objptrs
+  const MomObject* as_object() const
+  {
+    if (kindw() != MomKind::TagObjectK)
+      MOM_FAILURE("MomAnyVal::as_object not object " << this);
+    return reinterpret_cast<const MomObject*>(this);
+  }
+  bool is_object() const
+  {
+    return kindw() == MomKind::TagObjectK;
+  };
+  const MomObject* to_object(const MomObject* def=nullptr) const
+  {
+    if (is_object()) return  reinterpret_cast<const MomObject*>(this);
+    else return def;
+  }
   // sequences of objects (sets or tuples)
   const MomAnySeqObjVal* as_seqobjval() const
   {
@@ -1315,6 +1332,9 @@ public:
   // return a mutex appropriate for the value, e.g. for garbage collection
   virtual std::mutex* valmtx() const =0;
 };				// end class MomAnyVal
+
+////////////////
+
 
 size_t mom_align(size_t sz)
 {
