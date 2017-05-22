@@ -255,7 +255,7 @@ MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*own,const M
   auto py = static_cast<const MomPaylNamed*>(payl);
   MomObject*proxob = nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
-             "PaylNamed::Getmagic invalid named payload for own=" << own);
+             "MomPaylNamed::Getmagic invalid named payload for own=" << own);
   if (attrob == MOMP_name)
     return MomString::make_from_string(py->_nam_str);
 #warning perhaps we need to have some lazy pseudo-value. What about cycles of proxys and locking...
@@ -445,6 +445,17 @@ MomValue
 MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
 {
   auto py = static_cast<const MomPaylSet*>(payl);
-  // should probably handle the SET and CARDINAL magic attributes
-#warning unimplemented MomPaylSet::Getmagic
+  MomObject*proxob=nullptr;
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
+             "MomPaylSet::Getmagic invalid set payload for own=" << own);
+  if (attrob == MOMP_size)
+    return MomValue{(intptr_t)(py->_pset_set.size())};
+  else if (attrob == MOMP_set)
+    return MomSet::make_from_objptr_set(py->_pset_set);
+  else if ((proxob=py->_pset_proxy) != nullptr)
+    {
+      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      return proxob->unsync_get_magic_attr(attrob);
+    }
+  return nullptr;
 } // end   MomPaylSet::Getmagic

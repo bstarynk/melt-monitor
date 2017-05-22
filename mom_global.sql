@@ -1,4 +1,4 @@
--- dump 2017 May 21 from mom_global dumped by monimelt-dump-state.sh .....
+-- dump 2017 May 22 from mom_global dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -40,6 +40,8 @@ END TRANSACTION; ---- for t_globdata
 ------- TABLE t_names @@@@@@
 BEGIN TRANSACTION; --- for t_names
 INSERT INTO t_names VALUES('_1jJjA6LcXiX_1V4ZcXlje09','name');
+INSERT INTO t_names VALUES('_2mYaTh9kH4I_7ENiXcymRmy','set');
+INSERT INTO t_names VALUES('_3SFtXTTy3kj_89fO24X2HFo','size');
 END TRANSACTION; ---- for t_names
 
 ------- TABLE t_objects @@@@@@
@@ -50,6 +52,19 @@ INSERT INTO t_objects VALUES('_1jJjA6LcXiX_1V4ZcXlje09',1493382726.98,'
 
 ','named','name','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_2mYaTh9kH4I_7ENiXcymRmy',1493382726.98,'
+///$set
+@MAGIC!
+
+','named','set','@NAMEDPROXY: __');
+INSERT INTO t_objects VALUES('_3SFtXTTy3kj_89fO24X2HFo',1495430034.89,'
+///$size
+@MAGIC!
+
+','named','size','@NAMEDPROXY: __');
+INSERT INTO t_objects VALUES('_3bMUJDWlMMQ_2j2bm7EeIbv',1495430034.89,'
+
+','','','');
+INSERT INTO t_objects VALUES('_4w339hT5dXd_1tUZFvU4fWx',1495430034.89,'
 
 ','','','');
 INSERT INTO t_objects VALUES('_7QeFDN33m7B_3dQv2OqqbH6',1493382726.98,'
