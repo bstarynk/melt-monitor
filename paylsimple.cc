@@ -258,6 +258,8 @@ MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*own,const M
              "MomPaylNamed::Getmagic invalid named payload for own=" << own);
   if (attrob == MOMP_name)
     return MomString::make_from_string(py->_nam_str);
+  else if (attrob == MOMP_proxy)
+    return py->_nam_proxy;
 #warning perhaps we need to have some lazy pseudo-value. What about cycles of proxys and locking...
   else if ((proxob=py->_nam_proxy) != nullptr)
     {
@@ -452,6 +454,8 @@ MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const Mom
     return MomValue{(intptr_t)(py->_pset_set.size())};
   else if (attrob == MOMP_set)
     return MomSet::make_from_objptr_set(py->_pset_set);
+  else if (attrob == MOMP_proxy)
+    return py->_pset_proxy;
   else if ((proxob=py->_pset_proxy) != nullptr)
     {
       std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));

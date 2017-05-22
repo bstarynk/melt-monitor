@@ -40,6 +40,7 @@ END TRANSACTION; ---- for t_globdata
 ------- TABLE t_names @@@@@@
 BEGIN TRANSACTION; --- for t_names
 INSERT INTO t_names VALUES('_1jJjA6LcXiX_1V4ZcXlje09','name');
+INSERT INTO t_names VALUES('_4w339hT5dXd_1tUZFvU4fWx','proxy');
 INSERT INTO t_names VALUES('_2mYaTh9kH4I_7ENiXcymRmy','set');
 INSERT INTO t_names VALUES('_3SFtXTTy3kj_89fO24X2HFo','size');
 END TRANSACTION; ---- for t_names
@@ -65,8 +66,10 @@ INSERT INTO t_objects VALUES('_3bMUJDWlMMQ_2j2bm7EeIbv',1495430034.89,'
 
 ','','','');
 INSERT INTO t_objects VALUES('_4w339hT5dXd_1tUZFvU4fWx',1495430034.89,'
+///$proxy
+@MAGIC!
 
-','','','');
+','named','proxy','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_7QeFDN33m7B_3dQv2OqqbH6',1493382726.98,'
 
 ','','','');
