@@ -1592,6 +1592,10 @@ public:
   {
     return _bstr;
   };
+  const std::string string() const
+  {
+    return std::string(_bstr,_bylen);
+  }
   unsigned bytelen() const
   {
     return _bylen;
@@ -2579,6 +2583,7 @@ public:
     return *this;
   }
   inline void next_line(void);
+  std::string parse_string(bool *pgotstr);
   MomValue parse_value(bool* pgotval);
   MomValue parse_chunk(bool* pgotchunk); // parse a code chunk, including the ending )$
   bool parse_chunk_element(std::vector<MomValue>&vec);
@@ -2697,7 +2702,11 @@ public:
   void emit_newline(int depth);
   void emit_raw_newline();
   void emit_value(const MomValue v, int depth=0);
-  void emit_string_value(const MomString*strv, int depth=0, bool asraw=false);
+  void emit_string_value(const MomString*strv, int depth=0, bool asraw=false)
+  {
+    emit_string(strv->string(), depth, asraw);
+  }
+  void emit_string(const std::string&str, int depth=0, bool asraw=false);
   void emit_objptr(const MomObject*pob, int depth=0);
   std::ostream &out()
   {

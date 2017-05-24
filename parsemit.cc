@@ -873,22 +873,23 @@ MomEmitter::emit_value(const MomValue v, int depth)
 
 
 void
-MomEmitter::emit_string_value(const MomString*strv, int depth, bool asraw)
+MomEmitter::emit_string(const std::string&str, int depth, bool asraw)
 {
   if (asraw)
     {
       std::string border;
-      MomHash hs = strv->hash();
+      MomHash hs = mom_cstring_hash_len (str.c_str(), str.size());
       char prefbuf[16];
       memset (prefbuf, 0, sizeof(prefbuf));
       MomSerial63 sr {(hs & 0xfffff) +  MomSerial63::_minserial_};
       sr.to_cbuf16(prefbuf);
       prefbuf[0] = '|';
       prefbuf[4] = 0;
-      if (!strstr(strv->cstr(),prefbuf))
+      if (!strstr(str.c_str(),prefbuf))
         border=prefbuf;
       else
         {
+          border.clear();
           for (uint64_t n = (hs & 0xfffffff) + MomSerial63::_minserial_;
                border.empty();
                n++)
@@ -897,12 +898,12 @@ MomEmitter::emit_string_value(const MomString*strv, int depth, bool asraw)
               sr.to_cbuf16(prefbuf);
               prefbuf[0] = '|';
               prefbuf[8] = 0;
-              if (!strstr(strv->cstr(),prefbuf))
+              if (!strstr(str.c_str(),prefbuf))
                 border=prefbuf;
             }
         }
       out() << '`' << border.substr(1) << '|';
-      out().write(strv->cstr(),strv->bytelen());
+      out().write(str.c_str(),str.size());
       out() << border << '`';
       emit_newline(depth);
     }
@@ -913,14 +914,14 @@ MomEmitter::emit_string_value(const MomString*strv, int depth, bool asraw)
       size_t bsz = 0;
       FILE* f = open_memstream(&buf, &bsz);
       if (!f) MOM_FATAPRINTF("open_memstream failure");
-      mom_output_utf8_encoded (f, strv->cstr(), strv->bytelen());
+      mom_output_utf8_encoded (f, str.c_str(), str.size());
       fflush(f);
       out().write(buf, bsz);
       out() << '"';
       fclose(f);
       free (buf), buf=nullptr;
     }
-} // end of MomEmitter::emit_string_value
+} // end of MomEmitter::emit_string
 
 
 void
