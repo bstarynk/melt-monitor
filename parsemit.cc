@@ -45,9 +45,9 @@ MomParser::set_loader_for_object(MomLoader*ld, MomObject*pob, const char*tit)
 } // end MomParser::set_loader_for_object
 
 
-MomValue
-MomParser::parse_value(bool *pgotval)
+std::string MomParser::parse_string(bool *pgotstr)
 {
+  skip_spaces();
   auto inioff = _parlinoffset;
   auto inicol = _parcol;
   auto inilincnt = _parlincount;
@@ -59,8 +59,79 @@ MomParser::parse_value(bool *pgotval)
   constexpr unsigned bordersize = sizeof(border);
   int borderpos = 0;
   memset (border, 0, bordersize);
+  pc = peekbyte(0);
+  nc = peekbyte(1);
+  if (pc=='"')   // JSON encoded UTF8 string, on the same line
+    {
+      consume(1);
+      std::string restinline{peekchars()};
+      std::istringstream ins{restinline};
+      auto str = mom_input_quoted_utf8_string(ins);
+      consume(ins.tellg());
+      pc = peekbyte(0);
+      if (pc != '"')
+        MOM_PARSE_FAILURE(this, "expecting doublequote ending string, but got " << (char)pc);
+      consume(1);
+      if (pgotstr)
+        *pgotstr = true;
+      if (_parfun)
+        _parfun(PtokString,inicol,inilincnt);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " string "
+                         << MomShowString(str));
+      return _parnobuild?nullptr:str;
+    }
+  else if (pc=='`' && (memset(border, 0, sizeof(border)), (borderpos=0), (nc=='_' || isalnum(nc)))
+           && sscanf(peekchars(0), "`" MOM_BORDER_FORMAT "|%n",
+                     border, &borderpos) >= 1 && borderpos>0 && border[0]>0)   // raw strings
+    {
+      /* the raw string may take many lines, it is ending with the |BORDER` */
+      std::string str;
+      consume(borderpos);
+      for (;;)
+        {
+          if (eol())
+            {
+              if (!_parinp) goto failure;
+              next_line();
+              continue;
+            }
+          pc = peekbyte(0);
+          if (pc == '|')
+            {
+              nc = peekbyte(1);
+              if (nc == border[0] && haskeyword(border, 1) && peekbyte(2+borderpos)=='`')
+                {
+                  consume(2+borderpos);
+                  break;
+                }
+            }
+          str.push_back(pc);
+        }
+      if (pgotstr)
+        *pgotstr = true;
+      if (_parfun)
+        _parfun(PtokString,inicol,inilincnt);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " rawstring "
+                         << MomShowString(str));
+      return _parnobuild?nullptr:str;
+    }
+failure:
+  if (pgotstr)
+    *pgotstr = false;
+  restore_state(inioff, inilincnt, inicol);
+  return nullptr;
+} // end  MomParser::parse_string
+
+
+MomValue
+MomParser::parse_value(bool *pgotval)
+{
+  auto inioff = _parlinoffset;
+  auto inicol = _parcol;
+  auto inilincnt = _parlincount;
+  int pc = 0;
+  int nc = 0;
 again:
-  border[0] = border[1] = (char)0;
   skip_spaces();
   inioff = _parlinoffset;
   inicol = _parcol;
@@ -181,57 +252,21 @@ again:
     }
   else if (pc=='"')   // JSON encoded UTF8 string, on the same line
     {
-      consume(1);
-      std::string restinline{peekchars()};
-      std::istringstream ins{restinline};
-      auto str = mom_input_quoted_utf8_string(ins);
-      consume(ins.tellg());
-      pc = peekbyte(0);
-      if (pc != '"')
-        MOM_PARSE_FAILURE(this, "expecting doublequote ending string, but got " << (char)pc);
-      consume(1);
-      if (pgotval)
-        *pgotval = true;
-      if (_parfun)
-        _parfun(PtokString,inicol,inilincnt);
+      bool gotstr = false;
+      std::string str = parse_string(&gotstr);
+      if (!gotstr)
+        MOM_PARSE_FAILURE(this, "failed to parse string");
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " string "
                          << MomShowString(str));
       return _parnobuild?nullptr:MomValue(MomString::make_from_string(str));
     }
   // multi-line raw strings like `ab0|foobar\here|ab0`
-  else if (pc=='`' && (memset(border, 0, sizeof(border)), (borderpos=0), (nc=='_' || isalnum(nc)))
-           && sscanf(peekchars(0), "`" MOM_BORDER_FORMAT "|%n",
-                     border, &borderpos) >= 1 && borderpos>0 && border[0]>0)   // raw strings
+  else if (pc=='`' && (nc=='_' || isalnum(nc) || nc=='|'))   // raw strings
     {
-      /* the raw string may take many lines, it is ending with the |BORDER` */
-      std::string str;
-      consume(borderpos);
-      for (;;)
-        {
-          if (eol())
-            {
-              if (!_parinp) goto failure;
-              next_line();
-              continue;
-            }
-          pc = peekbyte(0);
-          if (pc == '|')
-            {
-              nc = peekbyte(1);
-              if (nc == border[0] && haskeyword(border, 1) && peekbyte(2+borderpos)=='`')
-                {
-                  consume(2+borderpos);
-                  break;
-                }
-            }
-          str.push_back(pc);
-        }
-      if (pgotval)
-        *pgotval = true;
-      if (_parfun)
-        _parfun(PtokString,inicol,inilincnt);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " rawstring "
-                         << MomShowString(str));
+      bool gotstr = false;
+      auto str = parse_string(&gotstr);
+      if (!gotstr)
+        MOM_PARSE_FAILURE(this, "failed to parse raw string");
       return _parnobuild?nullptr:MomValue(MomString::make_from_string(str));
     }
   else if (pc=='(' && nc=='#')	// (# integer sequence #)
