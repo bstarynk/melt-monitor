@@ -612,6 +612,34 @@ MomPaylStrobuf::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
              "invalid pset payload for own=" << own);
   MOM_DEBUGLOG(dump, "PaylSet::Emitdump own=" << own
                << " proxy=" << py->_pstrobuf_proxy);
+  const_cast<std::ostringstream&>(py->_pstrobuf_out).flush();
+  auto strb = py->_pstrobuf_out.str();
+  empaylcont->emit_newline(0);
+  empaylcont->out() << "@STROBUFSTR: ";
+  {
+    size_t eol = 0;
+    size_t beglin = 0;
+    while ((eol = strb.find('\n', beglin)) >= 0)
+      {
+        while (eol+1 < strb.size() && strb[eol] == '\n') eol++;
+        if (eol+1<strb.size())
+          {
+            std::string linstr = strb.substr(beglin, eol);
+            empaylcont->emit_space(0);
+            empaylcont->emit_string(linstr);
+            beglin = eol+1;
+            continue;
+          }
+        else
+          {
+            std::string laststr = strb.substr(beglin);
+            empaylcont->emit_space(0);
+            empaylcont->emit_string(laststr);
+            break;
+          }
+      }
+    empaylcont->emit_newline(0);
+  }
   if (py->_pstrobuf_proxy)
     {
       empaylcont->emit_newline(0);
@@ -619,6 +647,8 @@ MomPaylStrobuf::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
       empaylcont->emit_objptr(py->_pstrobuf_proxy);
     }
 } // end MomPaylStrobuf::Emitdump
+
+
 
 MomPayload*
 MomPaylStrobuf::Initload(MomObject*own,MomLoader*,const char*inits)
@@ -643,6 +673,9 @@ MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
   fillpars.set_loader_for_object(ld, own, "Strobuf fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
+  if (fillpars.hasdelim("@STROBUFSTR:"))
+    {
+    }
   if (fillpars.hasdelim("@STROBUFPROXY:"))
     {
       bool gotpob = false;
