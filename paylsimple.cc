@@ -520,3 +520,191 @@ MomPaylSet::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, 
 #warning should define some unsync_update....
     }
 } // end MomPaylSet::Update
+
+////////////////////////////////////////////////////////////////
+
+extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(strobuf);
+
+class MomPaylStrobuf: public MomPayload
+{
+public:
+  friend struct MomVtablePayload_st;
+  friend class MomObject;
+private:
+  std::ostringstream _pstrobuf_out;
+  MomObject* _pstrobuf_proxy;
+  MomPaylStrobuf(MomObject*own)
+    : MomPayload(&MOM_PAYLOADVTBL(strobuf), own), _pstrobuf_out(), _pstrobuf_proxy(nullptr) {};
+  ~MomPaylStrobuf()
+  {
+    _pstrobuf_proxy = nullptr;
+  };
+public:
+  static MomPyv_destr_sig Destroy;
+  static MomPyv_scangc_sig Scangc;
+  static MomPyv_scandump_sig Scandump;
+  static MomPyv_emitdump_sig Emitdump;
+  static MomPyv_initload_sig Initload;
+  static MomPyv_loadfill_sig Loadfill;
+  static MomPyv_getmagic_sig Getmagic;
+  static MomPyv_fetch_sig Fetch;
+  static MomPyv_update_sig Update;
+}; // end class MomPaylStrobuf
+
+
+const struct MomVtablePayload_st MOM_PAYLOADVTBL(strobuf) __attribute__((section(".rodata"))) =
+{
+  /**   .pyv_magic=      */       MOM_PAYLOADVTBL_MAGIC,
+  /**   .pyv_size=       */       sizeof(MomPaylStrobuf),
+  /**   .pyv_name=       */       "strobuf",
+  /**   .pyv_module=     */       (const char*)nullptr,
+  /**   .pyv_destroy=    */       MomPaylStrobuf::Destroy,
+  /**   .pyv_scangc=     */       MomPaylStrobuf::Scangc,
+  /**   .pyv_scandump=   */       MomPaylStrobuf::Scandump,
+  /**   .pyv_emitdump=   */       MomPaylStrobuf::Emitdump,
+  /**   .pyv_initload=   */       MomPaylStrobuf::Initload,
+  /**   .pyv_loadfill=   */       MomPaylStrobuf::Loadfill,
+  /**   .pyv_getmagic=   */       MomPaylStrobuf::Getmagic,
+  /**   .pyv_fetch=      */       MomPaylStrobuf::Fetch,
+  /**   .pyv_update=     */       MomPaylStrobuf::Update,
+  /**   .pyv_step=       */       nullptr,
+  /**   .pyv_spare1=     */       nullptr,
+  /**   .pyv_spare2=     */       nullptr,
+  /**   .pyv_spare3=     */       nullptr,
+};
+
+MomRegisterPayload mompy_strobuf(MOM_PAYLOADVTBL(strobuf));
+
+void
+MomPaylStrobuf::Destroy (struct MomPayload*payl,MomObject*own)
+{
+  auto py = static_cast<MomPaylStrobuf*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
+             "invalid set payload for own=" << own);
+  delete py;
+} // end MomPaylStrobuf::Destroy
+
+void
+MomPaylStrobuf::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
+{
+  auto py = static_cast<const MomPaylStrobuf*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
+             "invalid set payload for own=" << own);
+  if (py->_pstrobuf_proxy)
+    gc->scan_object(py->_pstrobuf_proxy);
+} // end MomPaylStrobuf::Scangc
+
+void
+MomPaylStrobuf::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du)
+{
+  auto py = static_cast<const MomPaylStrobuf*>(payl);
+  MOM_DEBUGLOG(dump, "MomPaylStrobuf::Scandump own=" << own
+               << " proxy=" << py->_pstrobuf_proxy);
+  if (py->_pstrobuf_proxy)
+    py->_pstrobuf_proxy->scan_dump(du);
+} // end MomPaylStrobuf::Scandump
+
+void
+MomPaylStrobuf::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont)
+{
+  auto py = static_cast<const MomPaylStrobuf*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
+             "invalid pset payload for own=" << own);
+  MOM_DEBUGLOG(dump, "PaylSet::Emitdump own=" << own
+               << " proxy=" << py->_pstrobuf_proxy);
+  if (py->_pstrobuf_proxy)
+    {
+      empaylcont->emit_newline(0);
+      empaylcont->out() << "@STROBUFPROXY: ";
+      empaylcont->emit_objptr(py->_pstrobuf_proxy);
+    }
+} // end MomPaylStrobuf::Emitdump
+
+MomPayload*
+MomPaylStrobuf::Initload(MomObject*own,MomLoader*,const char*inits)
+{
+  MOM_DEBUGLOG(load,"PaylSet::Initload own=" << own << " inits='" << inits << "'");
+  auto py = own->unsync_make_payload<MomPaylStrobuf>();
+  return py;
+} // end MomPaylNamed::Initload
+
+
+void
+MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills)
+{
+  auto py = static_cast< MomPaylStrobuf*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
+             "MomPaylStrobuf::Loadfill invalid pset payload for own=" << own);
+  MOM_DEBUGLOG(load,"MomPaylStrobuf::Loadfill own=" << own
+               << " fills='" << fills << "'");
+  std::string fillstr{fills};
+  std::istringstream infill(fillstr);
+  MomParser fillpars(infill);
+  fillpars.set_loader_for_object(ld, own, "Strobuf fill").set_make_from_id(true);
+  fillpars.next_line();
+  fillpars.skip_spaces();
+  if (fillpars.hasdelim("@STROBUFPROXY:"))
+    {
+      bool gotpob = false;
+      MomObject* pob =fillpars.parse_objptr(&gotpob);
+      if (pob)
+        py->_pstrobuf_proxy = pob;
+    }
+} // end MomPaylStrobuf::Loadfill
+
+
+
+
+MomValue
+MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
+{
+  auto py = static_cast<const MomPaylStrobuf*>(payl);
+  MomObject*proxob=nullptr;
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
+             "MomPaylStrobuf::Getmagic invalid set payload for own=" << own);
+  if (attrob == MOMP_size)
+    return MomValue{(intptr_t)(const_cast<MomPaylStrobuf*>(py)->_pstrobuf_out.tellp())};
+  else if (attrob == MOMP_proxy)
+    return py->_pstrobuf_proxy;
+  else if ((proxob=py->_pstrobuf_proxy) != nullptr)
+    {
+      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      return proxob->unsync_get_magic_attr(attrob);
+    }
+  return nullptr;
+} // end   MomPaylStrobuf::Getmagic
+
+
+MomValue
+MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+{
+  auto py = static_cast<const MomPaylStrobuf*>(payl);
+  MomObject*proxob=nullptr;
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
+             "MomPaylStrobuf::Fetch invalid set payload for own=" << own);
+  if (attrob == MOMP_get)
+    {
+    };
+  if ((proxob=py->_pstrobuf_proxy) != nullptr)
+    {
+      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+#warning should define some unsync_fetch....
+    }
+  return nullptr;
+} // end MomPaylStrobuf::Fetch
+
+
+
+void
+MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+{
+  auto py = static_cast< MomPaylStrobuf*>(payl);
+  MomObject*proxob=nullptr;
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
+             "MomPaylStrobuf::Update invalid set payload for own=" << own);
+  if ((proxob=py->_pstrobuf_proxy) != nullptr)
+    {
+      std::unique_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+#warning should define some unsync_update....
+    }
+} // end MomPaylStrobuf::Update
