@@ -619,7 +619,7 @@ MomPaylStrobuf::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
   {
     size_t eol = 0;
     size_t beglin = 0;
-    while ((eol = strb.find('\n', beglin)) >= 0)
+    while ((eol = strb.find('\n', beglin)) != std::string::npos)
       {
         while (eol+1 < strb.size() && strb[eol] == '\n') eol++;
         if (eol+1<strb.size())
@@ -675,6 +675,13 @@ MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
   fillpars.skip_spaces();
   if (fillpars.hasdelim("@STROBUFSTR:"))
     {
+      bool gotstr = false;
+      std::string linstr;
+      while ((gotstr=false), (linstr=fillpars.parse_string(&gotstr)), gotstr)
+        {
+          py->_pstrobuf_out.write(linstr.c_str(), linstr.size());
+          linstr.erase();
+        }
     }
   if (fillpars.hasdelim("@STROBUFPROXY:"))
     {
