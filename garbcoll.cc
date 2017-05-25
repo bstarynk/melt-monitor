@@ -32,6 +32,7 @@ MomGC::MomGC()
     _gc_active(false),
     _gc_valque(), _gc_objque(), _gc_todoque()
 {
+  MOM_ASSERT(this == &MomGC::the_garbcoll, "non singleton MomGC");
   MOM_DEBUGLOG(garbcoll, "MomGC created thrid=" << _gc_thrid);
 } // end MomGC::MomGC
 
