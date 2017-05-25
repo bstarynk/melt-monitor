@@ -671,11 +671,13 @@ class MomDumper
   std::atomic_ulong _du_scancount;
   const MomSet* _du_predefvset;
   std::map<std::string,MomObject*> _du_globmap;
+  unsigned _du_scanfunh;
   void initialize_db(sqlite::database &db);
   static void dump_scan_thread(MomDumper*du, int ix);
   static void dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
   void dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
   std::function<void(MomDumper*)> pop_locked_todo_emit(void);
+  void scan_for_gc(MomGC*);
 public:
   void todo_scan(std::function<void(MomDumper*)> todoscanfun);
   void todo_emit(std::function<void(MomDumper*)> todoemitfun);
@@ -761,7 +763,7 @@ MomDumper::MomDumper(const std::string&dirnam)
     _du_globdbmtx(), _du_userdbmtx(),
     _du_addedcondvar(),
     _du_setobj(), _du_queobj(), _du_scancount(ATOMIC_VAR_INIT(0ul)),
-    _du_predefvset(nullptr), _du_globmap{}
+    _du_predefvset(nullptr), _du_globmap{}, _du_scanfunh(0)
 {
   struct stat dirstat;
   memset (&dirstat, 0, sizeof(dirstat));
@@ -789,6 +791,13 @@ MomDumper::MomDumper(const std::string&dirnam)
     snprintf(tempbuf, sizeof(tempbuf), "%s_p%d-", sbuf16, (int)getpid());
     _du_tempsuffix.assign(tempbuf);
   }
+  auto thisdump = this;
+  _du_scanfunh =
+    MomGC::the_garbcoll.add_scan_function
+    ([=](MomGC* thisgc)
+  {
+    thisdump->scan_for_gc(thisgc);
+  });
 } // end MomDumper::MomDumper
 
 
@@ -1320,10 +1329,23 @@ MomDumper::dump_emit_loop(void) {
   MOM_DEBUGLOG(dump,"dump_emit_loop done");
 } // end MomDumper::dump_emit_loop
 
+void
+MomDumper::scan_for_gc(MomGC*gc) {
+    std::lock_guard<std::mutex> gu(_du_mtx);
+    for (auto pob: _du_setobj)
+      gc->scan_object(const_cast<MomObject*>(pob));
+} // end MomDumper::scan_for_gc
 
-MomDumper::~MomDumper() {
+
+MomDumper::~MomDumper() {  
   MOM_DEBUGLOG(dump,"~MomDumper " << _du_dirname);
-}
+  std::lock_guard<std::mutex> gu(_du_mtx);
+  _du_setobj.clear();
+  MomGC::the_garbcoll.remove_scan_handle(_du_scanfunh);
+  _du_scanfunh = 0;
+} // end of MomDumper::~MomDumper
+
+
 
 void
 MomAnyObjSeq::scan_dump(MomDumper*du) const
