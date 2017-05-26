@@ -370,7 +370,7 @@ void
 MomPaylSet::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du)
 {
   auto py = static_cast<const MomPaylSet*>(payl);
-  MOM_DEBUGLOG(dump, "PaylSet::Scandump own=" << own
+  MOM_DEBUGLOG(dump, "MomPaylSet::Scandump own=" << own
                << " proxy=" << py->_pset_proxy);
   if (py->_pset_proxy)
     py->_pset_proxy->scan_dump(du);
@@ -384,7 +384,7 @@ MomPaylSet::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, Mo
   auto py = static_cast<const MomPaylSet*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
              "invalid pset payload for own=" << own);
-  MOM_DEBUGLOG(dump, "PaylSet::Emitdump own=" << own
+  MOM_DEBUGLOG(dump, "MomPaylSet::Emitdump own=" << own
                << " proxy=" << py->_pset_proxy);
   empaylcont->out() << "@SET: ";
   for (const MomObject* pob : py->_pset_set)
@@ -405,7 +405,7 @@ MomPaylSet::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, Mo
 MomPayload*
 MomPaylSet::Initload(MomObject*own,MomLoader*,const char*inits)
 {
-  MOM_DEBUGLOG(load,"PaylSet::Initload own=" << own << " inits='" << inits << "'");
+  MOM_DEBUGLOG(load,"MomPaylSet::Initload own=" << own << " inits='" << inits << "'");
   auto py = own->unsync_make_payload<MomPaylSet>();
   return py;
 } // end MomPaylNamed::Initload
@@ -416,8 +416,8 @@ MomPaylSet::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const cha
 {
   auto py = static_cast< MomPaylSet*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
-             "PaylSet::Loadfill invalid pset payload for own=" << own);
-  MOM_DEBUGLOG(load,"PaylSet::Loadfill own=" << own
+             "MomPaylSet::Loadfill invalid set payload for own=" << own);
+  MOM_DEBUGLOG(load,"MomPaylSet::Loadfill own=" << own
                << " fills='" << fills << "'");
   std::string fillstr{fills};
   std::istringstream infill(fillstr);
@@ -549,6 +549,12 @@ public:
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
   static MomPyv_update_sig Update;
+  void output_value(const MomValue v, int depth=0);
+  std::string buffer_string()
+  {
+    _pstrobuf_out.flush();
+    return _pstrobuf_out.str();
+  }
 }; // end class MomPaylStrobuf
 
 
@@ -653,7 +659,7 @@ MomPaylStrobuf::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
 MomPayload*
 MomPaylStrobuf::Initload(MomObject*own,MomLoader*,const char*inits)
 {
-  MOM_DEBUGLOG(load,"PaylSet::Initload own=" << own << " inits='" << inits << "'");
+  MOM_DEBUGLOG(load,"MomPaylStrobuf::Initload own=" << own << " inits='" << inits << "'");
   auto py = own->unsync_make_payload<MomPaylStrobuf>();
   return py;
 } // end MomPaylNamed::Initload
@@ -751,7 +757,13 @@ MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
 
 
 
-
+void
+MomPaylStrobuf::output_value(const MomValue v, int depth)
+{
+#warning MomPaylStrobuf::output_value unimplemented
+  MOM_FATALOG("MomPaylStrobuf::output_value unimplemented owner=" << owner()
+              << " v=" << v);
+} // end of MomPaylStrobuf::output_value
 
 
 ////////////////////////////////////////////////////////////////
@@ -764,9 +776,11 @@ public:
   friend struct MomVtablePayload_st;
   friend class MomObject;
 private:
+  const std::string _pgenfile_pathstr;
   MomObject* _pgenfile_proxy;
-  MomPaylGenfile(MomObject*own)
-    : MomPayload(&MOM_PAYLOADVTBL(genfile), own), _pgenfile_proxy(nullptr) {};
+  MomPaylGenfile(MomObject*own, const char*pathstr)
+    : MomPayload(&MOM_PAYLOADVTBL(genfile), own),
+      _pgenfile_pathstr(pathstr), _pgenfile_proxy(nullptr) {};
   ~MomPaylGenfile()
   {
     _pgenfile_proxy = nullptr;
@@ -821,7 +835,7 @@ MomPaylGenfile::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
 {
   auto py = static_cast<const MomPaylGenfile*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
-             "invalid set payload for own=" << own);
+             "invalid genfile payload for own=" << own);
   if (py->_pgenfile_proxy)
     gc->scan_object(py->_pgenfile_proxy);
 #warning incomplete MomPaylGenfile::Scangc
@@ -846,13 +860,34 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
              "invalid genfile payload for own=" << own);
   MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own
                << " proxy=" << py->_pgenfile_proxy);
+  empaylinit->out() << py->_pgenfile_pathstr << std::flush;
+  auto pobuf = MomObject::make_object();
+  auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
+  MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own
+               << " pobuf=" << pobuf);
+  unsigned sz= own-> unsync_nb_comps();
+  for (unsigned ix=0; ix<sz; ix++)
+    {
+      auto curcompv = own->unsync_unsafe_comp_at(ix);
+      MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own << " ix#" << ix
+                   << " curcompv=" << curcompv);
+      pystrobuf->output_value(curcompv);
+    }
+  auto tmpath = mom_dump_temporary_file_path(du, py->_pgenfile_pathstr);
+  {
+    std::ofstream out(tmpath);
+    auto bfstr = pystrobuf->buffer_string();
+    out.write(bfstr.c_str(), bfstr.size());
+    out.close();
+  }
 } // end MomPaylGenfile::Emitdump
+
 
 MomPayload*
 MomPaylGenfile::Initload(MomObject*own,MomLoader*,const char*inits)
 {
   MOM_DEBUGLOG(load,"MomPaylGenfile::Initload own=" << own << " inits='" << inits << "'");
-  auto py = own->unsync_make_payload<MomPaylGenfile>();
+  auto py = own->unsync_make_payload<MomPaylGenfile>(inits);
   return py;
 } // end MomPaylGenfile::Initload
 
