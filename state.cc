@@ -1445,6 +1445,12 @@ bool mom_dump_is_dumpable_object(MomDumper*du, MomObject*pob)
   return du->is_dumped(pob);
 } // end  mom_dump_is_dumpable_object
 
+std::string
+mom_dump_temporary_file_path(MomDumper*du, const std::string&path)
+{
+  if (!du) MOM_FAILURE("missing dumper for  mom_dump_temporary_file_path path=" << path);
+  return du->temporary_file_path(path);
+} // end  mom_dump_temporary_file_path
 
 void 
 MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pyem) const
