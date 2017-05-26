@@ -2132,7 +2132,22 @@ public:
       return it->second;
     return MomValue{nullptr};
   }
-  MomValue unsync_get(const MomObject*pobattr) const
+  unsigned unsync_nb_comps() const
+  {
+    return _ob_comps.size();
+  };
+  const MomValue unsync_unsafe_comp_at(unsigned rk) const
+  {
+    return _ob_comps[rk];
+  };
+  const MomValue unsync_get_nth_comp(int rk, MomValue def=nullptr) const
+  {
+    auto sz = _ob_comps.size();
+    if (rk<0) rk += sz;
+    if (rk>=0 && rk<(int)sz) return _ob_comps[rk];
+    return def;
+  }
+  const  MomValue unsync_get(const MomObject*pobattr) const
   {
     if (!pobattr)
       return MomValue{nullptr};
@@ -2184,6 +2199,10 @@ public:
     unsync_clear_payload();
     auto py = _ob_payl = new PaylClass(this,args...);
     return static_cast<PaylClass*>(py);
+  }
+  template<class PaylClass> PaylClass* unsync_dyncast_payload() const
+  {
+    return dynamic_cast<PaylClass*>(_ob_payl);
   }
 }; // end class MomObject
 ////////////////
@@ -2378,6 +2397,10 @@ struct MomPayload
     if (_py_vtbl->pyv_scandump)
       _py_vtbl->pyv_scandump(this,ownob,du);
   }
+  MomObject* owner() const
+  {
+    return _py_owner;
+  };
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
 
@@ -2902,7 +2925,7 @@ extern "C" void mom_dump_todo_scan(MomDumper*du, std::function<void(MomDumper*)>
 extern "C" void mom_dump_todo_emit(MomDumper*du, std::function<void(MomDumper*)> todofun);
 extern "C" void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam);
 extern "C" bool mom_dump_is_dumpable_object(MomDumper*du, MomObject*pob);
-
+extern "C" std::string mom_dump_temporary_file_path(MomDumper*du, const std::string&path);
 
 /// in paylsimple.cc
 extern "C" void mom_register_unsync_named(MomObject*obj, const char*name);
