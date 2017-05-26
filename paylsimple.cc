@@ -530,6 +530,9 @@ class MomPaylStrobuf: public MomPayload
 public:
   friend struct MomVtablePayload_st;
   friend class MomObject;
+  static constexpr unsigned _max_strobuf_ = 1<<22;
+  static constexpr unsigned _max_depth_ = 80;
+
 private:
   std::ostringstream _pstrobuf_out;
   MomObject* _pstrobuf_proxy;
@@ -549,7 +552,7 @@ public:
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
   static MomPyv_update_sig Update;
-  void output_value(const MomValue v, int depth=0);
+  void output_value_to_buffer(const MomValue v, int depth=0);
   std::string buffer_string()
   {
     _pstrobuf_out.flush();
@@ -758,12 +761,32 @@ MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
 
 
 void
-MomPaylStrobuf::output_value(const MomValue v, int depth)
+MomPaylStrobuf::output_value_to_buffer(const MomValue v, int depth)
 {
-#warning MomPaylStrobuf::output_value unimplemented
-  MOM_FATALOG("MomPaylStrobuf::output_value unimplemented owner=" << owner()
+  if (depth > _max_depth_)
+    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too deep " << depth << " for owner " << owner());
+  if (_pstrobuf_out.tellp() > _max_strobuf_)
+    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too long buffer " << _pstrobuf_out.tellp() << " for owner " << owner());
+
+  auto k = v.kind();
+  switch (k)
+    {
+    case MomKind::TagNoneK:
+      return;
+    case MomKind::TagIntK:
+      _pstrobuf_out << v.as_tagint();
+      break;
+    case MomKind::TagStringK:
+      _pstrobuf_out << v->as_string()->cstr();
+      break;
+    case MomKind::TagObjectK:
+      _pstrobuf_out << v->as_object();
+      break;
+    }
+#warning MomPaylStrobuf::output_value_to_buffer unimplemented
+  MOM_FATALOG("MomPaylStrobuf::output_value_to_buffer unimplemented owner=" << owner()
               << " v=" << v);
-} // end of MomPaylStrobuf::output_value
+} // end of MomPaylStrobuf::output_value_to_buffer
 
 
 ////////////////////////////////////////////////////////////////
@@ -871,7 +894,7 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
       auto curcompv = own->unsync_unsafe_comp_at(ix);
       MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own << " ix#" << ix
                    << " curcompv=" << curcompv);
-      pystrobuf->output_value(curcompv);
+      pystrobuf->output_value_to_buffer(curcompv);
     }
   auto tmpath = mom_dump_temporary_file_path(du, py->_pgenfile_pathstr);
   {
