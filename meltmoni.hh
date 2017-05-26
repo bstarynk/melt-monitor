@@ -980,6 +980,7 @@ public:
       MOM_FAILURE("MomValue::as_val not any value");
     return (const MomAnyVal*)(_v & ~7);
   }
+  inline MomKind kind(void) const;
   operator const MomAnyVal* () const
   {
     return as_val();
@@ -1036,6 +1037,14 @@ public:
   inline void scan_dump(MomDumper*du) const;
   inline MomHash hash() const;
   void output(std::ostream& out) const; /// in file parsemit.cc
+  const MomAnyVal* operator -> (void) const
+  {
+    return as_val();
+  };
+  const MomAnyVal* operator * (void) const
+  {
+    return as_val();
+  };
 };				// end class MomValue
 
 inline std::ostream& operator << (std::ostream& out, const MomValue val)
@@ -2888,6 +2897,15 @@ MomValue::scan_dump(MomDumper*du) const
   if (pv)
     pv->scan_dump(du);
 }      // end MomValue::scan_dump
+
+
+MomKind
+MomValue::kind(void) const
+{
+  if (is_empty()) return MomKind::TagNoneK;
+  else if (is_tagint()) return MomKind::TagIntK;
+  else return as_val()->kindw();
+} // end MomValue::kind()
 
 
 void*
