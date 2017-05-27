@@ -490,7 +490,7 @@ MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObje
   if ((proxob=py->_pset_proxy) != nullptr)
     {
       std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
-#warning should define some unsync_fetch....
+      return proxob->unsync_fetch_owner(const_cast<MomObject*>(own),attrob,vecarr,veclen);
     }
   return nullptr;
 } // end MomPaylSet::Fetch

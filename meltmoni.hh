@@ -2133,7 +2133,11 @@ public:
   void unsync_clear_all();
   inline MomValue unsync_get_magic_attr(const MomObject*pobattr) const;
   ///
-  inline MomValue unsync_fetch(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen);
+  inline MomValue unsync_fetch_owner(MomObject*ob,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen);
+  inline MomValue unsync_fetch(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
+  {
+    return unsync_fetch_owner(this, pobattr, vecarr, veclen);
+  };
   inline MomValue unsync_fetch(const MomObject*pobattr, const std::initializer_list<MomValue>& il)
   {
     return unsync_fetch(pobattr, il.begin(), il.size());
@@ -2141,7 +2145,11 @@ public:
   template <typename ... ArgPack>
   inline MomValue unsync_fetch_arg(const MomObject*pobattr, ArgPack... args);
   ///
-  inline void unsync_update(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen);
+  inline void unsync_update_owner(MomObject*own,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen);
+  inline void unsync_update(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
+  {
+    unsync_update_owner(this,pobattr,vecarr,veclen);
+  };
   inline void unsync_update(const MomObject*pobattr, const std::initializer_list<MomValue>& il)
   {
     unsync_update(pobattr, il.begin(), il.size());
@@ -2149,7 +2157,11 @@ public:
   template <typename ... ArgPack>
   inline void unsync_update_arg(const MomObject*pobattr, ArgPack... args);
   ///
-  inline void unsync_step(const MomValue*vecarr, unsigned veclen);
+  inline void unsync_step_owner(MomObject*own,const MomValue*vecarr, unsigned veclen);
+  inline void unsync_step(const MomValue*vecarr, unsigned veclen)
+  {
+    unsync_step_owner(this,vecarr,veclen);
+  };
   inline void unsync_step(const std::initializer_list<MomValue>& il)
   {
     unsync_step(il.begin(), il.size());
@@ -2964,7 +2976,7 @@ MomObject::unsync_get_magic_attr(const MomObject*pobattr) const
 ////
 
 inline MomValue
-MomObject::unsync_fetch(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
+MomObject::unsync_fetch_owner(MomObject*owner, const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
 {
   if (!vecarr)
     veclen=0;
@@ -2975,10 +2987,10 @@ MomObject::unsync_fetch(const MomObject*pobattr, const MomValue*vecarr, unsigned
       MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
                  "unsync_fetch bad pyvt");
       if (pyvt->pyv_fetch)
-        return pyvt->pyv_fetch(payl,this,pobattr,vecarr,veclen);
+        return pyvt->pyv_fetch(payl,owner,pobattr,vecarr,veclen);
     };
   return nullptr;
-} // end MomObject::unsync_fetch
+} // end MomObject::unsync_fetch_owner
 
 template <typename ... ArgPack>
 inline MomValue
@@ -2990,7 +3002,7 @@ MomObject::unsync_fetch_arg(const MomObject*pobattr, ArgPack... args)
 ////
 
 inline void
-MomObject::unsync_update(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
+MomObject::unsync_update_owner(MomObject*own,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
 {
   if (!vecarr)
     veclen=0;
@@ -3001,9 +3013,9 @@ MomObject::unsync_update(const MomObject*pobattr, const MomValue*vecarr, unsigne
       MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
                  "unsync_update bad pyvt");
       if (pyvt->pyv_update)
-        pyvt->pyv_update(payl,this,pobattr,vecarr,veclen);
+        pyvt->pyv_update(payl,own,pobattr,vecarr,veclen);
     };
-} // end MomObject::unsync_update
+} // end MomObject::unsync_update_owner
 
 template <typename ... ArgPack>
 inline void
@@ -3015,7 +3027,7 @@ MomObject::unsync_update_arg(const MomObject*pobattr, ArgPack... args)
 ////
 
 inline void
-MomObject::unsync_step(const MomValue*vecarr, unsigned veclen)
+MomObject::unsync_step_owner(MomObject*own,const MomValue*vecarr, unsigned veclen)
 {
   if (!vecarr)
     veclen=0;
@@ -3026,9 +3038,9 @@ MomObject::unsync_step(const MomValue*vecarr, unsigned veclen)
       MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
                  "unsync_step bad pyvt");
       if (pyvt->pyv_step)
-        pyvt->pyv_step(payl,this,vecarr,veclen);
+        pyvt->pyv_step(payl,own,vecarr,veclen);
     };
-} // end MomObject::unsync_step
+} // end MomObject::unsync_step_owner
 
 template <typename ... ArgPack>
 inline void
