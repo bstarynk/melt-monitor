@@ -2149,6 +2149,14 @@ public:
   template <typename ... ArgPack>
   inline void unsync_update_arg(const MomObject*pobattr, ArgPack... args);
   ///
+  inline void unsync_step(const MomValue*vecarr, unsigned veclen);
+  inline void unsync_step(const std::initializer_list<MomValue>& il)
+  {
+    unsync_step(il.begin(), il.size());
+  };
+  template <typename ... ArgPack>
+  inline void unsync_step_arg(ArgPack... args);
+  ///
   MomValue unsync_get_phys_attr(const MomObject*pobattr) const
   {
     if (!pobattr)
@@ -3003,6 +3011,31 @@ MomObject::unsync_update_arg(const MomObject*pobattr, ArgPack... args)
 {
   unsync_update(pobattr, std::initializer_list<MomValue> {args...});
 } // end  MomObject::unsync_update_arg
+
+////
+
+inline void
+MomObject::unsync_step(const MomValue*vecarr, unsigned veclen)
+{
+  if (!vecarr)
+    veclen=0;
+  auto payl = _ob_payl;
+  if (payl)
+    {
+      const MomVtablePayload_st*pyvt = payl->_py_vtbl;
+      MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
+                 "unsync_step bad pyvt");
+      if (pyvt->pyv_step)
+        pyvt->pyv_step(payl,this,vecarr,veclen);
+    };
+} // end MomObject::unsync_step
+
+template <typename ... ArgPack>
+inline void
+MomObject::unsync_step_arg(ArgPack... args)
+{
+  unsync_step(std::initializer_list<MomValue> {args...});
+} // end  MomObject::unsync_step_arg
 
 /// in state.cc
 extern "C" void mom_dump_in_directory(const char*dirname);
