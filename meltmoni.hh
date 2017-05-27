@@ -2132,6 +2132,7 @@ public:
   inline void unsync_clear_payload();
   void unsync_clear_all();
   inline MomValue unsync_get_magic_attr(const MomObject*pobattr) const;
+  ///
   inline MomValue unsync_fetch(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen);
   inline MomValue unsync_fetch(const MomObject*pobattr, const std::initializer_list<MomValue>& il)
   {
@@ -2139,6 +2140,15 @@ public:
   };
   template <typename ... ArgPack>
   inline MomValue unsync_fetch_arg(const MomObject*pobattr, ArgPack... args);
+  ///
+  inline void unsync_update(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen);
+  inline void unsync_update(const MomObject*pobattr, const std::initializer_list<MomValue>& il)
+  {
+    unsync_update(pobattr, il.begin(), il.size());
+  };
+  template <typename ... ArgPack>
+  inline void unsync_update_arg(const MomObject*pobattr, ArgPack... args);
+  ///
   MomValue unsync_get_phys_attr(const MomObject*pobattr) const
   {
     if (!pobattr)
@@ -2943,6 +2953,7 @@ MomObject::unsync_get_magic_attr(const MomObject*pobattr) const
   return nullptr;
 } // end MomObject::unsync_get_magic_attr
 
+////
 
 inline MomValue
 MomObject::unsync_fetch(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
@@ -2967,6 +2978,31 @@ MomObject::unsync_fetch_arg(const MomObject*pobattr, ArgPack... args)
 {
   return unsync_fetch(pobattr, std::initializer_list<MomValue> {args...});
 } // end  MomObject::unsync_fetch_arg
+
+////
+
+inline void
+MomObject::unsync_update(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
+{
+  if (!vecarr)
+    veclen=0;
+  auto payl = _ob_payl;
+  if (payl)
+    {
+      const MomVtablePayload_st*pyvt = payl->_py_vtbl;
+      MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
+                 "unsync_update bad pyvt");
+      if (pyvt->pyv_update)
+        pyvt->pyv_update(payl,this,pobattr,vecarr,veclen);
+    };
+} // end MomObject::unsync_update
+
+template <typename ... ArgPack>
+inline void
+MomObject::unsync_update_arg(const MomObject*pobattr, ArgPack... args)
+{
+  unsync_update(pobattr, std::initializer_list<MomValue> {args...});
+} // end  MomObject::unsync_update_arg
 
 /// in state.cc
 extern "C" void mom_dump_in_directory(const char*dirname);
