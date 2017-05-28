@@ -1529,7 +1529,7 @@ public:
   }
   /// example: MonDoubleSq::make_from_doubles(1.2,-2.4,3.0)
   template <typename... Ts>
-  static const MomIntSq* make_from_doubles(Ts... args)
+  static const MomDoubleSq* make_from_doubles(Ts... args)
   {
     return make_from_ilist(std::initializer_list<double> {args...});
   }
