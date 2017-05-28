@@ -537,7 +537,8 @@ private:
   std::ostringstream _pstrobuf_out;
   MomObject* _pstrobuf_proxy;
   MomPaylStrobuf(MomObject*own)
-    : MomPayload(&MOM_PAYLOADVTBL(strobuf), own), _pstrobuf_out(), _pstrobuf_proxy(nullptr) {};
+    : MomPayload(&MOM_PAYLOADVTBL(strobuf), own), _pstrobuf_out(),
+      _pstrobuf_proxy(nullptr) {};
   ~MomPaylStrobuf()
   {
     _pstrobuf_proxy = nullptr;
@@ -552,7 +553,8 @@ public:
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
   static MomPyv_update_sig Update;
-  void output_value_to_buffer(const MomValue v, int depth=0);
+  void output_value_to_buffer(MomObject*forpob, const MomValue v, int depth=0);
+  void unsync_output_all_to_buffer(MomObject*forpob);
   std::string buffer_string()
   {
     _pstrobuf_out.flush();
@@ -761,12 +763,12 @@ MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
 
 
 void
-MomPaylStrobuf::output_value_to_buffer(const MomValue v, int depth)
+MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v, int depth)
 {
   if (depth > _max_depth_)
-    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too deep " << depth << " for owner " << owner());
+    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too deep " << depth << " owner " << owner() << " for " << forob);
   if (_pstrobuf_out.tellp() > _max_strobuf_)
-    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too long buffer " << _pstrobuf_out.tellp() << " for owner " << owner());
+    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too long buffer " << _pstrobuf_out.tellp() << " owner " << owner() << " for " << forob);
 
   auto k = v.kind();
   switch (k)
@@ -781,6 +783,42 @@ MomPaylStrobuf::output_value_to_buffer(const MomValue v, int depth)
       break;
     case MomKind::TagObjectK:
       _pstrobuf_out << v->as_object();
+      break;
+    case MomKind::TagIntSqK:
+    {
+      auto isq = v->as_intsq();
+      if (isq->sizew() == 1)
+        _pstrobuf_out << isq->unsafe_at(0);
+      else
+        MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
+                    << " depth=" << depth
+                    << " unexpected intseq:" << v);
+    }
+    break;
+    case MomKind::TagDoubleSqK:
+    {
+      auto dsq = v->as_doublesq();
+      if (dsq->sizew() == 1)
+        _pstrobuf_out << dsq->unsafe_at(0);
+      else
+        MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
+                    << " depth=" << depth
+                    << " unexpected doubleseq:" << v);
+    }
+    break;
+    case MomKind::TagSetK:
+      MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
+                  << " depth=" << depth
+                  << " unexpected set:" << v);
+      break;
+    case MomKind::TagTupleK:
+      MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
+                  << " depth=" << depth
+                  << " unexpected tuple:" << v);
+      break;
+    case MomKind::Tag_LastK:
+      MOM_FATALOG("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
+                  << " corrupted depth=" << depth);
       break;
     }
 #warning MomPaylStrobuf::output_value_to_buffer unimplemented
@@ -888,14 +926,7 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
   auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
   MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own
                << " pobuf=" << pobuf);
-  unsigned sz= own-> unsync_nb_comps();
-  for (unsigned ix=0; ix<sz; ix++)
-    {
-      auto curcompv = own->unsync_unsafe_comp_at(ix);
-      MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own << " ix#" << ix
-                   << " curcompv=" << curcompv);
-      pystrobuf->output_value_to_buffer(curcompv);
-    }
+  pystrobuf->unsync_output_all_to_buffer(own);
   auto tmpath = mom_dump_temporary_file_path(du, py->_pgenfile_pathstr);
   {
     std::ofstream out(tmpath);
@@ -904,6 +935,21 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
     out.close();
   }
 } // end MomPaylGenfile::Emitdump
+
+void
+MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
+{
+  auto own = owner();
+  unsigned sz= own-> unsync_nb_comps();
+  for (unsigned ix=0; ix<sz; ix++)
+    {
+      auto curcompv = own->unsync_unsafe_comp_at(ix);
+      MOM_DEBUGLOG(dump, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " ix#" << ix
+                   << " curcompv=" << curcompv);
+      output_value_to_buffer(forpob, curcompv);
+    }
+} // end MomPaylStrobuf::unsync_output_all_to_buffer
+
 
 
 MomPayload*
