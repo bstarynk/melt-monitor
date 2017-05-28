@@ -553,7 +553,7 @@ public:
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
   static MomPyv_update_sig Update;
-  void output_value_to_buffer(MomObject*forpob, const MomValue v, int depth=0);
+  void output_value_to_buffer(MomObject*forpob, const MomValue v, MomObject*ctxob=nullptr, int depth=0);
   void unsync_output_all_to_buffer(MomObject*forpob);
   std::string buffer_string()
   {
@@ -763,12 +763,12 @@ MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
 
 
 void
-MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v, int depth)
+MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomObject* ctxob, int depth)
 {
   if (depth > _max_depth_)
-    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too deep " << depth << " owner " << owner() << " for " << forob);
+    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too deep " << depth << " owner " << owner() << " for " << forob << " ctx " << ctxob);
   if (_pstrobuf_out.tellp() > _max_strobuf_)
-    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too long buffer " << _pstrobuf_out.tellp() << " owner " << owner() << " for " << forob);
+    MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too long buffer " << _pstrobuf_out.tellp() << " owner " << owner() << " for " << forob << " ctx " << ctxob);
 
   auto k = v.kind();
   switch (k)
@@ -791,7 +791,7 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v, int de
         _pstrobuf_out << isq->unsafe_at(0);
       else
         MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
-                    << " depth=" << depth
+                    << " depth=" << depth << " ctx=" << ctxob
                     << " unexpected intseq:" << v);
     }
     break;
@@ -802,28 +802,31 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v, int de
         _pstrobuf_out << dsq->unsafe_at(0);
       else
         MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
-                    << " depth=" << depth
+                    << " depth=" << depth << " ctx=" << ctxob
                     << " unexpected doubleseq:" << v);
     }
     break;
     case MomKind::TagSetK:
       MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
-                  << " depth=" << depth
+                  << " depth=" << depth << " ctx=" << ctxob
                   << " unexpected set:" << v);
       break;
     case MomKind::TagTupleK:
       MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
-                  << " depth=" << depth
+                  << " depth=" << depth << " ctx=" << ctxob
                   << " unexpected tuple:" << v);
+      break;
+    case MomKind::TagNodeK:
+      MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
+                  << " depth=" << depth << " ctx=" << ctxob
+                  << " unexpected node:" << v);
+#warning MomPaylStrobuf::output_value_to_buffer should handle node
       break;
     case MomKind::Tag_LastK:
       MOM_FATALOG("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
-                  << " corrupted depth=" << depth);
+                  << " corrupted depth=" << depth << " ctx=" << ctxob);
       break;
     }
-#warning MomPaylStrobuf::output_value_to_buffer unimplemented
-  MOM_FATALOG("MomPaylStrobuf::output_value_to_buffer unimplemented owner=" << owner()
-              << " v=" << v);
 } // end of MomPaylStrobuf::output_value_to_buffer
 
 
