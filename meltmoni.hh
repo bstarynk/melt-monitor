@@ -2001,7 +2001,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   static void gc_todo_clear_mark_bucket(MomGC*gc,unsigned buckix);
   static void gc_todo_sweep_bucket(MomGC*gc,unsigned buckix);
 public:
-  std::shared_mutex& get_shared_mutex(const MomPayload*)
+  std::shared_mutex& get_shared_mutex(const MomPayload* = nullptr)
   {
     return _ob_shmtx;
   };
