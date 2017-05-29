@@ -820,10 +820,15 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
     {
       auto nodv = v->as_node();
       MomObject* connv = nodv->conn();
+      MomValue connoutputter;
+      {
+        std::shared_lock<std::shared_mutex> lk(connv->get_shared_mutex());
+        connoutputter = connv->unsync_get(MOMP_outputter);
+      }
       MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
                   << " depth=" << depth << " ctx=" << ctxob
                   << " unexpected node:" << v);
-#warning MomPaylStrobuf::output_value_to_buffer should handle node
+#warning MomPaylStrobuf::output_value_to_buffer should handle node using connoutputter
     }
     break;
     case MomKind::Tag_LastK:
