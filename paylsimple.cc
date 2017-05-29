@@ -244,8 +244,6 @@ MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const c
         MOM_PARSE_FAILURE(&fillpars, "missing proxy for fill of named object " << own);
       py->_nam_proxy = pobproxy;
     }
-  else
-    MOM_PARSE_FAILURE(&fillpars, "missing @NAMEDPROXY: for fill of named object " << own);
 } // end MomPaylNamed::Loadfill
 
 
@@ -921,7 +919,6 @@ MomPaylGenfile::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
              "invalid genfile payload for own=" << own);
   if (py->_pgenfile_proxy)
     gc->scan_object(py->_pgenfile_proxy);
-#warning incomplete MomPaylGenfile::Scangc
 } // end MomPaylGenfile::Scangc
 
 void
@@ -932,7 +929,6 @@ MomPaylGenfile::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du
                << " proxy=" << py->_pgenfile_proxy);
   if (py->_pgenfile_proxy)
     py->_pgenfile_proxy->scan_dump(du);
-#warning incomplete MomPaylGenfile::Scandump
 } // end MomPaylGenfile::Scandump
 
 void
@@ -944,6 +940,8 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
   MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own
                << " proxy=" << py->_pgenfile_proxy);
   empaylinit->out() << py->_pgenfile_pathstr << std::flush;
+  empaylcont->out() << "@GENFILEPROXY: ";
+  empaylcont->emit_objptr(py->_pgenfile_proxy);
   auto pobuf = MomObject::make_object();
   auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
   MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own
@@ -1001,6 +999,17 @@ MomPaylGenfile::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
   fillpars.next_line();
   fillpars.skip_spaces();
 #warning incomplete MomPaylGenfile::Loadfill
+  if (fillpars.eof())
+    return;
+  if (fillpars.hasdelim("@GENFILEPROXY:"))
+    {
+      bool gotproxy = false;
+      fillpars.skip_spaces();
+      MomObject* pobproxy = fillpars.parse_objptr(&gotproxy);
+      if (!gotproxy)
+        MOM_PARSE_FAILURE(&fillpars, "missing proxy for fill of genfile object " << own);
+      py->_pgenfile_proxy = pobproxy;
+    }
 } // end MomPaylGenfile::Loadfill
 
 
