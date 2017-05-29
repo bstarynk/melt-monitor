@@ -63,7 +63,7 @@ MomNode::compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz)
 } // end MomNode::compute_hash
 
 const MomNode*
-MomNode::make_from_array(const MomObject*conn, const MomValue*varr, MomSize sz)
+MomNode::make_from_array(MomObject*conn, const MomValue*varr, MomSize sz)
 {
   MomHash h = compute_hash(conn,varr,sz);
   unsigned slotix = slotindex(h);

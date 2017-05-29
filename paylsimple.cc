@@ -817,11 +817,15 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
                   << " unexpected tuple:" << v);
       break;
     case MomKind::TagNodeK:
+    {
+      auto nodv = v->as_node();
+      MomObject* connv = nodv->conn();
       MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
                   << " depth=" << depth << " ctx=" << ctxob
                   << " unexpected node:" << v);
 #warning MomPaylStrobuf::output_value_to_buffer should handle node
-      break;
+    }
+    break;
     case MomKind::Tag_LastK:
       MOM_FATALOG("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
                   << " corrupted depth=" << depth << " ctx=" << ctxob);

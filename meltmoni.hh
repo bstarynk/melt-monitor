@@ -1865,9 +1865,9 @@ public:
 class MomNode final : public MomAnyVal // in nodev.cc
 {
   friend class MomPtrBag<MomNode>;
-  const MomObject* const _nod_conn;
+  MomObject* const _nod_conn;
   const MomValue _nod_sons[MOM_FLEXIBLE_DIM];
-  MomNode(const MomObject*conn, const MomValue*sons, unsigned arity, MomHash h)
+  MomNode(MomObject* conn, const MomValue*sons, unsigned arity, MomHash h)
     : MomAnyVal(MomKind::TagNodeK, arity, h), _nod_conn(conn), _nod_sons{nullptr}
   {
     memcpy (const_cast<MomValue*>(_nod_sons), sons, arity * sizeof(MomValue));
@@ -1912,17 +1912,17 @@ public:
       if (MOM_LIKELY(_nod_sons[ix] != varr[ix])) return false;
     return true;
   }
-  static const MomNode* make_from_array(const MomObject*conn, const MomValue*varr, MomSize sz);
-  static const MomNode* make_from_vector(const MomObject*conn, const std::vector<MomValue>& vvec)
+  static const MomNode* make_from_array(MomObject*conn, const MomValue*varr, MomSize sz);
+  static const MomNode* make_from_vector(MomObject*conn, const std::vector<MomValue>& vvec)
   {
     return make_from_array(conn, vvec.data(), vvec.size());
   };
-  static const MomNode* make_from_ilist(const MomObject*conn, std::initializer_list<const MomValue> il)
+  static const MomNode* make_from_ilist(MomObject*conn, std::initializer_list<const MomValue> il)
   {
     return make_from_array(conn, il.begin(), il.size());
   };
   template <typename... Ts>
-  static const MomNode* make_from_values(const MomObject*conn, Ts... args)
+  static const MomNode* make_from_values(MomObject*conn, Ts... args)
   {
     return make_from_ilist(conn, std::initializer_list<const MomValue> {args...});
   };
@@ -1930,7 +1930,7 @@ public:
   {
     return MomKind::TagNodeK;
   };
-  const MomObject* conn() const
+  MomObject* conn() const
   {
     return  _nod_conn;
   };
