@@ -275,6 +275,7 @@ extern "C" void mom_failure_backtrace_at(const char*fil, int lin, const std::str
   Dbg(parse)					\
   Dbg(garbcoll)					\
   Dbg(misc)					\
+  Dbg(gencod)					\
   Dbg(blue)					\
   Dbg(green)					\
   Dbg(red)					\
@@ -2356,21 +2357,21 @@ struct MomVtablePayload_st // explicit "vtable-like" of payload
 {
   const unsigned pyv_magic; // always MOM_PAYLOADVTBL_MAGIC
   const unsigned pyv_size; // the actual sizeof the payload
-  const char*pyv_name;
-  const char*pyv_module;
-  const MomPyv_destr_sig* pyv_destroy;
-  const MomPyv_scangc_sig* pyv_scangc;
-  const MomPyv_scandump_sig* pyv_scandump;
-  const MomPyv_emitdump_sig* pyv_emitdump;
-  const MomPyv_initload_sig* pyv_initload;
-  const MomPyv_loadfill_sig* pyv_loadfill;
-  const MomPyv_getmagic_sig* pyv_getmagic;
-  const MomPyv_fetch_sig* pyv_fetch;
-  const MomPyv_update_sig* pyv_update;
-  const MomPyv_step_sig* pyv_step;
-  const void*pyv__spare1;
-  const void*pyv__spare2;
-  const void*pyv__spare3;
+  const char*const pyv_name;
+  const char*const pyv_module;
+  const MomPyv_destr_sig*const pyv_destroy;
+  const MomPyv_scangc_sig*const pyv_scangc;
+  const MomPyv_scandump_sig*const pyv_scandump;
+  const MomPyv_emitdump_sig*const pyv_emitdump;
+  const MomPyv_initload_sig*const pyv_initload;
+  const MomPyv_loadfill_sig*const pyv_loadfill;
+  const MomPyv_getmagic_sig*const pyv_getmagic;
+  const MomPyv_fetch_sig*const pyv_fetch;
+  const MomPyv_update_sig*const pyv_update;
+  const MomPyv_step_sig*const pyv_step;
+  const void*const pyv__spare1;
+  const void*const pyv__spare2;
+  const void*const pyv__spare3;
 };
 
 class MomRegisterPayload
