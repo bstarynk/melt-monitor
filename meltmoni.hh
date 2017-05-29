@@ -2654,6 +2654,7 @@ public:
   }
   inline void next_line(void);
   std::string parse_string(bool *pgotstr);
+  intptr_t parse_int(bool *pgotint);
   MomValue parse_value(bool* pgotval);
   MomValue parse_chunk(bool* pgotchunk); // parse a code chunk, including the ending )$
   bool parse_chunk_element(std::vector<MomValue>&vec);

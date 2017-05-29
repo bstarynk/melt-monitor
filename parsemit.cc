@@ -45,7 +45,8 @@ MomParser::set_loader_for_object(MomLoader*ld, MomObject*pob, const char*tit)
 } // end MomParser::set_loader_for_object
 
 
-std::string MomParser::parse_string(bool *pgotstr)
+std::string
+MomParser::parse_string(bool *pgotstr)
 {
   skip_spaces();
   auto inioff = _parlinoffset;
@@ -122,6 +123,38 @@ failure:
   return nullptr;
 } // end  MomParser::parse_string
 
+intptr_t
+MomParser::parse_int(bool *pgotint)
+{
+  skip_spaces();
+  auto inioff = _parlinoffset;
+  auto inicol = _parcol;
+  auto inilincnt = _parlincount;
+  int pc = 0;
+  int nc = 0;
+  pc = peekbyte(0);
+  nc = peekbyte(1);
+  if (pc>0 && (((pc=='+' || pc=='-') && isdigit(nc)) || isdigit(pc)))
+    {
+      const char*curp = peekchars();
+      char*endp = nullptr;
+      long long ll = strtoll(curp, &endp, 0);
+      if (endp>curp)
+        consume(endp-curp);
+      if (pgotint)
+        *pgotint = true;
+      if (_parfun)
+        _parfun(PtokInt,inicol,inilincnt);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " int:" << ll);
+      return ll;
+    }
+  else
+    {
+      if (pgotint)
+        *pgotint = false;
+      return 0;
+    }
+} // end MomParser::parse_int
 
 MomValue
 MomParser::parse_value(bool *pgotval)
