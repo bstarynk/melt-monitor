@@ -517,7 +517,7 @@ MomPaylSet::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, 
   if ((proxob=py->_pset_proxy) != nullptr)
     {
       std::unique_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
-#warning should define some unsync_update....
+      proxob->unsync_update_owner(own,attrob,vecarr,veclen);
     }
 } // end MomPaylSet::Update
 
@@ -739,7 +739,7 @@ MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
   if ((proxob=py->_pstrobuf_proxy) != nullptr)
     {
       std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
-#warning should define some unsync_fetch....
+      return proxob->unsync_fetch_owner(const_cast<MomObject*>(own),attrob,vecarr,veclen);
     }
   return nullptr;
 } // end MomPaylStrobuf::Fetch
@@ -756,7 +756,7 @@ MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
   if ((proxob=py->_pstrobuf_proxy) != nullptr)
     {
       std::unique_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
-#warning should define some unsync_update....
+      proxob->unsync_update_owner(own,attrob,vecarr,veclen);
     }
 } // end MomPaylStrobuf::Update
 
@@ -765,7 +765,7 @@ MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
 void
 MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomObject* ctxob, int depth)
 {
-  if (depth > _max_depth_)
+  if (depth > (int)_max_depth_)
     MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too deep " << depth << " owner " << owner() << " for " << forob << " ctx " << ctxob);
   if (_pstrobuf_out.tellp() > _max_strobuf_)
     MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer too long buffer " << _pstrobuf_out.tellp() << " owner " << owner() << " for " << forob << " ctx " << ctxob);
@@ -963,13 +963,15 @@ MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
 {
   auto own = owner();
   MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << own << " forpob=" << forpob);
+#warning perhaps should create a ctxob in MomPaylStrobuf::unsync_output_all_to_buffer
   unsigned sz= own-> unsync_nb_comps();
   for (unsigned ix=0; ix<sz; ix++)
     {
       auto curcompv = own->unsync_unsafe_comp_at(ix);
-      MOM_DEBUGLOG(dump, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " ix#" << ix
+      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " ix#" << ix
                    << " curcompv=" << curcompv);
       output_value_to_buffer(forpob, curcompv);
+      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " done ix#" << ix);
     }
   MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer end own=" << own << " forpob=" << forpob);
 } // end MomPaylStrobuf::unsync_output_all_to_buffer
