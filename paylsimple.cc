@@ -819,16 +819,26 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
     case MomKind::TagNodeK:
     {
       auto nodv = v->as_node();
-      MomObject* connv = nodv->conn();
-      MomValue connoutputter;
+      MomObject* connob = nodv->conn();
+      MomValue connoutv;
       {
-        std::shared_lock<std::shared_mutex> lk(connv->get_shared_mutex());
-        connoutputter = connv->unsync_get(MOMP_outputter);
+        std::shared_lock<std::shared_mutex> lk(connob->get_shared_mutex());
+        connoutv = connob->unsync_get(MOMP_outputter);
       }
-      MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
-                  << " depth=" << depth << " ctx=" << ctxob
-                  << " unexpected node:" << v);
-#warning MomPaylStrobuf::output_value_to_buffer should handle node using connoutputter
+      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::output_value_to_buffer owner=" << owner()
+                   << " v=" << v << " connoutv=" << connoutv);
+      MomObject* coutob = const_cast<MomObject*>(connoutv->as_object());
+      if (!coutob)
+        MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
+                    << " depth=" << depth << " ctx=" << ctxob
+                    << " connoutv=" << connoutv
+                    << " unexpected node:" << v);
+      {
+        std::shared_lock<std::shared_mutex> lk(coutob->get_shared_mutex());
+        coutob->unsync_step_arg(MomValue(forob),v,MomValue(ctxob),MomValue(depth));
+      }
+      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::output_value_to_buffer done owner=" << owner()
+                   << " v=" << v << " connoutv=" << connoutv);
     }
     break;
     case MomKind::Tag_LastK:
@@ -952,6 +962,7 @@ void
 MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
 {
   auto own = owner();
+  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << own << " forpob=" << forpob);
   unsigned sz= own-> unsync_nb_comps();
   for (unsigned ix=0; ix<sz; ix++)
     {
@@ -960,6 +971,7 @@ MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
                    << " curcompv=" << curcompv);
       output_value_to_buffer(forpob, curcompv);
     }
+  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer end own=" << own << " forpob=" << forpob);
 } // end MomPaylStrobuf::unsync_output_all_to_buffer
 
 
