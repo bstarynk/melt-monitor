@@ -416,7 +416,7 @@ MomPaylSet::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const cha
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
              "MomPaylSet::Loadfill invalid set payload for own=" << own);
   MOM_DEBUGLOG(load,"MomPaylSet::Loadfill own=" << own
-               << " fills='" << fills << "'");
+               << " fills::" << fills);
   std::string fillstr{fills};
   std::istringstream infill(fillstr);
   MomParser fillpars(infill);
@@ -1202,20 +1202,49 @@ MomPaylEnvstack::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
 } // end MomPaylEnvstack::Scandump
 
 
-#warning several MomPaylEnvstack::* routines unimplemented
 void
-MomPaylEnvstack::Emitdump(MomPayload const*, MomObject*, MomDumper*, MomEmitter*, MomEmitter*)
+MomPaylEnvstack::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont)
 {
+  auto py = static_cast<const MomPaylEnvstack*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(envstack),
+             "invalid envstack payload for own=" << own);
+  MOM_DEBUGLOG(dump, "MomPaylEnvstack::Emitdump own=" << own
+               << " proxy=" << py->_penvstack_proxy);
+  empaylcont->out() << "@ENVSTACK: " <<  py->_penvstack_envs.size();
+  empaylcont->emit_newline(0);
+#warning several MomPaylEnvstack::* routines unimplemented
 } // end MomPaylEnvstack::Emitdump
 
+
 MomPayload*
-MomPaylEnvstack::Initload(MomObject*, MomLoader*, char const*)
+MomPaylEnvstack::Initload(MomObject*own, MomLoader*, char const*inits)
 {
+  MOM_DEBUGLOG(load,"MomPaylEnvstack::Initload own=" << own << " inits='" << inits << "'");
+  auto py = own->unsync_make_payload<MomPaylEnvstack>();
+  return py;
 } // end MomPaylEnvstack::Initload
 
 void
-MomPaylEnvstack::Loadfill(MomPayload*, MomObject*, MomLoader*, char const*)
+MomPaylEnvstack::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*fills)
 {
+  auto py = static_cast< MomPaylEnvstack*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(envstack),
+             "MomPaylEnvstack::Loadfill invalid envstack payload for own=" << own);
+  MOM_DEBUGLOG(load,"MomPaylEnvstack::Loadfill own=" << own
+               << " fills::" << fills);
+  std::string fillstr{fills};
+  std::istringstream infill(fillstr);
+  MomParser fillpars(infill);
+  fillpars.set_loader_for_object(ld, own, "Envstack fill").set_make_from_id(true);
+  fillpars.next_line();
+  fillpars.skip_spaces();
+  intptr_t sz = 0;
+  bool gotsz = false;
+  if (fillpars.hasdelim("@ENVSTACK:") && ((sz=fillpars.parse_int(&gotsz)),gotsz))
+    {
+      py->_penvstack_envs.reserve(sz+1);
+    }
+#warning MomPaylEnvstack::Loadfill incomplete
 } // end MomPaylEnvstack::Loadfill
 
 MomValue
