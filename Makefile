@@ -61,7 +61,7 @@ all: checkgithooks monimelt
 
 
 clean:
-	$(RM) *~ *% *.o *.so */*.so *.log */*~ */*.orig *.i *.orig *.gch README.html
+	$(RM) .*~ *~ *% *.o *.so */*.so *.log */*~ */*.orig *.i *.orig *.gch README.html
 	$(RM) modules/*.so modules/*~ modules/*%
 	$(RM) _timestamp*
 	$(RM) core*
