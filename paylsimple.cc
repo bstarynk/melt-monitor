@@ -186,7 +186,7 @@ void
 MomPaylNamed::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
-  MOM_DEBUGLOG(dump, "PaylNamed::Scandump own=" << own << " name=" << py->_nam_str
+  MOM_DEBUGLOG(dump, "MomPaylNamed::Scandump own=" << own << " name=" << py->_nam_str
                << " proxy=" << py->_nam_proxy);
   if (py->_nam_proxy)
     py->_nam_proxy->scan_dump(du);
@@ -1048,3 +1048,178 @@ MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
 } // end MomPaylGenfile::Update
 
 
+
+////////////////////////////////////////////////////////////////
+
+extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(envstack);
+
+class MomPaylEnvstack: public MomPayload
+{
+public:
+  typedef std::map<MomObject*,MomValue,MomObjptrLess> MomEnvBindMap;
+  friend struct MomVtablePayload_st;
+  friend class MomObject;
+  struct MomEnv
+  {
+    unsigned env_depth;
+    MomEnvBindMap env_map;
+    MomValue env_val;
+    MomEnv(unsigned d=0, MomValue v=nullptr) : env_depth(d), env_map{}, env_val(v) {};
+    ~MomEnv() = default;
+    MomEnv(const MomEnv&) = default;
+    MomEnv(MomEnv&&) = default;
+  };
+private:
+  MomObject* _penvstack_proxy;
+  std::vector<MomEnv> _penvstack_envs;
+  MomPaylEnvstack(MomObject*own)
+    : MomPayload(&MOM_PAYLOADVTBL(envstack), own),
+      _penvstack_proxy(nullptr),
+      _penvstack_envs() {};
+  ~MomPaylEnvstack()
+  {
+    _penvstack_envs.clear();
+    _penvstack_proxy = nullptr;
+  };
+public:
+  static constexpr const bool FAIL_POP=true;
+  static constexpr const bool IGNORE_POP=true;
+  unsigned size() const
+  {
+    return _penvstack_envs.size();
+  };
+  void push_env()
+  {
+    _penvstack_envs.emplace_back(_penvstack_envs.size());
+  }
+  void pop_env(bool fail=IGNORE_POP)
+  {
+    if (_penvstack_envs.empty())
+      {
+        if (fail)
+          MOM_FAILURE("MomPaylEnvstack::pop_env empty stack owner=" << owner());
+        else
+          return;
+      }
+    _penvstack_envs.pop_back();
+  };
+  static MomPyv_destr_sig Destroy;
+  static MomPyv_scangc_sig Scangc;
+  static MomPyv_scandump_sig Scandump;
+  static MomPyv_emitdump_sig Emitdump;
+  static MomPyv_initload_sig Initload;
+  static MomPyv_loadfill_sig Loadfill;
+  static MomPyv_getmagic_sig Getmagic;
+  static MomPyv_fetch_sig Fetch;
+  static MomPyv_update_sig Update;
+}; // end class MomPaylEnvstack
+
+
+const struct MomVtablePayload_st MOM_PAYLOADVTBL(envstack) __attribute__((section(".rodata"))) =
+{
+  /**   .pyv_magic=      */       MOM_PAYLOADVTBL_MAGIC,
+  /**   .pyv_size=       */       sizeof(MomPaylEnvstack),
+  /**   .pyv_name=       */       "envstack",
+  /**   .pyv_module=     */       (const char*)nullptr,
+  /**   .pyv_destroy=    */       MomPaylEnvstack::Destroy,
+  /**   .pyv_scangc=     */       MomPaylEnvstack::Scangc,
+  /**   .pyv_scandump=   */       MomPaylEnvstack::Scandump,
+  /**   .pyv_emitdump=   */       MomPaylEnvstack::Emitdump,
+  /**   .pyv_initload=   */       MomPaylEnvstack::Initload,
+  /**   .pyv_loadfill=   */       MomPaylEnvstack::Loadfill,
+  /**   .pyv_getmagic=   */       MomPaylEnvstack::Getmagic,
+  /**   .pyv_fetch=      */       MomPaylEnvstack::Fetch,
+  /**   .pyv_update=     */       MomPaylEnvstack::Update,
+  /**   .pyv_step=       */       nullptr,
+  /**   .pyv_spare1=     */       nullptr,
+  /**   .pyv_spare2=     */       nullptr,
+  /**   .pyv_spare3=     */       nullptr,
+};
+
+MomRegisterPayload mompy_envstack(MOM_PAYLOADVTBL(envstack));
+
+#warning the MomPaylEnvstack:: functions are empty stubs
+void
+MomPaylEnvstack::Destroy(MomPayload*payl, MomObject*)
+{
+  auto py = static_cast<MomPaylEnvstack*>(payl);
+  delete py;
+} // end MomPaylEnvstack::Destroy
+
+
+void
+MomPaylEnvstack::Scangc(MomPayload const*payl, MomObject*own, MomGC*gc)
+{
+  auto py = static_cast<const MomPaylEnvstack*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(envstack),
+             "invalid envstack payload for own=" << own);
+  if (py->_penvstack_proxy)
+    {
+      gc->scan_object(py->_penvstack_proxy);
+    };
+  for (auto& env: py->_penvstack_envs)
+    {
+      gc->scan_value(env.env_val);
+      for (auto p: env.env_map)
+        {
+          gc->scan_object(p.first);
+          gc->scan_value(p.second);
+        }
+    };
+} // end MomPaylEnvstack::Scangc
+
+
+void
+MomPaylEnvstack::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
+{
+  auto py = static_cast<const MomPaylEnvstack*>(payl);
+  MOM_DEBUGLOG(dump, "MomPaylEnvstack::Scandump own=" << own
+               << " proxy=" << py->_penvstack_proxy);
+  if (py->_penvstack_proxy)
+    py->_penvstack_proxy->scan_dump(du);
+  for (auto& env: py->_penvstack_envs)
+    {
+      env.env_val.scan_dump(du);
+      for (auto p: env.env_map)
+        {
+          MOM_ASSERT(p.first, "MomPaylEnvstack::Scandump corrupted env#" << env.env_depth);
+          p.first->scan_dump(du);
+          if (!mom_dump_is_dumpable_object(du,p.first))
+            continue;
+          p.second.scan_dump(du);
+        }
+    }
+  MOM_DEBUGLOG(dump, "MomPaylEnvstack::Scandump end own=" << own);
+} // end MomPaylEnvstack::Scandump
+
+
+#warning several MomPaylEnvstack::* routines unimplemented
+void
+MomPaylEnvstack::Emitdump(MomPayload const*, MomObject*, MomDumper*, MomEmitter*, MomEmitter*)
+{
+} // end MomPaylEnvstack::Emitdump
+
+MomPayload*
+MomPaylEnvstack::Initload(MomObject*, MomLoader*, char const*)
+{
+} // end MomPaylEnvstack::Initload
+
+void
+MomPaylEnvstack::Loadfill(MomPayload*, MomObject*, MomLoader*, char const*)
+{
+} // end MomPaylEnvstack::Loadfill
+
+MomValue
+MomPaylEnvstack::Getmagic(MomPayload const*, MomObject const*, MomObject const*)
+{
+} // end MomPaylEnvstack::Getmagic
+
+MomValue
+MomPaylEnvstack::Fetch(MomPayload const*, MomObject const*, MomObject const*, MomValue const*, unsigned int)
+{
+} // end MomPaylEnvstack::Fetch
+
+void
+MomPaylEnvstack::Update(MomPayload*, MomObject*, MomObject const*, MomValue const*, unsigned int)
+{
+} // end MomPaylEnvstack::Update
