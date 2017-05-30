@@ -533,9 +533,11 @@ public:
 
 private:
   std::ostringstream _pstrobuf_out;
+  MomObject* _pstrobuf_starter;
   MomObject* _pstrobuf_proxy;
   MomPaylStrobuf(MomObject*own)
     : MomPayload(&MOM_PAYLOADVTBL(strobuf), own), _pstrobuf_out(),
+      _pstrobuf_starter(nullptr),
       _pstrobuf_proxy(nullptr) {};
   ~MomPaylStrobuf()
   {
@@ -649,6 +651,12 @@ MomPaylStrobuf::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
       }
     empaylcont->emit_newline(0);
   }
+  if (py->_pstrobuf_starter)
+    {
+      empaylcont->emit_newline(0);
+      empaylcont->out() << "@STROBUFSTARTER: ";
+      empaylcont->emit_objptr(py->_pstrobuf_starter);
+    }
   if (py->_pstrobuf_proxy)
     {
       empaylcont->emit_newline(0);
@@ -691,6 +699,13 @@ MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
           py->_pstrobuf_out.write(linstr.c_str(), linstr.size());
           linstr.erase();
         }
+    }
+  if (fillpars.hasdelim("@STROBUFSTARTER:"))
+    {
+      bool gotpob = false;
+      MomObject* pob =fillpars.parse_objptr(&gotpob);
+      if (pob)
+        py->_pstrobuf_starter = pob;
     }
   if (fillpars.hasdelim("@STROBUFPROXY:"))
     {
@@ -1107,9 +1122,19 @@ void
 MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
 {
   auto own = owner();
-  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << own << " forpob=" << forpob);
+  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << own << " forpob=" << forpob
+               << " starter=" << _pstrobuf_starter);
   MomObject* ctxob = MomObject::make_object();
-  auto pyenvstack = ctxob->unsync_make_payload<MomPaylEnvstack>();
+  ctxob->unsync_make_payload<MomPaylEnvstack>();
+  if (_pstrobuf_starter != nullptr)
+    {
+      std::shared_lock<std::shared_mutex> lk(_pstrobuf_starter->get_shared_mutex());
+      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer before starter step own=" << own
+                   << " forpob=" << forpob << " ctxob=" << ctxob);
+      _pstrobuf_starter->unsync_step_arg(MomValue(own),MomValue(forpob),MomValue(ctxob));
+      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer after starter step own=" << own
+                   << " forpob=" << forpob << " ctxob=" << ctxob);
+    }
   unsigned sz= own-> unsync_nb_comps();
   MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer ctxob="<< ctxob
                << " owner=" << own);
@@ -1118,7 +1143,7 @@ MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
       auto curcompv = own->unsync_unsafe_comp_at(ix);
       MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " ix#" << ix
                    << " curcompv=" << curcompv);
-      output_value_to_buffer(forpob, curcompv,ctxob);
+      output_value_to_buffer(forpob, curcompv, ctxob);
       MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " done ix#" << ix);
     }
   MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer end own=" << own << " forpob=" << forpob);
