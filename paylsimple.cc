@@ -1101,60 +1101,11 @@ public:
   {
     _penvstack_envs.emplace_back(_penvstack_envs.size());
   }
-  void pop_env(bool fail=IGNORE_NO_ENV)
-  {
-    if (_penvstack_envs.empty())
-      {
-        if (fail)
-          MOM_FAILURE("MomPaylEnvstack::pop_env empty stack owner=" << owner());
-        else
-          return;
-      }
-    _penvstack_envs.pop_back();
-  };
-  void last_env_set_value(MomValue val, bool fail=IGNORE_NO_ENV)
-  {
-    if (_penvstack_envs.empty())
-      {
-        if (fail)
-          MOM_FAILURE("MomPaylEnvstack::last_env_set_value empty stack owner=" << owner());
-        else
-          return;
-      };
-    auto& lastenv = _penvstack_envs[size()-1];
-    lastenv.env_val = val;
-  }
-  void last_env_bind(MomObject*ob, MomValue val, bool fail=IGNORE_NO_ENV)
-  {
-    if (_penvstack_envs.empty() || !ob || !val)
-      {
-        if (fail)
-          MOM_FAILURE("MomPaylEnvstack::last_env_bind empty stack owner=" << owner()
-                      << " for ob=" << ob << " val=" << val);
-        else
-          return;
-      };
-    auto& lastenv = _penvstack_envs[size()-1];
-    lastenv.env_map[ob] = val;
-  }
+  void pop_env(bool fail=IGNORE_NO_ENV);
+  void last_env_set_value(MomValue val, bool fail=IGNORE_NO_ENV);
+  void last_env_bind(MomObject*ob, MomValue val, bool fail=IGNORE_NO_ENV);
   ///
-  void nth_env_bind(MomObject*ob, MomValue val, int rk, bool fail=IGNORE_NO_ENV)
-  {
-    int sz = _penvstack_envs.size();
-    int origrk = rk;
-    if (rk<0) rk += sz;
-    if (_penvstack_envs.empty() || rk<0 || rk>=sz || !ob || !val)
-      {
-        if (fail)
-          MOM_FAILURE("MomPaylEnvstack::nth_env_bind bad stack owner=" << owner()
-                      << " rk= " << origrk
-                      << " for ob=" << ob << " val=" << val);
-        else
-          return;
-      };
-    auto& lastenv = _penvstack_envs[rk];
-    lastenv.env_map[ob] = val;
-  }
+  void nth_env_bind(MomObject*ob, MomValue val, int rk, bool fail=IGNORE_NO_ENV);
   void nth_env_set_value(MomValue val,int rk,  bool fail=IGNORE_NO_ENV)
   {
     int sz = _penvstack_envs.size();
@@ -1206,6 +1157,70 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(envstack) __attribute__((sectio
 
 MomRegisterPayload mompy_envstack(MOM_PAYLOADVTBL(envstack));
 
+void
+MomPaylEnvstack::pop_env(bool fail)
+{
+  if (_penvstack_envs.empty())
+    {
+      if (fail)
+        MOM_FAILURE("MomPaylEnvstack::pop_env empty stack owner=" << owner());
+      else
+        return;
+    }
+  _penvstack_envs.pop_back();
+} // end MomPaylEnvstack::pop_env
+
+void
+MomPaylEnvstack::last_env_set_value(MomValue val, bool fail)
+{
+  if (_penvstack_envs.empty())
+    {
+      if (fail)
+        MOM_FAILURE("MomPaylEnvstack::last_env_set_value empty stack owner=" << owner());
+      else
+        return;
+    };
+  auto& lastenv = _penvstack_envs[size()-1];
+  lastenv.env_val = val;
+} // end MomPaylEnvstack::last_env_set_value
+
+
+void
+MomPaylEnvstack::last_env_bind(MomObject*ob, MomValue val, bool fail)
+{
+  if (_penvstack_envs.empty() || !ob || !val)
+    {
+      if (fail)
+        MOM_FAILURE("MomPaylEnvstack::last_env_bind empty stack owner=" << owner()
+                    << " for ob=" << ob << " val=" << val);
+      else
+        return;
+    };
+  auto& lastenv = _penvstack_envs[size()-1];
+  lastenv.env_map[ob] = val;
+} // end MomPaylEnvstack::last_env_bind
+
+void
+MomPaylEnvstack::nth_env_bind(MomObject*ob, MomValue val, int rk, bool fail)
+{
+  int sz = _penvstack_envs.size();
+  int origrk = rk;
+  if (rk<0) rk += sz;
+  if (_penvstack_envs.empty() || rk<0 || rk>=sz || !ob || !val)
+    {
+      if (fail)
+        MOM_FAILURE("MomPaylEnvstack::nth_env_bind bad stack owner=" << owner()
+                    << " rk= " << origrk
+                    << " for ob=" << ob << " val=" << val);
+      else
+        return;
+    };
+  auto& lastenv = _penvstack_envs[rk];
+  lastenv.env_map[ob] = val;
+} // end MomPaylEnvstack::nth_env_bind
+
+
+////
 #warning the MomPaylEnvstack:: functions are empty stubs
 void
 MomPaylEnvstack::Destroy(MomPayload*payl, MomObject*)
