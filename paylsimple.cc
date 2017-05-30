@@ -344,7 +344,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(set) __attribute__((section(".r
 MomRegisterPayload mompy_set(MOM_PAYLOADVTBL(set));
 
 void
-MomPaylSet::Destroy (struct MomPayload*payl,MomObject*own)
+MomPaylSet::Destroy (struct MomPayload*payl, MomObject*own)
 {
   auto py = static_cast<MomPaylSet*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
@@ -1493,3 +1493,172 @@ void
 MomPaylEnvstack::Update(MomPayload*, MomObject*, MomObject const*, MomValue const*, unsigned int)
 {
 } // end MomPaylEnvstack::Update
+
+
+////////////////////////////////////////////////////////////////
+
+extern const MomVtablePayload_st MOM_PAYLOADVTBL(code);
+class MomPaylCode: public MomPayload
+{
+public:
+  friend struct MomVtablePayload_st;
+  friend class MomObject;
+private:
+  MomObject* _pcode_proxy;
+  MomPaylCode(MomObject*own)
+    : MomPayload(&MOM_PAYLOADVTBL(code), own), _pcode_proxy(nullptr) {};
+  ~MomPaylCode()
+  {
+    _pcode_proxy = nullptr;
+  };
+public:
+  static MomPyv_destr_sig Destroy;
+  static MomPyv_scangc_sig Scangc;
+  static MomPyv_scandump_sig Scandump;
+  static MomPyv_emitdump_sig Emitdump;
+  static MomPyv_initload_sig Initload;
+  static MomPyv_loadfill_sig Loadfill;
+  static MomPyv_getmagic_sig Getmagic;
+  static MomPyv_fetch_sig Fetch;
+  static MomPyv_update_sig Update;
+  static MomPyv_step_sig Step;
+}; // end class MomPaylCode
+
+
+const struct MomVtablePayload_st MOM_PAYLOADVTBL(code) __attribute__((section(".rodata"))) =
+{
+  /**   .pyv_magic=      */       MOM_PAYLOADVTBL_MAGIC,
+  /**   .pyv_size=       */       sizeof(MomPaylCode),
+  /**   .pyv_name=       */       "code",
+  /**   .pyv_module=     */       (const char*)nullptr,
+  /**   .pyv_destroy=    */       MomPaylCode::Destroy,
+  /**   .pyv_scangc=     */       MomPaylCode::Scangc,
+  /**   .pyv_scandump=   */       MomPaylCode::Scandump,
+  /**   .pyv_emitdump=   */       MomPaylCode::Emitdump,
+  /**   .pyv_initload=   */       MomPaylCode::Initload,
+  /**   .pyv_loadfill=   */       MomPaylCode::Loadfill,
+  /**   .pyv_getmagic=   */       MomPaylCode::Getmagic,
+  /**   .pyv_fetch=      */       MomPaylCode::Fetch,
+  /**   .pyv_update=     */       MomPaylCode::Update,
+  /**   .pyv_step=       */       MomPaylCode::Step,
+  /**   .pyv_spare1=     */       nullptr,
+  /**   .pyv_spare2=     */       nullptr,
+  /**   .pyv_spare3=     */       nullptr,
+};
+
+MomRegisterPayload mompy_code(MOM_PAYLOADVTBL(code));
+
+void
+MomPaylCode::Destroy (struct MomPayload*payl, MomObject*own)
+{
+  auto py = static_cast<MomPaylCode*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "invalid code payload for own=" << own);
+  delete py;
+} // end MomPaylCode::Destroy
+
+void
+MomPaylCode::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
+{
+  auto py = static_cast<const MomPaylCode*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "invalid code payload for own=" << own);
+  if (py->_pcode_proxy)
+    gc->scan_object(py->_pcode_proxy);
+} // end MomPaylCode::Scangc
+
+
+void
+MomPaylCode::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
+{
+  auto py = static_cast<const MomPaylCode*>(payl);
+  MOM_DEBUGLOG(dump, "MomPaylCode::Scandump own=" << own
+               << " proxy=" << py->_pcode_proxy);
+  if (py->_pcode_proxy)
+    py->_pcode_proxy->scan_dump(du);
+} // end MomPaylCode::Scandump
+
+void
+MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont)
+{
+  auto py = static_cast<const MomPaylCode*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "invalid code payload for own=" << own);
+  MOM_DEBUGLOG(dump, "MomPaylCode::Emitdump own=" << own
+               << " proxy=" << py->_pcode_proxy);
+#warning incomplete MomPaylCode::Emitdump
+} // end MomPaylCode::Emitdump
+
+
+MomPayload*
+MomPaylCode::Initload(MomObject*own, MomLoader*, char const*inits)
+{
+  MOM_DEBUGLOG(load,"MomPaylCode::Initload own=" << own << " inits='" << inits << "'");
+  auto py = own->unsync_make_payload<MomPaylCode>();
+#warning incomplete MomPaylCode::Initload
+  return py;
+} // end MomPaylEnvstack::Initload
+
+void
+MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*fills)
+{
+  auto py = static_cast< MomPaylCode*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "MomPaylCode::Loadfill invalid code payload for own=" << own);
+  MOM_DEBUGLOG(load,"MomPaylCode::Loadfill own=" << own
+               << " fills::" << fills);
+  std::string fillstr{fills};
+  std::istringstream infill(fillstr);
+  MomParser fillpars(infill);
+  fillpars.set_loader_for_object(ld, own, "Code fill").set_make_from_id(true);
+  fillpars.next_line();
+  fillpars.skip_spaces();
+  if (fillpars.skip_spaces(), fillpars.hasdelim("@CODEPROXY"))
+    {
+      bool gotobj = false;
+      MomObject* proxob = fillpars.parse_objptr(&gotobj);
+      if (!gotobj)
+        MOM_PARSE_FAILURE(&fillpars, "missing proxy of code object " << own);
+      py->_pcode_proxy = proxob;
+    }
+} // end MomPaylCode::Loadfill
+
+MomValue
+MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob)
+{
+  auto py = static_cast<const MomPaylCode*>(payl);
+  MomObject*proxob=nullptr;
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "MomPaylCode::Getmagic invalid code payload for own=" << own);
+  if (attrob == MOMP_proxy)
+    return py->_pcode_proxy;
+} // end MomPaylCode::Getmagic
+
+
+MomValue
+MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+{
+  auto py = static_cast<const MomPaylCode*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "MomPaylCode::Fetch invalid code payload for own=" << own);
+#warning incomplete MomPaylCode::Fetch
+} // end MomPaylCode::Fetch
+
+void
+MomPaylCode::Update(struct MomPayload*payl, MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+{
+  auto py = static_cast< MomPaylCode*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "MomPaylCode::Update invalid code payload for own=" << own);
+#warning incomplete MomPaylCode::Update
+} // end MomPaylCode::Update
+
+
+void
+MomPaylCode::Step(struct MomPayload*payl, MomObject*own, const MomValue*vecarr, unsigned veclen)
+{
+  auto py = static_cast< MomPaylCode*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "MomPaylCode::Step invalid code payload for own=" << own);
+#warning incomplete MomPaylCode::Step
+} // end MomPaylCode::Step
