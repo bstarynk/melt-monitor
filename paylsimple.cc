@@ -956,24 +956,6 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
   }
 } // end MomPaylGenfile::Emitdump
 
-void
-MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
-{
-  auto own = owner();
-  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << own << " forpob=" << forpob);
-#warning perhaps should create a ctxob in MomPaylStrobuf::unsync_output_all_to_buffer
-  unsigned sz= own-> unsync_nb_comps();
-  for (unsigned ix=0; ix<sz; ix++)
-    {
-      auto curcompv = own->unsync_unsafe_comp_at(ix);
-      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " ix#" << ix
-                   << " curcompv=" << curcompv);
-      output_value_to_buffer(forpob, curcompv);
-      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " done ix#" << ix);
-    }
-  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer end own=" << own << " forpob=" << forpob);
-} // end MomPaylStrobuf::unsync_output_all_to_buffer
-
 
 
 MomPayload*
@@ -1106,7 +1088,7 @@ public:
   void last_env_bind(MomObject*ob, MomValue val, bool fail=IGNORE_NO_ENV);
   ///
   void nth_env_bind(MomObject*ob, MomValue val, int rk, bool fail=IGNORE_NO_ENV);
-  void nth_env_set_value(MomValue val,int rk,  bool fail=IGNORE_NO_ENV);
+  void nth_env_set_value(MomValue val, int rk,  bool fail=IGNORE_NO_ENV);
   MomValue var_bind(MomObject*varob, int*prk=nullptr) const;
   MomValue var_rebind(MomObject*varob, MomValue newval, int*prk=nullptr);
   static MomPyv_destr_sig Destroy;
@@ -1120,6 +1102,27 @@ public:
   static MomPyv_update_sig Update;
 }; // end class MomPaylEnvstack
 
+
+void
+MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
+{
+  auto own = owner();
+  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << own << " forpob=" << forpob);
+  MomObject* ctxob = MomObject::make_object();
+  auto pyenvstack = ctxob->unsync_make_payload<MomPaylEnvstack>();
+  unsigned sz= own-> unsync_nb_comps();
+  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer ctxob="<< ctxob
+               << " owner=" << own);
+  for (unsigned ix=0; ix<sz; ix++)
+    {
+      auto curcompv = own->unsync_unsafe_comp_at(ix);
+      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " ix#" << ix
+                   << " curcompv=" << curcompv);
+      output_value_to_buffer(forpob, curcompv,ctxob);
+      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer own=" << own << " done ix#" << ix);
+    }
+  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer end own=" << own << " forpob=" << forpob);
+} // end MomPaylStrobuf::unsync_output_all_to_buffer
 
 const struct MomVtablePayload_st MOM_PAYLOADVTBL(envstack) __attribute__((section(".rodata"))) =
 {
