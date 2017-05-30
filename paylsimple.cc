@@ -1106,22 +1106,9 @@ public:
   void last_env_bind(MomObject*ob, MomValue val, bool fail=IGNORE_NO_ENV);
   ///
   void nth_env_bind(MomObject*ob, MomValue val, int rk, bool fail=IGNORE_NO_ENV);
-  void nth_env_set_value(MomValue val,int rk,  bool fail=IGNORE_NO_ENV)
-  {
-    int sz = _penvstack_envs.size();
-    int origrk = rk;
-    if (rk<0) rk += sz;
-    if (_penvstack_envs.empty() || rk<0 || rk>=sz)
-      {
-        if (fail)
-          MOM_FAILURE("MomPaylEnvstack::nth_env_set_value bad stack owner=" << owner()
-                      << " rk= " << origrk);
-        else
-          return;
-      };
-    auto& lastenv = _penvstack_envs[rk];
-    lastenv.env_val = val;
-  }
+  void nth_env_set_value(MomValue val,int rk,  bool fail=IGNORE_NO_ENV);
+  MomValue var_bind(MomObject*varob, int*prk=nullptr) const;
+  MomValue var_rebind(MomObject*varob, MomValue newval, int*prk=nullptr);
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
   static MomPyv_scandump_sig Scandump;
@@ -1219,6 +1206,81 @@ MomPaylEnvstack::nth_env_bind(MomObject*ob, MomValue val, int rk, bool fail)
   lastenv.env_map[ob] = val;
 } // end MomPaylEnvstack::nth_env_bind
 
+
+void
+MomPaylEnvstack::nth_env_set_value(MomValue val,int rk,  bool fail)
+{
+  int sz = _penvstack_envs.size();
+  int origrk = rk;
+  if (rk<0) rk += sz;
+  if (_penvstack_envs.empty() || rk<0 || rk>=sz)
+    {
+      if (fail)
+        MOM_FAILURE("MomPaylEnvstack::nth_env_set_value bad stack owner=" << owner()
+                    << " rk= " << origrk);
+      else
+        return;
+    };
+  auto& lastenv = _penvstack_envs[rk];
+  lastenv.env_val = val;
+}
+
+MomValue
+MomPaylEnvstack::var_bind(MomObject*varob, int*prk) const
+{
+  if (!varob)
+    {
+      if (prk)
+        *prk = -1;
+      return nullptr;
+    }
+  int sz = _penvstack_envs.size();
+  for (int ix= sz-1; ix>=0; ix--)
+    {
+      auto& curenv = _penvstack_envs[ix];
+      auto it = curenv.env_map.find(varob);
+      if (it != curenv.env_map.end())
+        {
+          if (prk)
+            *prk = ix;
+          return it->second;
+        }
+    }
+  if (prk)
+    *prk = -1;
+  return nullptr;
+} // end MomPaylEnvstack::var_bind
+
+MomValue
+MomPaylEnvstack::var_rebind(MomObject*varob, MomValue newval, int*prk)
+{
+  if (!varob)
+    {
+      if (prk)
+        *prk = -1;
+      return nullptr;
+    }
+  int sz = _penvstack_envs.size();
+  for (int ix= sz-1; ix>=0; ix--)
+    {
+      auto& curenv = _penvstack_envs[ix];
+      auto it = curenv.env_map.find(varob);
+      if (it != curenv.env_map.end())
+        {
+          if (prk)
+            *prk = ix;
+          auto oldval = it->second;
+          if (!newval)
+            curenv.env_map.erase(it);
+          else
+            it->second = newval;
+          return oldval;
+        }
+    }
+  if (prk)
+    *prk = -1;
+  return nullptr;
+} // end MomPaylEnvstack::var_rebind
 
 ////
 #warning the MomPaylEnvstack:: functions are empty stubs
