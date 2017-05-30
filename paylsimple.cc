@@ -1091,8 +1091,8 @@ private:
     _penvstack_proxy = nullptr;
   };
 public:
-  static constexpr const bool FAIL_POP=true;
-  static constexpr const bool IGNORE_POP=true;
+  static constexpr const bool FAIL_NO_ENV=false;
+  static constexpr const bool IGNORE_NO_ENV=true;
   unsigned size() const
   {
     return _penvstack_envs.size();
@@ -1101,7 +1101,7 @@ public:
   {
     _penvstack_envs.emplace_back(_penvstack_envs.size());
   }
-  void pop_env(bool fail=IGNORE_POP)
+  void pop_env(bool fail=IGNORE_NO_ENV)
   {
     if (_penvstack_envs.empty())
       {
@@ -1112,6 +1112,65 @@ public:
       }
     _penvstack_envs.pop_back();
   };
+  void last_env_set_value(MomValue val, bool fail=IGNORE_NO_ENV)
+  {
+    if (_penvstack_envs.empty())
+      {
+        if (fail)
+          MOM_FAILURE("MomPaylEnvstack::last_env_set_value empty stack owner=" << owner());
+        else
+          return;
+      };
+    auto& lastenv = _penvstack_envs[size()-1];
+    lastenv.env_val = val;
+  }
+  void last_env_bind(MomObject*ob, MomValue val, bool fail=IGNORE_NO_ENV)
+  {
+    if (_penvstack_envs.empty() || !ob || !val)
+      {
+        if (fail)
+          MOM_FAILURE("MomPaylEnvstack::last_env_bind empty stack owner=" << owner()
+                      << " for ob=" << ob << " val=" << val);
+        else
+          return;
+      };
+    auto& lastenv = _penvstack_envs[size()-1];
+    lastenv.env_map[ob] = val;
+  }
+  ///
+  void nth_env_bind(MomObject*ob, MomValue val, int rk, bool fail=IGNORE_NO_ENV)
+  {
+    int sz = _penvstack_envs.size();
+    int origrk = rk;
+    if (rk<0) rk += sz;
+    if (_penvstack_envs.empty() || rk<0 || rk>=sz || !ob || !val)
+      {
+        if (fail)
+          MOM_FAILURE("MomPaylEnvstack::nth_env_bind bad stack owner=" << owner()
+                      << " rk= " << origrk
+                      << " for ob=" << ob << " val=" << val);
+        else
+          return;
+      };
+    auto& lastenv = _penvstack_envs[rk];
+    lastenv.env_map[ob] = val;
+  }
+  void nth_env_set_value(MomValue val,int rk,  bool fail=IGNORE_NO_ENV)
+  {
+    int sz = _penvstack_envs.size();
+    int origrk = rk;
+    if (rk<0) rk += sz;
+    if (_penvstack_envs.empty() || rk<0 || rk>=sz)
+      {
+        if (fail)
+          MOM_FAILURE("MomPaylEnvstack::nth_env_set_value bad stack owner=" << owner()
+                      << " rk= " << origrk);
+        else
+          return;
+      };
+    auto& lastenv = _penvstack_envs[rk];
+    lastenv.env_val = val;
+  }
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
   static MomPyv_scandump_sig Scandump;
@@ -1211,8 +1270,26 @@ MomPaylEnvstack::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, Mo
   MOM_DEBUGLOG(dump, "MomPaylEnvstack::Emitdump own=" << own
                << " proxy=" << py->_penvstack_proxy);
   empaylcont->out() << "@ENVSTACK: " <<  py->_penvstack_envs.size();
+  for (auto& env: py->_penvstack_envs)
+    {
+      empaylcont->emit_newline(0);
+      empaylcont->out() << "@ENVAL: ";
+      empaylcont->emit_value(env.env_val);
+      for (auto p: env.env_map)
+        {
+          if (!mom_dump_is_dumpable_object(du,p.first))
+            continue;
+          empaylcont->emit_newline(0);
+          empaylcont->out() << "@*: ";
+          empaylcont->emit_objptr(p.first);
+          empaylcont->emit_space(0);
+          empaylcont->emit_value(p.second);
+        }
+    }
   empaylcont->emit_newline(0);
-#warning several MomPaylEnvstack::* routines unimplemented
+  empaylcont->out() << "@ENVPROXY ";
+  empaylcont->emit_value(py->_penvstack_proxy);
+  empaylcont->emit_newline(0);
 } // end MomPaylEnvstack::Emitdump
 
 
@@ -1244,9 +1321,39 @@ MomPaylEnvstack::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char con
     {
       py->_penvstack_envs.reserve(sz+1);
     }
-#warning MomPaylEnvstack::Loadfill incomplete
+  int envcnt = 0;
+  while (fillpars.skip_spaces(), fillpars.hasdelim("@ENVAL:"))
+    {
+      bool gotval = false;
+      MomValue v = fillpars.parse_value(&gotval);
+      if (!gotval)
+        MOM_PARSE_FAILURE(&fillpars, "missing value for environment#" << envcnt
+                          << " of envstack object " << own);
+      py->push_env();
+      py->last_env_set_value(v);
+      while (fillpars.skip_spaces(), fillpars.hasdelim("@*:"))
+        {
+          bool gotobj = false;
+          bool gotval = false;
+          MomObject* pob = fillpars.parse_objptr(&gotobj);
+          MomValue val = fillpars.parse_value(&gotval);
+          if (!gotobj || !pob || !gotval)
+            MOM_PARSE_FAILURE(&fillpars, "missing binding for environment#" << envcnt
+                              << " of envstack object " << own);
+          py->last_env_bind(pob,val);
+        }
+    }
+  if (fillpars.skip_spaces(), fillpars.hasdelim("@ENVPROXY"))
+    {
+      bool gotobj = false;
+      MomObject* proxob = fillpars.parse_objptr(&gotobj);
+      if (!gotobj)
+        MOM_PARSE_FAILURE(&fillpars, "missing proxy of envstack object " << own);
+      py->_penvstack_proxy = proxob;
+    }
 } // end MomPaylEnvstack::Loadfill
 
+#warning several MomPaylEnvstack::* routines unimplemented
 MomValue
 MomPaylEnvstack::Getmagic(MomPayload const*, MomObject const*, MomObject const*)
 {
