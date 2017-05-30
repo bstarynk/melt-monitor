@@ -1011,12 +1011,20 @@ MomPaylGenfile::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
 
 
 MomValue
-MomPaylGenfile::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
+MomPaylGenfile::Getmagic (const struct MomPayload*payl, const MomObject*own, const MomObject*attrob)
 {
   auto py = static_cast<const MomPaylGenfile*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
              "MomPaylGenfile::Getmagic invalid genfile payload for own=" << own);
+  if (attrob == MOMP_proxy)
+    return py->_pgenfile_proxy;
+  else if ((proxob=py->_pgenfile_proxy) != nullptr)
+    {
+      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      return proxob->unsync_get_magic_attr(attrob);
+    }
+  return nullptr;
 #warning incomplete MomPaylGenfile::Getmagic
 } // end MomPaylGenfile::Getmagic
 
@@ -1458,12 +1466,24 @@ MomPaylEnvstack::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char con
     }
 } // end MomPaylEnvstack::Loadfill
 
-#warning several MomPaylEnvstack::* routines unimplemented
 MomValue
-MomPaylEnvstack::Getmagic(MomPayload const*, MomObject const*, MomObject const*)
+MomPaylEnvstack::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob)
 {
+  auto py = static_cast<const MomPaylEnvstack*>(payl);
+  MomObject*proxob=nullptr;
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(envstack),
+             "MomPaylEnvstack::Getmagic invalid envstack payload for own=" << own);
+  if (attrob == MOMP_proxy)
+    return py->_penvstack_proxy;
+  else if ((proxob=py->_penvstack_proxy) != nullptr)
+    {
+      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      return proxob->unsync_get_magic_attr(attrob);
+    }
+  return nullptr;
 } // end MomPaylEnvstack::Getmagic
 
+#warning several MomPaylEnvstack::* routines unimplemented
 MomValue
 MomPaylEnvstack::Fetch(MomPayload const*, MomObject const*, MomObject const*, MomValue const*, unsigned int)
 {
