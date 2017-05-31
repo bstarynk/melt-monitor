@@ -44,10 +44,10 @@ LIBES= -L/usr/local/lib $(shell $(PKGCONFIG) --libs $(PACKAGES)) \
 PLUGIN_SOURCES= $(sort $(wildcard momplug_*.cc))
 PLUGINS=  $(patsubst %.c,%.so,$(PLUGIN_SOURCES))
 # modules are generated inside modules/
-MODULE_SOURCES= $(sort $(wildcard modules/momg_*.cc))
+MODULE_SOURCES= $(sort $(wildcard modules/momg_*.qcc) $(wildcard modules/momg_*.cc))
 # generated headers
 GENERATED_HEADERS= $(sort $(wildcard _mom*.h) $(wildcard MOM_*.h))
-MODULES=  $(patsubst %.cc,%.so,$(MODULE_SOURCES))
+MODULES=  $(patsubst %.cc,%.so,$(MODULE_SOURCES)) $(patsubst %.qcc,%.so,$(MODULE_SOURCES))
 CSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.c)))
 CXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.cc)))
 QTCXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.qcc)))

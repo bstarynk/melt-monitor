@@ -3064,13 +3064,22 @@ public:
   typedef bool MomCod_Fetch_sig(MomValue*res, const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
   typedef bool MomCod_Update_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
 private:
+  static std::mutex _pcode_modumtx_;
+  static std::map<std::string,void*> _pcode_modudict_;
   const std::string _pcode_basename;
   const std::string _pcode_moduname;
+  MomCod_Getmagic_sig* _pcode_getmagic_rout;
+  MomCod_Fetch_sig* _pcode_fetch_rout;
+  MomCod_Update_sig* _pcode_update_rout;
+  MomPyv_step_sig* _pcode_step_rout;
   MomObject* _pcode_proxy;
   std::vector<MomValue> _pcode_datavec;
-  MomPaylCode(MomObject*own, MomLoader*ld, const char*basen, const char*modun);
+  MomPaylCode(MomObject*own, MomLoader*ld, const std::string&bases, void*modh, const std::string&mods, bool with_getmagic, bool with_fetch, bool with_update, bool with_step);
   ~MomPaylCode();
 public:
+  MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods);
+  static void* load_module(const std::string& modname);
+  MomPaylCode(MomObject*own, MomPaylCode*orig);
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
   static MomPyv_scandump_sig Scandump;

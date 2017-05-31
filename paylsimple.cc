@@ -1522,9 +1522,11 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(code) __attribute__((section(".
 
 MomRegisterPayload mompy_code(MOM_PAYLOADVTBL(code));
 
-MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const char*basen, const char*modun)
+MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, void*modh, const std::string&mods, bool with_getmagic, bool with_fetch, bool with_update, bool with_step)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
-    _pcode_basename(basen), _pcode_moduname(modun),
+    _pcode_basename(bases), _pcode_moduname(mods),
+    _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_update_rout(nullptr),
+    _pcode_step_rout(nullptr),
     _pcode_proxy(nullptr), _pcode_datavec()
 {
 #warning incomplete MomPaylCode::MomPaylCode constructor
@@ -1532,6 +1534,9 @@ MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const char*basen, const char
 
 MomPaylCode::~MomPaylCode()
 {
+  _pcode_getmagic_rout = nullptr;
+  _pcode_update_rout = nullptr;
+  _pcode_step_rout = nullptr;
   _pcode_proxy = nullptr;
   _pcode_datavec.clear();
 } // end MomPaylCode::~MomPaylCode
@@ -1566,6 +1571,68 @@ MomPaylCode::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
     py->_pcode_proxy->scan_dump(du);
 } // end MomPaylCode::Scandump
 
+std::mutex MomPaylCode::_pcode_modumtx_;
+std::map<std::string,void*> MomPaylCode::_pcode_modudict_;
+
+void*
+MomPaylCode::load_module(const std::string& modname)
+{
+  if (modname.empty())
+    return mom_prog_dlhandle;
+  for (char c : modname)
+    if (!isalnum(c) && c != '_')
+      MOM_FAILURE("load_module: invalid modname " << modname);
+  std::lock_guard<std::mutex> gu(_pcode_modumtx_);
+  auto it = _pcode_modudict_.find(modname);
+  if (it != _pcode_modudict_.end())
+    return it->second;
+  std::string modudir{monimelt_directory};
+  modudir += "/modules/";
+  std::string moduso = modudir + "momg_" + modname + ".so";
+  std::string modccx = modudir + "momg_" + modname + ".cc";
+  std::string modqcc = modudir + "momg_" + modname + ".qcc";
+  if (::access(moduso.c_str(), F_OK))
+    {
+      MOM_WARNPRINTF("load_module no file %s (%m)", moduso.c_str());
+      return nullptr;
+    }
+  struct stat ccxstat = {};
+  struct stat qccstat = {};
+  struct stat sostat = {};
+  if (stat(moduso.c_str(), &sostat))
+    MOM_FATAPRINTF("load_module stat %s failed (%m)", moduso.c_str());
+  bool gotccx = !stat(modccx.c_str(), &ccxstat);
+  bool gotqcc = !stat(modqcc.c_str(), &qccstat);
+  if (gotccx && gotqcc)
+    {
+      MOM_WARNPRINTF("load_module module %s with both %s and %s", moduso.c_str(), modccx.c_str(), modqcc.c_str());
+      return nullptr;
+    }
+  else if (gotccx && ccxstat.st_mtime > sostat.st_mtime)
+    {
+      MOM_WARNPRINTF("load_module module %s older than C++ file %s", moduso.c_str(), modccx.c_str());
+      return nullptr;
+    }
+  else if (gotqcc && qccstat.st_mtime > sostat.st_mtime)
+    {
+      MOM_WARNPRINTF("load_module module %s older than QtC++ file %s", moduso.c_str(), modqcc.c_str());
+      return nullptr;
+    }
+  else if (!gotccx && !gotqcc)
+    MOM_WARNPRINTF("load_module module %s without source", moduso.c_str());
+  void *dlh = dlopen(moduso.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  if (!dlh)
+    {
+      MOM_WARNPRINTF("load_module module %s dlopen failed: %s",
+                     moduso.c_str(), dlerror());
+      MOM_BACKTRACELOG("load_module module " << moduso << " dlopen failure");
+      return nullptr;
+    }
+  _pcode_modudict_[modname] = dlh;
+  MOM_INFORMPRINTF("load_module loaded %s", moduso.c_str());
+  return dlh;
+} // end MomPaylCode::load_module
+
 void
 MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont)
 {
@@ -1574,6 +1641,23 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
              "invalid code payload for own=" << own);
   MOM_DEBUGLOG(dump, "MomPaylCode::Emitdump own=" << own
                << " proxy=" << py->_pcode_proxy);
+  if (!py->_pcode_moduname.empty())
+    {
+      empaylinit->out() << "@CODEMODULE: ";
+      empaylinit->emit_string(py->_pcode_moduname);
+      empaylinit->emit_newline(0);
+    }
+  empaylinit->out() << "@CODEBASE: ";
+  empaylinit->emit_string(py->_pcode_basename);
+  if (py->_pcode_getmagic_rout)
+    empaylinit->out() << " @CODEGETMAGIC!";
+  if (py->_pcode_fetch_rout)
+    empaylinit->out() << " @CODEFETCH!";
+  if (py->_pcode_update_rout)
+    empaylinit->out() << " @CODEUPDATE!";
+  if (py->_pcode_step_rout)
+    empaylinit->out() << " @CODESTEP!";
+  empaylinit->emit_newline(0);
 #warning incomplete MomPaylCode::Emitdump
 } // end MomPaylCode::Emitdump
 
@@ -1582,9 +1666,46 @@ MomPayload*
 MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
 {
   MOM_DEBUGLOG(load,"MomPaylCode::Initload own=" << own << " inits='" << inits << "'");
-  char*basen = nullptr;
-  char*modun = nullptr;
-  auto py = own->unsync_make_payload<MomPaylCode>(ld,basen,modun);
+  bool with_getmagic = false;
+  bool with_fetch = false;
+  bool with_update = false;
+  bool with_step = false;
+  std::string initstr{inits};
+  std::istringstream initfill(initstr);
+  MomParser initpars(initfill);
+  initpars.set_loader_for_object(ld, own, "Code init").set_make_from_id(true);
+  initpars.next_line();
+  initpars.skip_spaces();
+  std::string modustr;
+  std::string basestr;
+  if (initpars.hasdelim("@CODEMODULE:"))
+    {
+      bool gotmodule = false;
+      modustr = initpars.parse_string(&gotmodule);
+      if (!gotmodule)
+        MOM_PARSE_FAILURE(&initpars, "missing module name for init of code object " << own);
+    }
+  if (initpars.hasdelim("@CODEBASE:"))
+    {
+      bool gotbase = false;
+      basestr = initpars.parse_string(&gotbase);
+      if (!gotbase)
+        MOM_PARSE_FAILURE(&initpars, "missing base name for init of code object " << own);
+    }
+  else
+    MOM_PARSE_FAILURE(&initpars, "missing @CODEBASE: for init of code object " << own);
+  if (initpars.hasdelim("@CODEGETMAGIC!"))
+    with_getmagic = true;
+  if (initpars.hasdelim("@CODEFETCH!"))
+    with_fetch = true;
+  if (initpars.hasdelim("@CODEUPDATE!"))
+    with_update = true;
+  if (initpars.hasdelim("@CODESTEP!"))
+    with_step = true;
+  auto modh = load_module(modustr);
+  if (!modh)
+    MOM_FATAPRINTF("missing module %s", modustr.c_str());
+  auto py = own->unsync_make_payload<MomPaylCode>(ld,basestr,modh,modustr,with_getmagic,with_fetch, with_update, with_step);
 #warning incomplete MomPaylCode::Initload
   return py;
 } // end MomPaylEnvstack::Initload
