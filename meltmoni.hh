@@ -3068,18 +3068,37 @@ private:
   static std::map<std::string,void*> _pcode_modudict_;
   const std::string _pcode_basename;
   const std::string _pcode_moduname;
+  /////////
+#define MOMCOD_PREFIX "MomC__"
+  /// getmagic conventionally named MomC__<base>__GetMagic
   MomCod_Getmagic_sig* _pcode_getmagic_rout;
+#define MOMCOD_SUFFIX_GETMAGIC "__GetMagic"
+#define MOMCOD_GETMAGIC(Base) MomC__##Base##__GetMagic
+  ///
+  /// fetch conventionally named MomC__<base>__Fetch
+#define MOMCOD_SUFFIX_FETCH "__Fetch"
+#define MOMCOD_FETCH(Base) MomC__##Base##__Fetch
   MomCod_Fetch_sig* _pcode_fetch_rout;
+  ///
+  /// update conventionally named MomC__<base>__Update
+#define MOMCOD_SUFFIX_UPDATE "__Update"
+#define MOMCOD_UPDATE(Base) MomC__##Base##__Update
   MomCod_Update_sig* _pcode_update_rout;
+  ///
+  /// step conventionally named MomC__<base>__Step
+#define MOMCOD_SUFFIX_STEP "__Step"
+#define MOMCOD_STEP(Base) MomC__##Base##__Update
   MomPyv_step_sig* _pcode_step_rout;
+  ////////
   MomObject* _pcode_proxy;
   std::vector<MomValue> _pcode_datavec;
   MomPaylCode(MomObject*own, MomLoader*ld, const std::string&bases, void*modh, const std::string&mods, bool with_getmagic, bool with_fetch, bool with_update, bool with_step);
   ~MomPaylCode();
 public:
-  MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods);
   static void* load_module(const std::string& modname);
-  MomPaylCode(MomObject*own, MomPaylCode*orig);
+  static void* get_symbol(void*dlh, const std::string& basename, const char*suffix);
+  MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods); // autodiscovering
+  MomPaylCode(MomObject*own, MomPaylCode*orig); // copying from orig
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
   static MomPyv_scandump_sig Scandump;

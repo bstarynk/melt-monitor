@@ -1529,8 +1529,31 @@ MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, voi
     _pcode_step_rout(nullptr),
     _pcode_proxy(nullptr), _pcode_datavec()
 {
-#warning incomplete MomPaylCode::MomPaylCode constructor
-} // end MomPaylCode::MomPaylCode
+  if (with_getmagic)
+    {
+      _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_GETMAGIC);
+      if (!_pcode_getmagic_rout)
+        MOM_FATALOG("get_symbol failed for getmagic of " << own);
+    }
+  if (with_fetch)
+    {
+      _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_FETCH);
+      if (!_pcode_fetch_rout)
+        MOM_FATALOG("get_symbol failed for fetch of " << own);
+    }
+  if (with_update)
+    {
+      _pcode_update_rout =  (MomCod_Update_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_UPDATE);
+      if (!_pcode_update_rout)
+        MOM_FATALOG("get_symbol failed for update of " << own);
+    }
+  if (with_step)
+    {
+      _pcode_step_rout =  (MomPyv_step_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_STEP);
+      if (!_pcode_step_rout)
+        MOM_FATALOG("get_symbol failed for step of " << own);
+    }
+} // end MomPaylCode::MomPaylCode for loading
 
 MomPaylCode::~MomPaylCode()
 {
@@ -1540,6 +1563,38 @@ MomPaylCode::~MomPaylCode()
   _pcode_proxy = nullptr;
   _pcode_datavec.clear();
 } // end MomPaylCode::~MomPaylCode
+
+MomPaylCode::MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods)
+  : MomPayload(&MOM_PAYLOADVTBL(code), own),
+    _pcode_basename(bases), _pcode_moduname(mods),
+    _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_update_rout(nullptr),
+    _pcode_step_rout(nullptr),
+    _pcode_proxy(nullptr), _pcode_datavec()
+{
+  void* modh = load_module(mods);
+  if (!modh)
+    MOM_FAILURE("failed to load module " << mods << " for code base " << bases << " owned by " << own);
+  _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_GETMAGIC);
+  _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_FETCH);
+  _pcode_update_rout =  (MomCod_Update_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_UPDATE);
+  _pcode_step_rout =  (MomPyv_step_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_STEP);
+} // end  MomPaylCode::MomPaylCode for autodiscovering
+
+MomPaylCode::MomPaylCode(MomObject*own, MomPaylCode*orig)
+  : MomPayload(&MOM_PAYLOADVTBL(code), own),
+    _pcode_basename(orig?orig->_pcode_basename:nullptr), _pcode_moduname(orig?orig->_pcode_moduname:nullptr),
+    _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_update_rout(nullptr),
+    _pcode_step_rout(nullptr),
+    _pcode_proxy(nullptr), _pcode_datavec()
+{
+  if (orig == nullptr || orig->_py_vtbl !=   &MOM_PAYLOADVTBL(code))
+    MOM_FAILURE("bad origin for code owned by " << own);
+  _pcode_getmagic_rout = orig->_pcode_getmagic_rout;
+  _pcode_fetch_rout = orig->_pcode_fetch_rout;
+  _pcode_update_rout =  orig->_pcode_update_rout;
+  _pcode_step_rout =  orig->_pcode_step_rout;
+} // end MomPaylCode::MomPaylCode copying from origin
+
 
 void
 MomPaylCode::Destroy (struct MomPayload*payl, MomObject*own)
@@ -1633,6 +1688,15 @@ MomPaylCode::load_module(const std::string& modname)
   return dlh;
 } // end MomPaylCode::load_module
 
+void*
+MomPaylCode::get_symbol(void*dlh, const std::string& basename, const char*suffix)
+{
+  std::string fullnam{MOMCOD_PREFIX};
+  fullnam += basename;
+  fullnam += suffix;
+  return dlsym(dlh, fullnam.c_str());
+} // end  MomPaylCode::get_symbol
+
 void
 MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont)
 {
@@ -1658,6 +1722,7 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
   if (py->_pcode_step_rout)
     empaylinit->out() << " @CODESTEP!";
   empaylinit->emit_newline(0);
+  /// should emit the content
 #warning incomplete MomPaylCode::Emitdump
 } // end MomPaylCode::Emitdump
 
@@ -1704,9 +1769,8 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
     with_step = true;
   auto modh = load_module(modustr);
   if (!modh)
-    MOM_FATAPRINTF("missing module %s", modustr.c_str());
-  auto py = own->unsync_make_payload<MomPaylCode>(ld,basestr,modh,modustr,with_getmagic,with_fetch, with_update, with_step);
-#warning incomplete MomPaylCode::Initload
+    MOM_FATALOG("missing module " << modustr << " for code object " << own);
+  auto py = own->unsync_make_payload<MomPaylCode>(ld,basestr, modh, modustr, with_getmagic, with_fetch, with_update, with_step);
   return py;
 } // end MomPaylEnvstack::Initload
 
