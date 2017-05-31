@@ -3051,6 +3051,40 @@ MomObject::unsync_step_arg(ArgPack... args)
   unsync_step(std::initializer_list<MomValue> {args...});
 } // end  MomObject::unsync_step_arg
 
+
+////////////////
+extern const MomVtablePayload_st MOM_PAYLOADVTBL(code);
+class MomPaylCode: public MomPayload
+{
+public:
+  friend struct MomVtablePayload_st;
+  friend class MomObject;
+  // when these function return true, the proxy is used
+  typedef bool MomCod_Getmagic_sig (MomValue*res, const struct MomPayload*payl,const MomObject*own,const MomObject*attrob);
+  typedef bool MomCod_Fetch_sig(MomValue*res, const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
+  typedef bool MomCod_Update_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
+private:
+  const std::string _pcode_basename;
+  const std::string _pcode_moduname;
+  MomObject* _pcode_proxy;
+  std::vector<MomValue> _pcode_datavec;
+  MomPaylCode(MomObject*own, MomLoader*ld, const char*basen, const char*modun);
+  ~MomPaylCode();
+public:
+  static MomPyv_destr_sig Destroy;
+  static MomPyv_scangc_sig Scangc;
+  static MomPyv_scandump_sig Scandump;
+  static MomPyv_emitdump_sig Emitdump;
+  static MomPyv_initload_sig Initload;
+  static MomPyv_loadfill_sig Loadfill;
+  static MomPyv_getmagic_sig Getmagic;
+  static MomPyv_fetch_sig Fetch;
+  static MomPyv_update_sig Update;
+  static MomPyv_step_sig Step;
+}; // end class MomPaylCode
+
+////////////////
+
 /// in state.cc
 extern "C" void mom_dump_in_directory(const char*dirname);
 extern "C" void mom_load_from_directory(const char*dirname);
