@@ -1613,6 +1613,8 @@ MomPaylCode::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
              "invalid code payload for own=" << own);
   if (py->_pcode_proxy)
     gc->scan_object(py->_pcode_proxy);
+  for (auto v : py->_pcode_datavec)
+    gc->scan_value(v);
 } // end MomPaylCode::Scangc
 
 
@@ -1624,6 +1626,8 @@ MomPaylCode::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
                << " proxy=" << py->_pcode_proxy);
   if (py->_pcode_proxy)
     py->_pcode_proxy->scan_dump(du);
+  for (auto v : py->_pcode_datavec)
+    v.scan_dump(du);
 } // end MomPaylCode::Scandump
 
 std::mutex MomPaylCode::_pcode_modumtx_;
@@ -1722,6 +1726,24 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
   if (py->_pcode_step_rout)
     empaylinit->out() << " @CODESTEP!";
   empaylinit->emit_newline(0);
+  if (py->_pcode_proxy)
+    {
+      empaylcont->out() << "@CODEPROXY ";
+      empaylcont->emit_objptr(py->_pcode_proxy);
+      empaylcont->emit_newline(0);
+    }
+  if (!py->_pcode_datavec.empty())
+    {
+      empaylcont->out() << "@CODEDATA " << py->_pcode_datavec.size() << " (";
+      for (auto v : py->_pcode_datavec)
+        {
+          empaylcont->emit_space(1);
+          empaylcont->emit_value(v,1);
+        }
+      empaylcont->emit_space(0);
+      empaylcont->out() << ")";
+      empaylcont->emit_newline(0);
+    }
   /// should emit the content
 #warning incomplete MomPaylCode::Emitdump
 } // end MomPaylCode::Emitdump
@@ -1788,13 +1810,33 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
   fillpars.set_loader_for_object(ld, own, "Code fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
-  if (fillpars.skip_spaces(), fillpars.hasdelim("@CODEPROXY"))
+  if (fillpars.hasdelim("@CODEPROXY"))
     {
       bool gotobj = false;
       MomObject* proxob = fillpars.parse_objptr(&gotobj);
       if (!gotobj)
         MOM_PARSE_FAILURE(&fillpars, "missing proxy of code object " << own);
       py->_pcode_proxy = proxob;
+    }
+  if (fillpars.hasdelim("@CODEDATA"))
+    {
+      bool gotsize = false;
+      auto sz = fillpars.parse_int(&gotsize);
+      if (!gotsize)
+        MOM_PARSE_FAILURE(&fillpars, "missing size after @CODEDATA of code object " << own);
+      py->_pcode_datavec.reserve(sz+1);
+      if (!fillpars.hasdelim("("))
+        MOM_PARSE_FAILURE(&fillpars, "missing leftparen after @CODEDATA of code object " << own);
+      for (int ix=0; ix<sz; ix++)
+        {
+          bool gotval = false;
+          MomValue v = fillpars.parse_value(&gotval);
+          if (!gotval)
+            MOM_PARSE_FAILURE(&fillpars, "missing value#" << ix << " for data of code object " << own);
+          py->_pcode_datavec.push_back(v);
+        }
+      if (!fillpars.hasdelim(")"))
+        MOM_PARSE_FAILURE(&fillpars, "missing rightparen after @CODEDATA of code object " << own);
     }
 } // end MomPaylCode::Loadfill
 
