@@ -141,6 +141,8 @@ extern "C" const char *mom_hostname (void);
 #define MOM_UNUSED
 #endif
 
+extern "C" const char*mom_dump_dir;
+
 typedef std::atomic<int> mom_atomic_int;
 
 #ifdef NDEBUG
@@ -276,6 +278,7 @@ extern "C" void mom_failure_backtrace_at(const char*fil, int lin, const std::str
   Dbg(garbcoll)					\
   Dbg(misc)					\
   Dbg(gencod)					\
+  Dbg(qgui)					\
   Dbg(blue)					\
   Dbg(green)					\
   Dbg(red)					\
