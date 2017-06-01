@@ -24,6 +24,8 @@
 #include <QtWidgets>
 #include <QMainWindow>
 
+class MomCentralFrame;
+
 class MomMainWindow : public QMainWindow
 {
   Q_OBJECT
@@ -38,11 +40,88 @@ private slots:
   void do_new();
 private:
   static constexpr int  _dump_delay_ms = 2500;
+  MomCentralFrame* _frame;
   void createActions();
 };				// end MomMainWindow
 
 
+class MomTextBrowser : public QTextBrowser
+{
+  Q_OBJECT
+public:
+  MomTextBrowser(QTextDocument*doc, QWidget*parent=nullptr);
+  ~MomTextBrowser();
+};				// end class MomTextBrowser
+
+class MomCommandText : public QTextEdit
+{
+  Q_OBJECT
+public:
+  MomCommandText(QWidget*parent = nullptr);
+  ~MomCommandText();
+};				// end class MomCommandText
+
+class MomCentralFrame : public QFrame
+{
+  Q_OBJECT
+public:
+  MomCentralFrame(QWidget*par=nullptr);
+  ~MomCentralFrame();
+private:
+  QVBoxLayout _vbox;
+  QSplitter _splitter;
+  QTextDocument _doc;
+  MomTextBrowser _firstbrowser;
+  MomTextBrowser _secondbrowser;
+  MomCommandText _cmdtext;
+};				// end MomCentralFrame
+
+
 std::set<QMainWindow*> mom_windows_set;
+
+MomCommandText::MomCommandText(QWidget*parent): QTextEdit(parent)
+{
+} // end MomCommandText::MomCommandText
+
+MomCommandText::~MomCommandText()
+{
+} // end MomCommandText::~MomCommandText
+MomTextBrowser::MomTextBrowser(QTextDocument*doc, QWidget*parent)
+  : QTextBrowser(parent)
+{
+  setDocument(doc);
+} // end MomTextBrowser::MomTextBrowser
+
+MomTextBrowser::~MomTextBrowser()
+{
+} // end MomTextBrowser::~MomTextBrowser
+
+MomCentralFrame::MomCentralFrame(QWidget*par)
+  : QFrame(par),
+    _vbox(),
+    _splitter(),
+    _doc(),
+    _firstbrowser(&_doc,this),
+    _secondbrowser(&_doc,this),
+    _cmdtext(this)
+{
+  setLayout(&_vbox);
+  _vbox.addWidget(&_splitter);
+  _splitter.setOrientation(Qt::Vertical);
+  _splitter.addWidget(&_firstbrowser);
+  _splitter.addWidget(&_secondbrowser);
+  _splitter.addWidget(&_cmdtext);
+  _firstbrowser.show();
+  _secondbrowser.show();
+  _cmdtext.show();
+  _splitter.show();
+} // end MomCentralFrame::MomCentralFrame
+
+
+MomCentralFrame::~MomCentralFrame()
+{
+} // end MomCentralFrame::~MomCentralFrame
+
 
 void
 MomMainWindow::do_exit(void)
@@ -91,12 +170,12 @@ MomMainWindow::do_save(void)
               std::string dirp = dirlist.first().toStdString();
               MOM_DEBUGLOG(qgui, "MomMainWindow::do_save dirp=" << dirp);
               long nbo = mom_dump_in_directory(dirp.c_str());
-	      char buf[100];
-	      memset(buf, 0, sizeof(buf));
-	      snprintf(buf, sizeof(buf),
-		       "dumped %ld objects in %s", nbo, dirp.c_str());
-	      auto sb = statusBar();
-	      sb->showMessage(buf, _dump_delay_ms);
+              char buf[100];
+              memset(buf, 0, sizeof(buf));
+              snprintf(buf, sizeof(buf),
+                       "dumped %ld objects in %s", nbo, dirp.c_str());
+              auto sb = statusBar();
+              sb->showMessage(buf, _dump_delay_ms);
             }
           else
             again = true;
@@ -177,6 +256,8 @@ MomMainWindow::MomMainWindow(void)
 {
   setWindowTitle(QString("Mom Main Window"));
   setMinimumSize(400,300);
+  _frame = new MomCentralFrame(this);
+  setCentralWidget(_frame);
   createActions();
   mom_windows_set.insert(this);
 } // end MomMainWindow::MomMainWindow
@@ -184,6 +265,7 @@ MomMainWindow::MomMainWindow(void)
 MomMainWindow::~MomMainWindow()
 {
   mom_windows_set.erase(this);
+  delete _frame;
 } // end MomMainWindow::~MomMainWindow
 
 void mom_execute_gui(int argc, char**argv)
