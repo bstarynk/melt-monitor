@@ -37,6 +37,7 @@ private slots:
   void do_save();
   void do_new();
 private:
+  static constexpr int  _dump_delay_ms = 2500;
   void createActions();
 };				// end MomMainWindow
 
@@ -67,7 +68,7 @@ MomMainWindow::do_dump(void)
   memset(buf, 0, sizeof(buf));
   snprintf(buf, sizeof(buf), "dumped %ld objects in %s", nbo, mom_dump_dir);
   auto sb = statusBar();
-  sb->showMessage(buf, 1500);
+  sb->showMessage(buf, _dump_delay_ms);
 } // end of MomMainWindow::do_dump
 
 void
@@ -95,7 +96,7 @@ MomMainWindow::do_save(void)
 	      snprintf(buf, sizeof(buf),
 		       "dumped %ld objects in %s", nbo, dirp.c_str());
 	      auto sb = statusBar();
-	      sb->showMessage(buf, 1500);
+	      sb->showMessage(buf, _dump_delay_ms);
             }
           else
             again = true;
