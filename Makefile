@@ -30,10 +30,11 @@ MD5SUM= md5sum
 INDENTFLAGS= --gnu-style --no-tabs --honour-newlines
 ASTYLEFLAGS= --style=gnu -s2
 #PACKAGES= sqlite_modern_cpp glib-2.0 sqlite3 jansson Qt5Gui
-PACKAGES= sqlite_modern_cpp glib-2.0 Qt5Gui
+PACKAGES= sqlite_modern_cpp glib-2.0 Qt5Gui Qt5Widgets
 PKGCONFIG= pkg-config
 PREPROFLAGS= -I. -I/usr/local/include $(shell $(PKGCONFIG) --cflags $(PACKAGES))
-OPTIMFLAGS= -Og -g3
+OPTIMPICFLAGS= -fPIC
+OPTIMFLAGS= -Og -g3 $(OPTIMPICFLAGS)
 SQLITE3=sqlite3
 QTMOC= moc
 
@@ -105,7 +106,7 @@ meltmoni.hh.gch: meltmoni.hh $(GENERATED_HEADERS)
 	$(COMPILE.cc) $(CXXFLAGS) -c $< -o $@
 
 %.o: %.qcc  meltmoni.hh.gch %.moc.h
-	$(COMPILE.cc) $(CXXFLAGS) -c $< -o $@
+	$(COMPILE.cc) $(CXXFLAGS) -c -x c++ $< -o $@
 
 .SUFFIXES: .qcc
 
@@ -128,6 +129,10 @@ indent: .indent.pro
 	for g in $(wildcard [a-z]*.cc) ; do \
 	  echo astyling $$g ; cp $$g $$g% ; \
 	  $(ASTYLE)  $(ASTYLEFLAGS) $$g ; \
+	done
+	for g in $(wildcard [a-z]*.qcc) ; do \
+	  echo astyling $$g ; cp $$g $$g% ; \
+	  $(ASTYLE)  --mode=c  $(ASTYLEFLAGS) $$g ; \
 	done
 
 dumpstate: dumpuserstate dumpglobstate monimelt-dump-state.sh | mom_global.sqlite mom_user.sqlite 
