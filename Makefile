@@ -55,7 +55,7 @@ QTCXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.qcc)))
 SHSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.sh)))
 OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES)) $(patsubst %.qcc,%.o,$(QTCXXSOURCES))
 RM= rm -fv
-.PHONY: all checkgithooks installgithooks dumpstate restorestate
+.PHONY: all checkgithooks installgithooks dump restore
 .PHONY: dumpuserstate dumpglobstate restoreuserstate restoreglobstate
 .PHONY: tags modules plugins clean tests 
 all: checkgithooks monimelt
@@ -135,7 +135,7 @@ indent: .indent.pro
 	  $(ASTYLE)  --mode=c  $(ASTYLEFLAGS) $$g ; \
 	done
 
-dumpstate: dumpuserstate dumpglobstate monimelt-dump-state.sh | mom_global.sqlite mom_user.sqlite 
+dump: dumpuserstate dumpglobstate monimelt-dump-state.sh | mom_global.sqlite mom_user.sqlite 
 
 dumpglobstate:  monimelt-dump-state.sh | mom_global.sqlite
 	./monimelt-dump-state.sh mom_global.sqlite mom_global.sql
@@ -143,7 +143,7 @@ dumpglobstate:  monimelt-dump-state.sh | mom_global.sqlite
 dumpuserstate:  monimelt-dump-state.sh | mom_user.sqlite
 	./monimelt-dump-state.sh mom_user.sqlite mom_user.sql
 
-restorestate: restoreuserstate restoreglobstate |  mom_global.sql  mom_user.sql
+restore: restoreuserstate restoreglobstate |  mom_global.sql  mom_user.sql
 
 restoreuserstate:
 	@if [ -f mom_user.sqlite ]; then \
