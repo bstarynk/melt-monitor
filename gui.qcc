@@ -71,16 +71,29 @@ MomMainWindow::do_save(void)
   MOM_DEBUGLOG(qgui, "MomMainWindow::do_save start");
   QFileDialog fdial(this,"Dump state to...");
   fdial.setFileMode(QFileDialog::DirectoryOnly);
-  int rt = fdial.exec();
-  if (rt == QDialog::Accepted)
+  bool again = false;
+  do
     {
-      auto dir = fdial.directory();
-      std::string dirp = dir.path().toStdString();
-      MOM_DEBUGLOG(qgui, "MomMainWindow::do_save dirp=" << dirp);
-      mom_dump_in_directory(dirp.c_str());
+      again = false;
+      int rt = fdial.exec();
+      MOM_DEBUGLOG(qgui, "MomMainWindow::do_save rt=" << rt);
+      if (rt == QDialog::Accepted)
+        {
+          auto dirlist = fdial.selectedFiles();
+          if (dirlist.length() == 1)
+            {
+              std::string dirp = dirlist.first().toStdString();
+              MOM_DEBUGLOG(qgui, "MomMainWindow::do_save dirp=" << dirp);
+              mom_dump_in_directory(dirp.c_str());
+            }
+          else
+            again = true;
+        }
+      else if (rt == QDialog::Rejected)
+        again = false;
+      else again = true;
     }
-  MOM_DEBUGLOG(qgui, "MomMainWindow::do_save rt=" << rt);
-
+  while(again);
 } // end of MomMainWindow::do_save
 
 void
@@ -88,6 +101,17 @@ MomMainWindow::do_new(void)
 {
   MOM_DEBUGLOG(qgui, "MomMainWindow::do_new");
   auto nw = new MomMainWindow();
+  auto my_x = x();
+  auto my_y = y();
+  if (my_x > 400)
+    my_x -= 10;
+  else
+    my_x += 10;
+  if (my_y > 300)
+    my_y -= 10;
+  else
+    my_y += 10;
+  nw->move(my_x, my_y);
   nw->show();
 } // end of MomMainWindow::do_new
 
