@@ -46,26 +46,49 @@ std::set<QMainWindow*> mom_windows_set;
 void
 MomMainWindow::do_exit(void)
 {
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_exit");
+  QApplication::quit();
 } // end MomMainWindow::do_exit
 
 void
 MomMainWindow::do_quit(void)
 {
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_quit");
+  mom_dump_dir = nullptr;
+  QApplication::quit();
 } // end of MomMainWindow::do_quit
 
 void
 MomMainWindow::do_dump(void)
 {
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_dump");
+  mom_dump_in_directory(mom_dump_dir);
 } // end of MomMainWindow::do_dump
 
 void
 MomMainWindow::do_save(void)
 {
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_save start");
+  QFileDialog fdial(this,"Dump state to...");
+  fdial.setFileMode(QFileDialog::DirectoryOnly);
+  int rt = fdial.exec();
+  if (rt == QDialog::Accepted)
+    {
+      auto dir = fdial.directory();
+      std::string dirp = dir.path().toStdString();
+      MOM_DEBUGLOG(qgui, "MomMainWindow::do_save dirp=" << dirp);
+      mom_dump_in_directory(dirp.c_str());
+    }
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_save rt=" << rt);
+
 } // end of MomMainWindow::do_save
 
 void
 MomMainWindow::do_new(void)
 {
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_new");
+  auto nw = new MomMainWindow();
+  nw->show();
 } // end of MomMainWindow::do_new
 
 
@@ -130,6 +153,8 @@ MomMainWindow::~MomMainWindow()
 void mom_execute_gui(int argc, char**argv)
 {
   MOM_INFORMPRINTF("executing Qt GUI");
+  if (!mom_dump_dir)
+    mom_dump_dir = ".";
   QApplication qapp(argc, argv);
   {
     auto win = new MomMainWindow();
