@@ -22,7 +22,7 @@
 
 std::mutex  MomRegisterPayload::_pd_mtx_;
 std::map<std::string,const MomVtablePayload_st*>  MomRegisterPayload::_pd_dict_;
-// libbacktrace from GCC 6, i.e. libgcc-6-dev package
+// libbacktrace from GCC, i.e. libgcc-6-dev package
 #include <backtrace.h>
 #include <cxxabi.h>
 
@@ -34,7 +34,7 @@ std::map<std::string,const MomVtablePayload_st*>  MomRegisterPayload::_pd_dict_;
 static struct backtrace_state *btstate_mom;
 static bool syslogging_mom;
 static bool gui_mom;
-static const char* dump_dir_mom;
+const char* mom_dump_dir;
 static const char*load_state_mom = ".";
 thread_local MomRandom MomRandom::_rand_thr_;
 
@@ -1237,7 +1237,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           gui_mom = true;
           break;
         case 'd':              /* --dump */
-          dump_dir_mom = optarg;
+          mom_dump_dir = optarg;
           break;
         case 'D':              /* --debug debugopt */
           mom_set_debugging (optarg);
@@ -1274,7 +1274,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                 create_predefined_mom(namestr,commstr);
               });
               commentstr=nullptr;
-              if (!dump_dir_mom)
+              if (!mom_dump_dir)
                 MOM_WARNPRINTF("add predefined %s without dumping!", optarg);
             }
           else
@@ -1532,10 +1532,9 @@ main (int argc_main, char **argv_main)
   if (gui_mom)
     mom_execute_gui(argc,argv);
 #warning missing stuff in main
-  if (dump_dir_mom)
-    mom_dump_in_directory(dump_dir_mom);
+  if (mom_dump_dir)
+    mom_dump_in_directory(mom_dump_dir);
 } // end of main
 
 
-#warning TODO: should code an explicit garbage collector
 
