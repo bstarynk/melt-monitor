@@ -24,7 +24,8 @@
 #include <QtWidgets>
 #include <QMainWindow>
 
-class MomMainWindow : public QMainWindow {
+class MomMainWindow : public QMainWindow
+{
   Q_OBJECT
 public:
   MomMainWindow();
@@ -35,7 +36,10 @@ private:
 };				// end MomMainWindow
 
 MomMainWindow::MomMainWindow(void)
-  : QMainWindow() {
+  : QMainWindow()
+{
+  setWindowTitle(QString("Mom Main Window"));
+  setMinimumSize(400,300);
 } // end MomMainWindow::MomMainWindow
 
 void mom_execute_gui(int argc, char**argv)

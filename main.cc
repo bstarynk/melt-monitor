@@ -33,6 +33,7 @@ std::map<std::string,const MomVtablePayload_st*>  MomRegisterPayload::_pd_dict_;
 
 static struct backtrace_state *btstate_mom;
 static bool syslogging_mom;
+static bool gui_mom;
 static const char* dump_dir_mom;
 static const char*load_state_mom = ".";
 thread_local MomRandom MomRandom::_rand_thr_;
@@ -1216,7 +1217,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   int opt = -1;
   char *commentstr = nullptr;
   int myargindex = 0;
-  while ((opt = getopt_long (argc, argv, "hVd:sD:L:J:",
+  while ((opt = getopt_long (argc, argv, "hVGd:sD:L:J:",
                              mom_long_options, &myargindex)) >= 0)
     {
       switch (opt)
@@ -1232,6 +1233,9 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           print_version_mom (argv[0]);
           exit (EXIT_SUCCESS);
           return;
+        case 'G':		// --gui
+          gui_mom = true;
+          break;
         case 'd':              /* --dump */
           dump_dir_mom = optarg;
           break;
@@ -1525,6 +1529,8 @@ main (int argc_main, char **argv_main)
   MomObject::initialize_predefined();
   if (load_state_mom && load_state_mom[0] && load_state_mom[0] != '-')
     mom_load_from_directory(load_state_mom);
+  if (gui_mom)
+    mom_execute_gui(argc,argv);
 #warning missing stuff in main
   if (dump_dir_mom)
     mom_dump_in_directory(dump_dir_mom);
