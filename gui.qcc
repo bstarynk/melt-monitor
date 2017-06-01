@@ -29,25 +29,112 @@ class MomMainWindow : public QMainWindow
   Q_OBJECT
 public:
   MomMainWindow();
+  ~MomMainWindow();
 private slots:
-
+  void do_exit();
+  void do_quit();
+  void do_dump();
+  void do_save();
+  void do_new();
 private:
   void createActions();
 };				// end MomMainWindow
+
+
+std::set<QMainWindow*> mom_windows_set;
+
+void
+MomMainWindow::do_exit(void)
+{
+} // end MomMainWindow::do_exit
+
+void
+MomMainWindow::do_quit(void)
+{
+} // end of MomMainWindow::do_quit
+
+void
+MomMainWindow::do_dump(void)
+{
+} // end of MomMainWindow::do_dump
+
+void
+MomMainWindow::do_save(void)
+{
+} // end of MomMainWindow::do_save
+
+void
+MomMainWindow::do_new(void)
+{
+} // end of MomMainWindow::do_new
+
+
+void
+MomMainWindow::createActions(void)
+{
+  auto mb = menuBar();
+  auto appmenu = mb->addMenu("App");
+  {
+    auto exitact = new QAction("e&Xit");
+    exitact->setShortcuts(QKeySequence::Close);
+    exitact->setStatusTip("dump state then exit");
+    connect(exitact, &QAction::triggered, this, &MomMainWindow::do_exit);
+    appmenu->addAction(exitact);
+  }
+  {
+    auto quitact = new QAction("&Quit");
+    quitact->setShortcuts(QKeySequence::Quit);
+    quitact->setStatusTip("quit without dumping");
+    connect(quitact, &QAction::triggered, this, &MomMainWindow::do_quit);
+    appmenu->addAction(quitact);
+  }
+  {
+    auto dumpact = new QAction("&Dump");
+    dumpact->setShortcuts(QKeySequence::Save);
+    dumpact->setStatusTip("dump current state and continue");
+    connect(dumpact, &QAction::triggered, this, &MomMainWindow::do_dump);
+    appmenu->addAction(dumpact);
+  }
+  {
+    auto saveact = new QAction("&Save in...");
+    saveact->setShortcuts(QKeySequence::SaveAs);
+    saveact->setStatusTip("save current state in some directory");
+    connect(saveact, &QAction::triggered, this, &MomMainWindow::do_save);
+    appmenu->addAction(saveact);
+  }
+  {
+    auto newact = new QAction("&New Window");
+    newact->setShortcuts(QKeySequence::New);
+    newact->setStatusTip("open a new window");
+    connect(newact, &QAction::triggered, this, &MomMainWindow::do_new);
+    appmenu->addAction(newact);
+  }
+} // end MomMainWindow::createActions
+
+
 
 MomMainWindow::MomMainWindow(void)
   : QMainWindow()
 {
   setWindowTitle(QString("Mom Main Window"));
   setMinimumSize(400,300);
+  createActions();
+  mom_windows_set.insert(this);
 } // end MomMainWindow::MomMainWindow
+
+MomMainWindow::~MomMainWindow()
+{
+  mom_windows_set.erase(this);
+} // end MomMainWindow::~MomMainWindow
 
 void mom_execute_gui(int argc, char**argv)
 {
-  QApplication qapp(argc, argv);
-  MomMainWindow mainwin;
-  mainwin.show();
   MOM_INFORMPRINTF("executing Qt GUI");
+  QApplication qapp(argc, argv);
+  {
+    auto win = new MomMainWindow();
+    win->show();
+  }
   qapp.exec();
   MOM_INFORMPRINTF("ending Qt GUI");
 } // end mom_execute_gui
