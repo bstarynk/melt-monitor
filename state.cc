@@ -1482,7 +1482,7 @@ MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pye
 		 << " /pynam=" << vt->pyv_name);
 } // end MomObject::unsync_emit_dump_payload
 
-void
+long
 mom_dump_in_directory(const char*dirname)
 {
   MomDumper dumper(dirname);
@@ -1499,4 +1499,5 @@ mom_dump_in_directory(const char*dirname)
   double cpu = dumper.dump_cpu_time();
   MOM_INFORMPRINTF("dumped %ld objects in directory %s in %.2f real, %.3f cpu seconds",
 		   nbob, dirname, rt, cpu);
+  return nbob;
 } // end mom_dump_in_directory
