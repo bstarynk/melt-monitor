@@ -62,7 +62,12 @@ void
 MomMainWindow::do_dump(void)
 {
   MOM_DEBUGLOG(qgui, "MomMainWindow::do_dump");
-  mom_dump_in_directory(mom_dump_dir);
+  long nbo = mom_dump_in_directory(mom_dump_dir);
+  char buf[100];
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "dumped %ld objects in %s", nbo, mom_dump_dir);
+  auto sb = statusBar();
+  sb->showMessage(buf, 1500);
 } // end of MomMainWindow::do_dump
 
 void
@@ -84,7 +89,13 @@ MomMainWindow::do_save(void)
             {
               std::string dirp = dirlist.first().toStdString();
               MOM_DEBUGLOG(qgui, "MomMainWindow::do_save dirp=" << dirp);
-              mom_dump_in_directory(dirp.c_str());
+              long nbo = mom_dump_in_directory(dirp.c_str());
+	      char buf[100];
+	      memset(buf, 0, sizeof(buf));
+	      snprintf(buf, sizeof(buf),
+		       "dumped %ld objects in %s", nbo, dirp.c_str());
+	      auto sb = statusBar();
+	      sb->showMessage(buf, 1500);
             }
           else
             again = true;
