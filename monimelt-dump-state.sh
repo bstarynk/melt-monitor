@@ -26,6 +26,7 @@ echo start $0 "$@" >&2
 dbfile=$1
 sqlfile=$2
 dubase=$3
+sqlref=$4
 
 if [ ! -f "$dbfile" ]; then
     echo "$0": missing database file "$dbfile" >&2
@@ -105,14 +106,22 @@ SELECT * FROM t_objects ORDER  BY ob_id;
 EOF
 echo  "-- monimelt-dump-state end dump $dubase" >> $tempdump
 
-if [ -e "$sqlfile" ]; then
+if [ -z "$sqlref" ]; then
+    sqlref="$sqlfile"
+fi
+
+if [ -e "$sqlref" ]; then
     # if only the first 128 bytes changed, it is some comment
-    if cmp --quiet --ignore-initial 128 "$sqlfile" $tempdump ; then
-	echo $0: unchanged Monimelt Sqlite3 dump "$sqlfile"
+    if cmp --quiet --ignore-initial 128 "$sqlref" $tempdump ; then
+	echo $0: unchanged Monimelt Sqlite3 dump "$sqlfile" reference "$sqlref" >&2
+	if [ ! -e "$sqlfile" ]; then
+	    ln -s "$sqlref" "$sqlfile"
+	fi
 	exit 0
+    else
+	echo -n "backup Monimelt Sqlite3 dump:" >&2
+	mv -v --backup=existing "$sqlfile" "$sqlfile~" >&2
     fi
-    echo -n "backup Monimelt Sqlite3 dump:" >&2
-    mv -v --backup=existing "$sqlfile" "$sqlfile~" >&2
 fi
 ## we need that the .sql file has the same date as the .sqlite file
 touch -f "$dbfile" "$sqlfile"
