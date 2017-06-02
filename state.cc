@@ -844,7 +844,7 @@ MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpat
       for (int sig=1; sig<SIGRTMIN; sig++) signal(sig, SIG_DFL);
       execlp(dumpshellscript.c_str(), dumpshellscript.c_str(),
              dbpath.c_str(), sqlpath.c_str(), basepath.c_str(),
-	     refpath.c_str(), nullptr);
+             refpath.c_str(), nullptr);
       perror((dumpshellscript + " execlp").c_str());
       _exit(EXIT_FAILURE);
     }
