@@ -788,7 +788,7 @@ MomDumper::MomDumper(const std::string&dirnam)
     memset(sbuf16, 0, sizeof(sbuf16));
     rs.to_cbuf16(sbuf16);
     sbuf16[0] = '+';
-    snprintf(tempbuf, sizeof(tempbuf), "%s_p%d-", sbuf16, (int)getpid());
+    snprintf(tempbuf, sizeof(tempbuf), "%s_p%d_~", sbuf16, (int)getpid());
     _du_tempsuffix.assign(tempbuf);
   }
   auto thisdump = this;
@@ -828,8 +828,9 @@ MomDumper::open_databases(void)
 pid_t
 MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpath, const std::string& basepath)
 {
+  std::string refpath = basepath + ".sql";
   MOM_DEBUGLOG(dump, "fork_dump_database start dbpath=" << dbpath << " sqlpath=" << sqlpath
-               << " basepath=" << basepath);
+               << " basepath=" << basepath << " refpath=" << refpath);
   std::string dumpshellscript = std::string{monimelt_directory} + '/' + "monimelt-dump-state.sh";
   pid_t p = fork();
   if (p==0)
@@ -842,7 +843,8 @@ MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpat
       nice(1);
       for (int sig=1; sig<SIGRTMIN; sig++) signal(sig, SIG_DFL);
       execlp(dumpshellscript.c_str(), dumpshellscript.c_str(),
-             dbpath.c_str(), sqlpath.c_str(), basepath.c_str(), nullptr);
+             dbpath.c_str(), sqlpath.c_str(), basepath.c_str(),
+	     refpath.c_str(), nullptr);
       perror((dumpshellscript + " execlp").c_str());
       _exit(EXIT_FAILURE);
     }
