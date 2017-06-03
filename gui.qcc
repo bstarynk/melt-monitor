@@ -143,15 +143,30 @@ void
 MomMainWindow::do_exit(void)
 {
   MOM_DEBUGLOG(qgui, "MomMainWindow::do_exit");
-  QApplication::quit();
 } // end MomMainWindow::do_exit
 
 void
 MomMainWindow::do_quit(void)
 {
   MOM_DEBUGLOG(qgui, "MomMainWindow::do_quit");
-  mom_dump_dir = nullptr;
-  QApplication::quit();
+  for(;;)
+    {
+      auto quitq = QMessageBox::question(this,"Really Quit?","quit <i>without</i> saving state ?");
+      MOM_DEBUGLOG(qgui, "MomMainWindow::do_quit quitq=" << quitq);
+      if (quitq == QMessageBox::Ok || quitq == QMessageBox::Yes)
+        {
+          mom_dump_dir = nullptr;
+          QApplication::quit();
+          MOM_DEBUGLOG(qgui, "MomMainWindow::do_quit quitting");
+          break;
+        }
+      else if (quitq == QMessageBox::Cancel || quitq == QMessageBox::No)
+        {
+          MOM_DEBUGLOG(qgui, "MomMainWindow::do_quit cancelling");
+          break;
+        }
+    };
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_quit ending");
 } // end of MomMainWindow::do_quit
 
 void
@@ -227,6 +242,8 @@ void
 MomMainWindow::createActions(void)
 {
   auto mb = menuBar();
+  (void) statusBar(); // create it
+  // the application menu
   auto appmenu = mb->addMenu("App");
   {
     auto exitact = new QAction("e&Xit");
@@ -263,6 +280,46 @@ MomMainWindow::createActions(void)
     connect(newact, &QAction::triggered, this, &MomMainWindow::do_new);
     appmenu->addAction(newact);
   }
+  //// the edit menu
+  auto editmenu = mb->addMenu("Edit");
+  {
+    auto copyact = new QAction("&Copy");
+    copyact->setShortcuts(QKeySequence::Copy);
+    copyact->setStatusTip("copy the selection");
+    // connect(copyact, &QAction::triggered, this, &MomMainWindow::do_copy);
+    editmenu->addAction(copyact);
+  }
+  {
+    auto pasteact = new QAction("&Paste");
+    pasteact->setShortcuts(QKeySequence::Paste);
+    pasteact->setStatusTip("paste the selection");
+    // connect(pasteact, &QAction::triggered, this, &MomMainWindow::do_paste);
+    editmenu->addAction(pasteact);
+  }
+  //// the object menu
+  auto objectmenu = mb->addMenu("Object");
+  {
+    auto showact = new QAction("&Open");
+    showact->setShortcuts(QKeySequence::Open);
+    showact->setStatusTip("open an existing object <small>(or the selected one)</small>");
+    // connect(showact, &QAction::triggered, this, &MomMainWindow::do_show);
+    objectmenu->addAction(showact);
+  }
+  {
+    auto newact = new QAction("&New");
+    newact->setShortcuts(QKeySequence::New);
+    newact->setStatusTip("new anonymous object");
+    // connect(newact, &QAction::triggered, this, &MomMainWindow::do_new);
+    objectmenu->addAction(newact);
+  }
+  {
+    auto namedact = new QAction("&Make named");
+    namedact->setShortcut(Qt::ALT + Qt::Key_M);
+    namedact->setStatusTip("make a new named object");
+    // connect(namedact, &QAction::triggered, this, &MomMainWindow::do_named);
+    objectmenu->addAction(namedact);
+  }
+
 } // end MomMainWindow::createActions
 
 
