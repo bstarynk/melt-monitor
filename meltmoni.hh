@@ -2488,6 +2488,8 @@ private:
   bool _parnocheckx;   // don't check exhaustion
   std::string _parname;		// name of parser in messages
   std::function<void(TokenKind tok,int startcol, unsigned startlineno)>_parfun; // function called (e.g. for colorization)
+  std::function<MomValue(MomParser*,const MomNode*, bool *pok)> _parvaleval;
+  std::function<MomObject*(MomParser*,const MomNode*, bool *pok)> _parobjeval;
 public:
   static constexpr std::uint64_t _par_word_limit_ = 1<<28;
   static constexpr double _par_plain_time_limit_ = 0.3;
@@ -2511,7 +2513,8 @@ public:
       _parcol{0},
       _pardebug{false}, _parsilent{false}, _parmakefromid{false},
       _parhaschunk{false},
-      _parname(), _parfun()
+      _parname(), _parfun(),
+      _parvaleval(), _parobjeval()
   {
   }
   inline MomParser& check_exhaustion(void);
@@ -2520,6 +2523,13 @@ public:
     _parname=nam;
     return *this;
   };
+  MomParser& set_evaluators(std::function<MomValue(MomParser*, const MomNode*,bool*)> valeval,
+                            std::function<MomObject*(MomParser*, const MomNode*, bool*)> objeval)
+  {
+    _parvaleval = valeval;
+    _parobjeval = objeval;
+    return *this;
+  }
   MomParser& disable_exhaustion(bool nocheck=true)
   {
     _parnocheckx = nocheck;

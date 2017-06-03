@@ -129,7 +129,6 @@ intptr_t
 MomParser::parse_int(bool *pgotint)
 {
   skip_spaces();
-  auto inioff = _parlinoffset;
   auto inicol = _parcol;
   auto inilincnt = _parlincount;
   int pc = 0;
@@ -464,6 +463,23 @@ again:
       else
         goto failure;
     }
+  else if (pc=='$' && nc=='!' && _parvaleval)
+    {
+      consume(2);
+      bool gotvnod = false;
+      auto vnod = MomParser::parse_value(&gotvnod);
+      if (!_parnobuild && !vnod.is_val() && !vnod.to_val()->is_node())
+        MOM_PARSE_FAILURE(this, "evaluated value expects node after $!, got " << vnod);
+      check_exhaustion();
+      bool gotok = false;
+      auto resv = _parnobuild?nullptr:_parvaleval(this,vnod.to_val()->as_node(),&gotok);
+      check_exhaustion();
+      if (!_parnobuild && !gotok)
+        MOM_PARSE_FAILURE(this, "evaluated value failed with node " << vnod);
+      if (pgotval)
+        *pgotval = true;
+      return  _parnobuild?nullptr:resv;
+    }
 failure:
   if (pgotval)
     *pgotval = false;
@@ -780,6 +796,23 @@ again:
           return ob;
         }
       else goto failure;
+    }
+  else if (pc=='$' && nc=='%' && _parobjeval)
+    {
+      consume(2);
+      bool gotvnod = false;
+      auto vnod = MomParser::parse_value(&gotvnod);
+      if (!_parnobuild && !vnod.is_val() && !vnod.as_val()->is_node())
+        MOM_PARSE_FAILURE(this, "evaluated object expects node after $%, got " << vnod);
+      check_exhaustion();
+      bool gotok = false;
+      MomObject* resob = _parnobuild?nullptr:_parobjeval(this,vnod.as_val()->as_node(),&gotok);
+      check_exhaustion();
+      if (!_parnobuild && !gotok)
+        MOM_PARSE_FAILURE(this, "evaluated object failed with node " << vnod);
+      if (pgotob)
+        *pgotob = true;
+      return  _parnobuild?nullptr:resob;
     }
 failure:
   if (pgotob)
