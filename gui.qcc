@@ -37,7 +37,8 @@ private slots:
   void do_quit();
   void do_dump();
   void do_save();
-  void do_new();
+  void do_new_win();
+  void do_show();
 private:
   static constexpr int  _dump_delay_ms = 2500;
   MomCentralFrame* _frame;
@@ -219,9 +220,9 @@ MomMainWindow::do_save(void)
 } // end of MomMainWindow::do_save
 
 void
-MomMainWindow::do_new(void)
+MomMainWindow::do_new_win(void)
 {
-  MOM_DEBUGLOG(qgui, "MomMainWindow::do_new");
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_new_win");
   auto nw = new MomMainWindow();
   auto my_x = x();
   auto my_y = y();
@@ -235,8 +236,28 @@ MomMainWindow::do_new(void)
     my_y += 10;
   nw->move(my_x, my_y);
   nw->show();
-} // end of MomMainWindow::do_new
+} // end of MomMainWindow::do_new_win
 
+
+void
+MomMainWindow::do_show(void)
+{
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_show");
+  auto clipb = QApplication::clipboard();
+  if (clipb)
+    {
+      auto clipbstr = clipb->text(QClipboard::Clipboard).toStdString();
+      auto selstr = clipb->text(QClipboard::Selection).toStdString();
+      MOM_DEBUGLOG(qgui,
+                   "MomMainWindow::do_show clipbstr=" << MomShowString(clipbstr) << " selstr=" << selstr
+                   << " ownclip=" << (clipb->ownsClipboard())
+                   << " ownsel=" << (clipb->ownsSelection()));
+    }
+  else
+    {
+      MOM_DEBUGLOG(qgui, "MomMainWindow::do_show no clipboard");
+    }
+} // end MomMainWindow::do_show
 
 void
 MomMainWindow::createActions(void)
@@ -277,7 +298,7 @@ MomMainWindow::createActions(void)
     auto newact = new QAction("&New Window");
     newact->setShortcuts(QKeySequence::New);
     newact->setStatusTip("open a new window");
-    connect(newact, &QAction::triggered, this, &MomMainWindow::do_new);
+    connect(newact, &QAction::triggered, this, &MomMainWindow::do_new_win);
     appmenu->addAction(newact);
   }
   //// the edit menu
@@ -299,24 +320,24 @@ MomMainWindow::createActions(void)
   //// the object menu
   auto objectmenu = mb->addMenu("Object");
   {
-    auto showact = new QAction("&Open");
+    auto showact = new QAction("&Show");
     showact->setShortcuts(QKeySequence::Open);
-    showact->setStatusTip("open an existing object <small>(or the selected one)</small>");
-    // connect(showact, &QAction::triggered, this, &MomMainWindow::do_show);
+    showact->setStatusTip("show some existing object or the selected one");
+    connect(showact, &QAction::triggered, this, &MomMainWindow::do_show);
     objectmenu->addAction(showact);
   }
   {
     auto newact = new QAction("&New");
     newact->setShortcuts(QKeySequence::New);
     newact->setStatusTip("new anonymous object");
-    // connect(newact, &QAction::triggered, this, &MomMainWindow::do_new);
+    // connect(newact, &QAction::triggered, this, &MomMainWindow::do_newobj);
     objectmenu->addAction(newact);
   }
   {
     auto namedact = new QAction("&Make named");
     namedact->setShortcut(Qt::ALT + Qt::Key_M);
     namedact->setStatusTip("make a new named object");
-    // connect(namedact, &QAction::triggered, this, &MomMainWindow::do_named);
+    // connect(namedact, &QAction::triggered, this, &MomMainWindow::do_newnamed);
     objectmenu->addAction(namedact);
   }
 
