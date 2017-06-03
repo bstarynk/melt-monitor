@@ -28,6 +28,7 @@ MomParser::set_loader_for_object(MomLoader*ld, MomObject*pob, const char*tit)
 {
   if (!ld)
     MOM_FATALOG("set_loader_for_object missing ld tit=" << tit);
+  disable_exhaustion();
   char idbuf[32];
   memset(idbuf, 0, sizeof(idbuf));
   if (pob)
@@ -49,6 +50,7 @@ std::string
 MomParser::parse_string(bool *pgotstr)
 {
   skip_spaces();
+  check_exhaustion();
   auto inioff = _parlinoffset;
   auto inicol = _parcol;
   auto inilincnt = _parlincount;
@@ -134,6 +136,7 @@ MomParser::parse_int(bool *pgotint)
   int nc = 0;
   pc = peekbyte(0);
   nc = peekbyte(1);
+  check_exhaustion();
   if (pc>0 && (((pc=='+' || pc=='-') && isdigit(nc)) || isdigit(pc)))
     {
       const char*curp = peekchars();
@@ -175,6 +178,7 @@ again:
       if (eol() && !_parinp) goto failure;
       goto again;
     }
+  check_exhaustion();
   pc = peekbyte(0);
   nc = peekbyte(1);
   if (pc>0 && (((pc=='+' || pc=='-') && isdigit(nc)) || isdigit(pc)))
@@ -471,6 +475,7 @@ failure:
 MomValue
 MomParser::parse_chunk(bool *pgotchunk)
 {
+  check_exhaustion();
   std::vector<MomValue> vecelem;
   //auto inioff = _parlinoffset;
   auto inicol = _parcol;
@@ -520,6 +525,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
 {
   int pc = 0;
   int nc = 0;
+  check_exhaustion();
   //auto inioff = _parlinoffset;
   auto inicol = _parcol;
   auto inilincnt = _parlincount;
@@ -711,6 +717,7 @@ again:
       if (eol() && !_parinp) goto failure;
       goto again;
     }
+  check_exhaustion();
   pc = peekbyte(0);
   nc = peekbyte(1);
   if (pc < 127 && isspace(pc))

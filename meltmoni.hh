@@ -2477,15 +2477,21 @@ private:
   std::string _parlinstr; // line string
   unsigned _parlincount; // line count
   long _parlinoffset; // offset of current line
+  std::uint64_t _parbeginwords; // allocation word count at start of parsing
+  double _parbegintime;		 // elapsed real time at start of parsing
   int _parcol; // current column
   bool _pardebug;	// if set, activate MOM_DEBUGLOG(parse, ...)
   bool _parsilent; // if set, failure is silent without backtrace
   bool _parnobuild; // if set, no values are built
   bool _parmakefromid; // if set, make objects from id
   bool _parhaschunk;   // if set, accept code chunks
+  bool _parnocheckx;   // don't check exhaustion
   std::string _parname;		// name of parser in messages
   std::function<void(TokenKind tok,int startcol, unsigned startlineno)>_parfun; // function called (e.g. for colorization)
 public:
+  static constexpr std::uint64_t _par_word_limit_ = 1<<28;
+  static constexpr double _par_plain_time_limit_ = 0.3;
+  static constexpr double _par_debug_time_limit_ = 0.5;
   class Mom_parse_failure : public Mom_runtime_failure
   {
     const MomParser *_pars;
@@ -2499,15 +2505,24 @@ public:
     };
   };
   MomParser(std::istream&inp, unsigned lincount=0)
-    : _parinp(inp),  _parlinstr{}, _parlincount(lincount), _parcol{0},
+    : _parinp(inp),  _parlinstr{}, _parlincount(lincount),
+      _parbeginwords(MomAnyVal::allocation_word_count()),
+      _parbegintime(mom_elapsed_real_time ()),
+      _parcol{0},
       _pardebug{false}, _parsilent{false}, _parmakefromid{false},
       _parhaschunk{false},
       _parname(), _parfun()
   {
   }
+  inline MomParser& check_exhaustion(void);
   MomParser& set_name(const std::string&nam)
   {
     _parname=nam;
+    return *this;
+  };
+  MomParser& disable_exhaustion(bool nocheck=true)
+  {
+    _parnocheckx = nocheck;
     return *this;
   };
   MomParser& set_no_build(bool nobuild)
@@ -2725,6 +2740,22 @@ MomParser::next_line()
   if (_parinp)
     _parlincount++;
 } // end MomParser::next_line
+
+
+MomParser&
+MomParser::check_exhaustion(void)
+{
+  if (_parnocheckx)
+    return *this;
+  auto curwordincr = MomAnyVal::allocation_word_count() - _parbeginwords;
+  if (curwordincr > _par_word_limit_)
+    MOM_PARSE_FAILURE(this,"excessive parse allocation word increment " << curwordincr);
+  double partim = mom_elapsed_real_time() - _parbegintime;
+  if (partim
+      > (MOM_IS_DEBUGGING(parse)?_par_debug_time_limit_:_par_plain_time_limit_))
+    MOM_PARSE_FAILURE(this,"excessive parse time " << partim);
+  return *this;
+} // end MomParser::check_exhaustion
 
 ////////////////
 class MomEmitter 		// in file parsemit.cc
