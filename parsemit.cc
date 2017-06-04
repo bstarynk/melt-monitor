@@ -788,6 +788,9 @@ again:
         endnamp++;
       std::string namstr(begnamp, endnamp-begnamp);
       MomObject* ob = fetch_named_object(namstr);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+                         << " namstr=" << MomShowString(namstr)
+                         << " ob=" << ob);
       if (ob || _parnobuild)
         {
           consume(endnamp-begnamp);
