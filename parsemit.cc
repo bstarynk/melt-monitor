@@ -158,6 +158,8 @@ MomParser::parse_int(bool *pgotint)
     }
 } // end MomParser::parse_int
 
+
+
 MomValue
 MomParser::parse_value(bool *pgotval)
 {
@@ -214,7 +216,9 @@ again:
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " NIL");
       return MomValue{nullptr};
     }
-  else if (pc<127 && (isalpha(pc) || (pc=='_' && nc<127 && isdigit(nc))))
+  else if ((pc<127 && isalpha(pc))
+           || (pc=='_' && nc<127 && isdigit(nc))
+           || (pc=='$' && nc=='%' && _parobjeval))
     {
       return MomValue(parse_objptr(pgotval));
     }
