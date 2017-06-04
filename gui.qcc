@@ -44,6 +44,7 @@ private:
   static constexpr int _parse_error_delay_ms = 3300;
   MomCentralFrame* _frame;
   void createActions();
+  void show_object(MomObject*pob);
 };				// end MomMainWindow
 
 
@@ -298,8 +299,21 @@ MomMainWindow::do_show(void)
           sb->showMessage(parsfail.what(), _dump_delay_ms);
         }
     }
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_show pshowob=" << pshowob);
+  if (pshowob)
+    show_object(pshowob);
+  else
+    {
+    }
 #warning incomplete MomMainWindow::do_show
 } // end MomMainWindow::do_show
+
+void
+MomMainWindow::show_object(MomObject*pob)
+{
+  MOM_WARNLOG("MomMainWindow::show_object unimplemented pob=" << pob);
+#warning MomMainWindow::show_object unimplemented
+} // end MomMainWindow::show_object
 
 void
 MomMainWindow::createActions(void)
