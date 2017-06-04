@@ -82,6 +82,20 @@ private:
 };				// end MomCentralFrame
 
 
+class MomGuiParser final : public MomParser
+{
+  MomMainWindow* _window;
+public:
+  MomGuiParser(std::istringstream&ins, MomMainWindow*win) : MomParser(ins), _window(win) {};
+  ~MomGuiParser();
+  virtual MomObject* fetch_named_object(const std::string&);
+  virtual MomValue chunk_name(const std::string&);
+  virtual MomValue chunk_id(MomIdent);
+  virtual MomValue chunk_value(const MomValue);
+  virtual MomValue chunk_dollarobj(MomObject*);
+  virtual MomValue chunk_value(const std::vector<MomValue>&);
+};
+
 std::set<QMainWindow*> mom_windows_set;
 
 MomCommandText::MomCommandText(QWidget*parent): QTextEdit(parent)
@@ -268,14 +282,14 @@ MomMainWindow::do_show(void)
   if (!showstr.empty())
     {
       std::istringstream instr(showstr);
-      MomParser showpars(instr);
+      MomGuiParser showpars(instr,this);
       showpars.set_name("*show*");
       showpars.next_line();
       try
         {
           pshowob = showpars.parse_objptr(&gotshowob);
           MOM_DEBUGLOG(qgui, "MomMainWindow::do_show pshowob=" << pshowob
-                       << "gotshowob=" << (gotshowob?"true":"false"));
+                       << "; gotshowob=" << (gotshowob?"true":"false"));
         }
       catch (MomParser::Mom_parse_failure parsfail)
         {
@@ -389,6 +403,58 @@ MomMainWindow::~MomMainWindow()
   mom_windows_set.erase(this);
   delete _frame;
 } // end MomMainWindow::~MomMainWindow
+
+
+MomGuiParser::~MomGuiParser()
+{
+} // end MomGuiParser::~MomGuiParser
+
+MomObject*
+MomGuiParser::fetch_named_object(const std::string&str)
+{
+  auto pob = mom_find_named(str.c_str());
+  MOM_DEBUGLOG(parse,"MomGuiParser::fetch_named_object str=" << MomShowString(str)
+               << " pob=" << pob);
+  return pob;
+} // end MomGuiParser::fetch_named_object
+
+
+MomValue
+MomGuiParser::chunk_name(const std::string&str)
+{
+  auto pob = mom_find_named(str.c_str());
+  MOM_DEBUGLOG(parse,"MomGuiParser::chunk_name str=" << MomShowString(str)
+               << " pob=" << pob);
+  return pob;
+} // end MomGuiParser::chunk_name
+
+MomValue
+MomGuiParser::chunk_id(MomIdent id)
+{
+  auto pob = MomObject::find_object_of_id(id);
+  MOM_DEBUGLOG(parse,"MomGuiParser::chunk_id id=" << id << " pob=" << pob);
+  return pob;
+}  // end MomGuiParser::chunk_id
+
+MomValue
+MomGuiParser::chunk_value(const MomValue v)
+{
+  MOM_DEBUGLOG(parse,"MomGuiParser::chunk_value v=" << v);
+  return v;
+} // end MomGuiParser::chunk_value
+
+MomValue
+MomGuiParser::chunk_dollarobj(MomObject*pdobj)
+{
+  MOM_DEBUGLOG(parse,"MomGuiParser::chunk_dollarobj pdobj=" << pdobj);
+  return pdobj;
+} // end MomGuiParser::chunk_dollarobj
+
+MomValue
+MomGuiParser::chunk_value(const std::vector<MomValue>&vec)
+{
+  MOM_DEBUGLOG(parse,"MomGuiParser::chunk_value vec/" << vec.size());
+} // end MomGuiParser::chunk_value
 
 void mom_execute_gui(int argc, char**argv)
 {
