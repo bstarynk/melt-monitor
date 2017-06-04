@@ -241,7 +241,7 @@ extern "C" void mom_abort(void) __attribute__((noreturn));
   MOM_ASSERT_AT(Fil, Lin, Prop, Log)
 #define MOM_ASSERT(Prop, Log) MOM_ASSERT_AT_BIS(__FILE__, __LINE__, Prop, Log)
 
-class Mom_runtime_failure : std::runtime_error
+class Mom_runtime_failure : public std::runtime_error
 {
   const char* _rf_file;
   const int _rf_line;

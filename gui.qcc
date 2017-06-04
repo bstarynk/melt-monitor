@@ -41,6 +41,7 @@ private slots:
   void do_show();
 private:
   static constexpr int  _dump_delay_ms = 2500;
+  static constexpr int _parse_error_delay_ms = 3300;
   MomCentralFrame* _frame;
   void createActions();
 };				// end MomMainWindow
@@ -244,19 +245,46 @@ MomMainWindow::do_show(void)
 {
   MOM_DEBUGLOG(qgui, "MomMainWindow::do_show");
   auto clipb = QApplication::clipboard();
-  if (clipb)
+  MOM_ASSERT(clipb != nullptr, "MomMainWindow::do_show no clipboard");
+  std::string showstr;
+  {
+    auto clipbstr = clipb->text(QClipboard::Clipboard).toStdString();
+    auto selstr = clipb->text(QClipboard::Selection).toStdString();
+    bool ownclip = clipb->ownsClipboard();
+    bool ownsel = clipb->ownsSelection();
+    MOM_DEBUGLOG(qgui,
+                 "MomMainWindow::do_show clipbstr=" << MomShowString(clipbstr)
+                 << " selstr=" << MomShowString(selstr)
+                 << " ownclip=" << ownclip
+                 << " ownsel=" << ownsel);
+    if (ownsel && !selstr.empty())
+      showstr = selstr;
+    else if (ownclip && !clipbstr.empty())
+      showstr = clipbstr;
+  }
+  MOM_DEBUGLOG(qgui, "MomMainWindow::do_show showstr=" << MomShowString(showstr));
+  MomObject* pshowob = nullptr;
+  bool gotshowob = false;
+  if (!showstr.empty())
     {
-      auto clipbstr = clipb->text(QClipboard::Clipboard).toStdString();
-      auto selstr = clipb->text(QClipboard::Selection).toStdString();
-      MOM_DEBUGLOG(qgui,
-                   "MomMainWindow::do_show clipbstr=" << MomShowString(clipbstr) << " selstr=" << selstr
-                   << " ownclip=" << (clipb->ownsClipboard())
-                   << " ownsel=" << (clipb->ownsSelection()));
+      std::istringstream instr(showstr);
+      MomParser showpars(instr);
+      showpars.set_name("*show*");
+      showpars.next_line();
+      try
+        {
+          pshowob = showpars.parse_objptr(&gotshowob);
+          MOM_DEBUGLOG(qgui, "MomMainWindow::do_show pshowob=" << pshowob
+                       << "gotshowob=" << (gotshowob?"true":"false"));
+        }
+      catch (MomParser::Mom_parse_failure parsfail)
+        {
+          MOM_DEBUGLOG(qgui, "MomMainWindow::do_show parsfail:" << parsfail.what());
+          auto sb = statusBar();
+          sb->showMessage(parsfail.what(), _dump_delay_ms);
+        }
     }
-  else
-    {
-      MOM_DEBUGLOG(qgui, "MomMainWindow::do_show no clipboard");
-    }
+#warning incomplete MomMainWindow::do_show
 } // end MomMainWindow::do_show
 
 void
