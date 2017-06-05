@@ -462,6 +462,31 @@ MomObject::set_space(MomSpace sp)
   return this;
 } // end MomObject::set_space
 
+
+bool
+MomObject::less_named(const MomObject*ob) const
+{
+  if (!ob) return false;
+  if (ob == this) return false;
+  std::string thisname;
+  std::string obname;
+  {
+    std::shared_lock<std::shared_mutex> lk(_ob_shmtx);
+    thisname = mom_get_unsync_string_name(const_cast<MomObject*>(this));
+  }
+  {
+    std::shared_lock<std::shared_mutex> lk(ob->_ob_shmtx);
+    obname = mom_get_unsync_string_name(const_cast<MomObject*>(ob));
+  }
+  if (thisname.empty() && obname.empty())
+    return less(ob);
+  else if (thisname.empty())
+    return false;
+  else if (obname.empty())
+    return true;
+  else return thisname < obname;
+} // end MomObject::less_named
+
 const MomSet*
 MomObject::predefined_set(void)
 {
@@ -480,6 +505,7 @@ MomObject::do_each_predefined(std::function<bool(const MomObject*)>fun)
       if (fun(pob)) return;
     }
 } // end MomObject::do_each_predefined
+
 
 void
 MomObject::initialize_predefined(void)

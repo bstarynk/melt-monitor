@@ -1645,10 +1645,17 @@ public:
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
 
+/// order by id
 struct MomObjptrLess
 {
   inline bool operator()  (const MomObject*, const MomObject*) const;
 };				// end MomObjptrLess
+
+/// order by name or else by id
+struct MomObjNameLess
+{
+  inline bool operator()  (const MomObject*, const MomObject*) const;
+};				// end MomObjNameLess
 
 struct MomIdentBucketHash
 {
@@ -2093,6 +2100,7 @@ public:
     else if (_ob_id > ob->_ob_id) return false;
     MOM_FATALOG("non-identical objects sharing same id=" << _ob_id);
   };
+  bool less_named(const MomObject*ob) const;
   static bool less2(const MomObject*ob1, const MomObject*ob2)
   {
     if (ob1==ob2) return false;
@@ -2100,11 +2108,24 @@ public:
     if (!ob2) return false;
     return ob1->less(ob2);
   }
+  static bool less_named_2(const MomObject*ob1, const MomObject*ob2)
+  {
+    if (ob1==ob2) return false;
+    if (!ob1) return true;
+    if (!ob2) return false;
+    return ob1->less_named(ob2);
+  }
   bool less_equal(const MomObject*ob) const
   {
     if (!ob) return false;
     if (this == ob) return true;
     return less (ob);
+  };
+  bool less_named_equal(const MomObject*ob) const
+  {
+    if (!ob) return false;
+    if (this == ob) return true;
+    return less_named (ob);
   };
   static bool less_equal2(const MomObject*ob1, const MomObject*ob2)
   {
@@ -2273,6 +2294,12 @@ MomObjptrLess::operator()  (const MomObject*ob1, const MomObject*ob2) const
 {
   return MomObject::less2(ob1, ob2);
 }      // end MomObjptrLess::operator
+
+bool
+MomObjNameLess::operator()  (const MomObject*ob1, const MomObject*ob2) const
+{
+  return MomObject::less_named_2(ob1, ob2);
+}      // end MomObjNameLess::operator
 
 
 size_t
