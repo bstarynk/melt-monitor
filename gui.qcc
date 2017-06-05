@@ -68,6 +68,8 @@ class MomTextDocument : public QTextDocument
 public:
   MomTextDocument(QObject* parent=nullptr);
   ~MomTextDocument();
+  MomShownObjectTextFrame*find_shown_object_frame (MomObject*ob);
+  MomShownObjectTextFrame*make_shown_object_frame (MomObject*ob);
   void scan_gc(MomGC*gc);
 };				// end MomTextDocument
 
@@ -136,6 +138,29 @@ MomTextDocument::~MomTextDocument()
 } // end MomTextDocument::~MomTextDocument
 
 
+MomShownObjectTextFrame*
+MomTextDocument::find_shown_object_frame (MomObject*ob)
+{
+  if (ob==nullptr) return nullptr;
+  auto it = _shownobmap.find(ob);
+  if (it != _shownobmap.end())
+    return it.second;
+  return nullptr;
+} // end MomTextDocument::find_shown_object_frame
+
+
+MomShownObjectTextFrame*
+MomTextDocument::make_shown_object_frame(MomObject*pob)
+{
+  MOM_ASSERT(pob != null && pob->vkind() == MomKind::TagObjectK,
+             "MomTextDocument::make_shown_object_frame bad pob");
+  auto ofram = find_shown_object_frame(pob);
+  if (ofram)
+    {
+#warning should clear ofram in make_shown_object_frame
+      return ofram;
+    }
+} // end MomTextDocument::make_shown_object_frame
 
 MomShownObjectTextFrame::MomShownObjectTextFrame(MomObject*pob, MomTextDocument* parent)
   : QTextFrame(parent), _shownpob(pob)
@@ -396,12 +421,17 @@ MomMainWindow::do_show(void)
 #warning incomplete MomMainWindow::do_show
 } // end MomMainWindow::do_show
 
+
 void
 MomMainWindow::show_object(MomObject*pob)
 {
+  MOM_ASSERT(pob != nullptr && pob->kindw() == MomKind::TagObjectK,
+             "MomMainWindow::show_object bad pob");
+  MomShownObjectTextFrame* obfr = _doc.make_shown_object_frame(pob);
   MOM_WARNLOG("MomMainWindow::show_object unimplemented pob=" << pob);
 #warning MomMainWindow::show_object unimplemented
 } // end MomMainWindow::show_object
+
 
 void
 MomMainWindow::createActions(void)
