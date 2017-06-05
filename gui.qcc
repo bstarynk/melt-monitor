@@ -53,6 +53,7 @@ class MomTextDocument;
 
 class MomShownObjectTextFrame : public QTextFrame
 {
+  Q_OBJECT
   MomObject* _shownpob;
 public:
   MomShownObjectTextFrame(MomObject*pob, MomTextDocument* parent=nullptr);
@@ -62,6 +63,8 @@ public:
 
 class MomTextDocument : public QTextDocument
 {
+  Q_OBJECT
+  std::unordered_map<MomObject*,MomShownObjectTextFrame*,MomObjptrHash> _shownobmap;
 public:
   MomTextDocument(QObject* parent=nullptr);
   ~MomTextDocument();
@@ -122,12 +125,14 @@ public:
 std::set<MomMainWindow*> mom_windows_set;
 std::mutex mom_windows_mtx;
 
-MomTextDocument::MomTextDocument(QObject* parent) : QTextDocument (parent)
+MomTextDocument::MomTextDocument(QObject* parent)
+  : QTextDocument (parent), _shownobmap()
 {
 } // end MomTextDocument::MomTextDocument
 
 MomTextDocument::~MomTextDocument()
 {
+  _shownobmap.clear();
 } // end MomTextDocument::~MomTextDocument
 
 
@@ -151,12 +156,16 @@ MomShownObjectTextFrame::scan_gc(MomGC*gc)
 void
 MomTextDocument::scan_gc(MomGC*gc)
 {
+  {
+    for (auto it: _shownobmap)
+      it.first->scan_gc(gc);
+  }
   auto rootfram = rootFrame();
   {
     auto listframe = rootfram->childFrames();
     for (auto it: listframe)
       {
-        MomShownObjectTextFrame* obfr = dynamic_cast<MomShownObjectTextFrame*>(&(*it));
+        auto obfr = dynamic_cast<MomShownObjectTextFrame*>(&(*it));
         if (obfr)
           obfr->scan_gc(gc);
       }
