@@ -45,14 +45,34 @@ private:
   MomCentralFrame* _frame;
   void createActions();
   void show_object(MomObject*pob);
+public:
+  void scan_gc(MomGC*);
 };				// end MomMainWindow
 
+class MomTextDocument;
+
+class MomShownObjectTextFrame : public QTextFrame
+{
+  MomObject* _shownpob;
+public:
+  MomShownObjectTextFrame(MomObject*pob, MomTextDocument* parent=nullptr);
+  ~MomShownObjectTextFrame();
+  void scan_gc(MomGC*);
+};				// end MomShownObjectTextFrame
+
+class MomTextDocument : public QTextDocument
+{
+public:
+  MomTextDocument(QObject* parent=nullptr);
+  ~MomTextDocument();
+  void scan_gc(MomGC*gc);
+};				// end MomTextDocument
 
 class MomTextBrowser : public QTextBrowser
 {
   Q_OBJECT
 public:
-  MomTextBrowser(QTextDocument*doc, QWidget*parent=nullptr);
+  MomTextBrowser(MomTextDocument*doc, QWidget*parent=nullptr);
   ~MomTextBrowser();
 private:
   static QString _stylestr_;
@@ -76,10 +96,12 @@ public:
 private:
   QVBoxLayout _vbox;
   QSplitter _splitter;
-  QTextDocument _doc;
+  MomTextDocument _doc;
   MomTextBrowser _firstbrowser;
   MomTextBrowser _secondbrowser;
   MomCommandText _cmdtext;
+public:
+  void scan_gc(MomGC*);
 };				// end MomCentralFrame
 
 
@@ -95,9 +117,52 @@ public:
   virtual MomValue chunk_value(const MomValue);
   virtual MomValue chunk_dollarobj(MomObject*);
   virtual MomValue chunk_value(const std::vector<MomValue>&);
-};
+}; // end class MomGuiParser
 
-std::set<QMainWindow*> mom_windows_set;
+std::set<MomMainWindow*> mom_windows_set;
+std::mutex mom_windows_mtx;
+
+MomTextDocument::MomTextDocument(QObject* parent) : QTextDocument (parent)
+{
+} // end MomTextDocument::MomTextDocument
+
+MomTextDocument::~MomTextDocument()
+{
+} // end MomTextDocument::~MomTextDocument
+
+
+
+MomShownObjectTextFrame::MomShownObjectTextFrame(MomObject*pob, MomTextDocument* parent)
+  : QTextFrame(parent), _shownpob(pob)
+{
+} // end MomShownObjectTextFrame::MomShownObjectTextFrame
+
+MomShownObjectTextFrame::~MomShownObjectTextFrame()
+{
+  _shownpob = nullptr;
+} // end MomShownObjectTextFrame::~MomShownObjectTextFrame
+
+void
+MomShownObjectTextFrame::scan_gc(MomGC*gc)
+{
+  gc->scan_object(_shownpob);
+} // end MomShownObjectTextFrame::scan_gc
+
+void
+MomTextDocument::scan_gc(MomGC*gc)
+{
+  auto rootfram = rootFrame();
+  {
+    auto listframe = rootfram->childFrames();
+    for (auto it: listframe)
+      {
+        MomShownObjectTextFrame* obfr = dynamic_cast<MomShownObjectTextFrame*>(&(*it));
+        if (obfr)
+          obfr->scan_gc(gc);
+      }
+  }
+} // end MomTextDocument::scan_gc
+
 
 MomCommandText::MomCommandText(QWidget*parent): QTextEdit(parent)
 {
@@ -106,7 +171,8 @@ MomCommandText::MomCommandText(QWidget*parent): QTextEdit(parent)
 MomCommandText::~MomCommandText()
 {
 } // end MomCommandText::~MomCommandText
-MomTextBrowser::MomTextBrowser(QTextDocument*doc, QWidget*parent)
+
+MomTextBrowser::MomTextBrowser(MomTextDocument*doc, QWidget*parent)
   : QTextBrowser(parent)
 {
   if (_stylestr_.isEmpty())
@@ -155,6 +221,19 @@ MomCentralFrame::~MomCentralFrame()
 {
 } // end MomCentralFrame::~MomCentralFrame
 
+void
+MomCentralFrame::scan_gc(MomGC*gc)
+{
+  _doc.scan_gc(gc);
+} // end MomCentralFrame::scan_gc
+
+
+void
+MomMainWindow::scan_gc(MomGC*gc)
+{
+  if (_frame)
+    _frame->scan_gc(gc);
+} // end MomMainWindow::scan_gc
 
 void
 MomMainWindow::do_exit(void)
@@ -409,12 +488,18 @@ MomMainWindow::MomMainWindow(void)
   _frame = new MomCentralFrame(this);
   setCentralWidget(_frame);
   createActions();
-  mom_windows_set.insert(this);
+  {
+    std::lock_guard<std::mutex> gu(mom_windows_mtx);
+    mom_windows_set.insert(this);
+  }
 } // end MomMainWindow::MomMainWindow
 
 MomMainWindow::~MomMainWindow()
 {
-  mom_windows_set.erase(this);
+  {
+    std::lock_guard<std::mutex> gu(mom_windows_mtx);
+    mom_windows_set.erase(this);
+  }
   delete _frame;
 } // end MomMainWindow::~MomMainWindow
 
@@ -468,6 +553,8 @@ MomValue
 MomGuiParser::chunk_value(const std::vector<MomValue>&vec)
 {
   MOM_DEBUGLOG(parse,"MomGuiParser::chunk_value vec/" << vec.size());
+  /// we probably should make a node of connective 'chunk'
+#warning unimplemented MomGuiParser::chunk_value
 } // end MomGuiParser::chunk_value
 
 void mom_execute_gui(int argc, char**argv)
@@ -480,7 +567,16 @@ void mom_execute_gui(int argc, char**argv)
     auto win = new MomMainWindow();
     win->show();
   }
+  unsigned scanfun =
+    MomGC::the_garbcoll.add_scan_function
+    ([=](MomGC* thisgc)
+  {
+    std::lock_guard<std::mutex> gu(mom_windows_mtx);
+    for (auto mwin : mom_windows_set)
+      mwin->scan_gc(thisgc);
+  });
   qapp.exec();
+  MomGC::the_garbcoll.remove_scan_handle(scanfun);
   MOM_INFORMPRINTF("ending Qt GUI");
 } // end mom_execute_gui
 
