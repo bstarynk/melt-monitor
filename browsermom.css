@@ -17,9 +17,9 @@ p.anontitle_cl {
     font-size: 12.5pt;
 }
     
-span.namedid_cl {
+tt.namedid_cl {
     color: navy;
-    font-size: 10pt;
-    font-style: italic
+    font-size: 9pt;
+    font-style: italic;
     font-family: DejaVu Sans Mono;
 }

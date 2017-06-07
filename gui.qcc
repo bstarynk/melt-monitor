@@ -203,7 +203,7 @@ MomTextDocument::make_shown_object_frame(MomObject*pob)
           outs << "<p class='namedtitle_cl'>"
                << "&#8280;" // U+2058 FOUR DOT PUNCTUATION ⁘
                << " " << obnamstr
-               << " <span class='namedid_cl'>" << obidstr << "</span>"
+               << " <tt class='namedid_cl'>" << obidstr << "</tt>"
                << "</p>\n";
         else
           outs << "<p class='anontitle_cl'>"
@@ -211,6 +211,8 @@ MomTextDocument::make_shown_object_frame(MomObject*pob)
                << " " << obidstr
                << "</p>\n";
         fram->firstCursorPosition().insertHtml(QString(outs.str().c_str()));
+	MOM_DEBUGLOG(qgui, "MomTextDocument::make_shown_object_frame pob=" << pob
+		     << " html:" << MomShowString(outs.str()));
       }
       MOM_DEBUGLOG(qgui, "MomTextDocument::make_shown_object_frame pob=" << pob << " new fram=" << fram);
     } // when new frame
