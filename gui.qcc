@@ -191,6 +191,12 @@ MomTextDocument::make_shown_object_frame(MomObject*pob)
                        << " insert at start pob=" << pob);
           curs.insertText("\n");
         }
+      MOM_DEBUGLOG(qgui, "MomTextDocument::make_shown_object_frame pob=" << pob
+		   << " new fram=" << fram);
+      _shownobmap.insert({pob,fram});
+      _shownframemap.insert({fram,pob});
+      QObject::connect(fram, SIGNAL(destroyed()),
+		       this, SLOT(removed_object_frame));
       std::string obnamstr;
       std::string obidstr = pob->id().to_string();
       {
