@@ -33,8 +33,8 @@ std::map<std::string,const MomVtablePayload_st*>  MomRegisterPayload::_pd_dict_;
 
 static struct backtrace_state *btstate_mom;
 static bool syslogging_mom;
-static bool gui_mom;
 const char* mom_dump_dir;
+const char* mom_web_option;
 static const char*load_state_mom = ".";
 thread_local MomRandom MomRandom::_rand_thr_;
 
@@ -247,6 +247,7 @@ void mom_abort(void)
   fflush(NULL);
   abort();
 } // end of mom_abort
+
 static struct timespec start_realtime_ts_mom;
 
 double
@@ -1102,6 +1103,7 @@ static const struct option mom_long_options[] =
   {"dump", required_argument, nullptr, 'd'},
   {"load", required_argument, nullptr, 'L'},
   {"jobs", required_argument, nullptr, 'J'},
+  {"web", required_argument, nullptr, 'W'},
   {"chdir-first", required_argument, nullptr, xtraopt_chdir_first},
   {"chdir-after-load", required_argument, nullptr, xtraopt_chdir_after_load},
   {"add-predefined", required_argument, nullptr, xtraopt_addpredef},
@@ -1130,6 +1132,7 @@ usage_mom (const char *argv0)
   putchar ('\n');
   printf ("\t -d | --dump <dumpdir>" " \t# Dump the state.\n");
   printf ("\t -L | --load <loaddir>" " \t# Load the state.\n");
+  printf ("\t -W | --web <host>:<port>" " \t# Run onion web service, e.g. -W localhost:8086\n");
   printf ("\t --chdir-first dirpath" " \t#Change directory at first \n");
   printf ("\t --chdir-after-load dirpath"
           " \t#Change directory after load\n");
@@ -1217,7 +1220,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   int opt = -1;
   char *commentstr = nullptr;
   int myargindex = 0;
-  while ((opt = getopt_long (argc, argv, "hVGd:sD:L:J:",
+  while ((opt = getopt_long (argc, argv, "hVd:sD:L:J:W:",
                              mom_long_options, &myargindex)) >= 0)
     {
       switch (opt)
@@ -1233,9 +1236,6 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           print_version_mom (argv[0]);
           exit (EXIT_SUCCESS);
           return;
-        case 'G':		// --gui
-          gui_mom = true;
-          break;
         case 'd':              /* --dump */
           mom_dump_dir = optarg;
           break;
@@ -1252,6 +1252,9 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                 mom_nb_jobs = MOM_MAX_JOBS;
             }
           MOM_INFORMPRINTF("with %d jobs (working threads)", mom_nb_jobs);
+          break;
+        case 'W':/* --web host:port */
+          mom_web_option = optarg;
           break;
         case 'L': /* --load filepath */
           if (!optarg || access (optarg, R_OK))
@@ -1369,13 +1372,15 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                         << "... " << id1 << " " << id2 << " " << id3 << std::endl
                         << "... " << id4 << " " << id5 << " " << id6);
           std::cout << std::endl
-                    << "/// for _mom_predef.h id1 id2 id3" << std::endl;
+                    << "/// for _mom_predef.h id1 id2 id3 id4" << std::endl;
           std::cout << "MOM_HAS_PREDEF("<< id1 << "," << id1.hi().serial()
                     << "," << id1.lo().serial() << "," << id1.hash() << ")" << std::endl;
           std::cout << "MOM_HAS_PREDEF("<< id2 << "," << id2.hi().serial()
                     << "," << id2.lo().serial() << "," << id2.hash() << ")" << std::endl;
           std::cout << "MOM_HAS_PREDEF("<< id3 << "," << id3.hi().serial()
                     << "," << id3.lo().serial() << "," << id3.hash() << ")" << std::endl;
+          std::cout << "MOM_HAS_PREDEF("<< id4 << "," << id4.hi().serial()
+                    << "," << id4.lo().serial() << "," << id4.hash() << ")" << std::endl;
           std::cout << std::endl;
         }
         break;
@@ -1529,8 +1534,8 @@ main (int argc_main, char **argv_main)
   MomObject::initialize_predefined();
   if (load_state_mom && load_state_mom[0] && load_state_mom[0] != '-')
     mom_load_from_directory(load_state_mom);
-  if (gui_mom)
-    mom_execute_gui(argc,argv);
+  if (mom_web_option)
+    mom_run_web_onion(mom_web_option);
 #warning missing stuff in main
   if (mom_dump_dir)
     mom_dump_in_directory(mom_dump_dir);

@@ -30,7 +30,8 @@ MD5SUM= md5sum
 INDENTFLAGS= --gnu-style --no-tabs --honour-newlines
 ASTYLEFLAGS= --style=gnu -s2
 #PACKAGES= sqlite_modern_cpp glib-2.0 sqlite3 jansson Qt5Gui
-PACKAGES= sqlite_modern_cpp glib-2.0 Qt5Gui Qt5Widgets
+#PACKAGES= sqlite_modern_cpp glib-2.0 Qt5Gui Qt5Widgets
+PACKAGES= sqlite_modern_cpp glib-2.0 
 PKGCONFIG= pkg-config
 PREPROFLAGS= -I. -I/usr/local/include $(shell $(PKGCONFIG) --cflags $(PACKAGES))
 OPTIMPICFLAGS= -fPIC
@@ -40,7 +41,7 @@ QTMOC= moc
 
 LIBES= -L/usr/local/lib $(shell $(PKGCONFIG) --libs $(PACKAGES)) \
 	$(shell $(CXX) -print-file-name=libbacktrace.a) \
-        -lpthread -lcrypt -lm -ldl
+        -lonioncpp -lonion -lpthread -lcrypt -lm -ldl
 
 PLUGIN_SOURCES= $(sort $(wildcard momplug_*.cc))
 PLUGINS=  $(patsubst %.c,%.so,$(PLUGIN_SOURCES))

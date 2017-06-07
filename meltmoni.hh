@@ -278,7 +278,7 @@ extern "C" void mom_failure_backtrace_at(const char*fil, int lin, const std::str
   Dbg(garbcoll)					\
   Dbg(misc)					\
   Dbg(gencod)					\
-  Dbg(qgui)					\
+  Dbg(webonion)					\
   Dbg(blue)					\
   Dbg(green)					\
   Dbg(red)					\
@@ -3207,6 +3207,6 @@ extern "C" MomObject*mom_unsync_pset_object_proxy(MomObject*objn);
 extern "C" void mom_unsync_pset_object_set_proxy(MomObject*objn, MomObject*obproxy);
 extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(set);
 
-/// in gui.qcc
-extern "C" void mom_execute_gui(int argc, char**argv);
+/// in webonion.cc
+extern "C" void mom_run_web_onion(const char*webopt);
 #endif /*MONIMELT_INCLUDED_ */
