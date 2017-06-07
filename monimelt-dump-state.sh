@@ -103,6 +103,8 @@ SELECT * FROM t_objects ORDER  BY ob_id;
 .print 
 .print END TRANSACTION; ---- for t_objects
 .print
+.print ------- END DUMP @@@@@
+.print
 EOF
 echo  "-- monimelt-dump-state end dump $dubase" >> $tempdump
 
@@ -118,12 +120,12 @@ if [ -e "$sqlref" ]; then
 	    ln -s "$sqlref" "$sqlfile"
 	fi
 	exit 0
-    else
-	echo -n "backup Monimelt Sqlite3 dump:" >&2
-	mv -v --backup=existing "$sqlfile" "$sqlfile~" >&2
     fi
+elif [ -e "$sqlfile" ]; then
+    echo -n "backup Monimelt Sqlite3 ref dump:" >&2
+    mv -v --backup=existing "$sqlfile" "$sqlfile~" >&2    
 fi
 ## we need that the .sql file has the same date as the .sqlite file
-touch -f "$dbfile" "$sqlfile"
 mv $tempdump "$sqlfile"
+touch -f "$dbfile" "$sqlfile"
 #eof monimelt-dump-state.sh
