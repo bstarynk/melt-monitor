@@ -51,25 +51,20 @@ public:
 
 class MomTextDocument;
 
-class MomShownObjectTextFrame : public QTextFrame
-{
-  Q_OBJECT
-  MomObject* _shownpob;
-public:
-  MomShownObjectTextFrame(MomObject*pob, MomTextDocument* parent=nullptr);
-  ~MomShownObjectTextFrame();
-  void scan_gc(MomGC*);
-};				// end MomShownObjectTextFrame
-
 class MomTextDocument : public QTextDocument
 {
   Q_OBJECT
-  std::unordered_map<MomObject*,MomShownObjectTextFrame*,MomObjptrHash> _shownobmap;
+  std::map<MomObject*,QTextFrame*,MomObjNameLess> _shownobmap;
+  std::unordered_map<QTextFrame*,MomObject*> _shownframemap;
+  QTextFrameFormat _obframeformat;
+public slots:
+  void removed_object_frame(QTextFrame*);
 public:
   MomTextDocument(QObject* parent=nullptr);
   ~MomTextDocument();
-  MomShownObjectTextFrame*find_shown_object_frame (MomObject*ob);
-  MomShownObjectTextFrame*make_shown_object_frame (MomObject*ob);
+  void insert_objref_at_cursor(MomObject*pob, QTextCursor &curs);
+  QTextFrame*find_shown_object_frame (MomObject*ob);
+  QTextFrame*make_shown_object_frame (MomObject*ob);
   void scan_gc(MomGC*gc);
 };				// end MomTextDocument
 
@@ -106,6 +101,10 @@ private:
   MomTextBrowser _secondbrowser;
   MomCommandText _cmdtext;
 public:
+  MomTextDocument* doc()
+  {
+    return &_doc;
+  };
   void scan_gc(MomGC*);
 };				// end MomCentralFrame
 
@@ -128,55 +127,117 @@ std::set<MomMainWindow*> mom_windows_set;
 std::mutex mom_windows_mtx;
 
 MomTextDocument::MomTextDocument(QObject* parent)
-  : QTextDocument (parent), _shownobmap()
+  : QTextDocument (parent), _shownobmap(), _obframeformat()
 {
+  _obframeformat.setBorder(1.5);
+  _obframeformat.setBorderStyle(QTextFrameFormat::BorderStyle_Dashed);
+  auto obbrush = _obframeformat.borderBrush();
+  obbrush.setColor(Qt::darkBlue);
 } // end MomTextDocument::MomTextDocument
 
 MomTextDocument::~MomTextDocument()
 {
-  _shownobmap.clear();
 } // end MomTextDocument::~MomTextDocument
 
 
-MomShownObjectTextFrame*
+QTextFrame*
 MomTextDocument::find_shown_object_frame (MomObject*ob)
 {
   if (ob==nullptr) return nullptr;
   auto it = _shownobmap.find(ob);
   if (it != _shownobmap.end())
-    return it.second;
+    return it->second;
   return nullptr;
 } // end MomTextDocument::find_shown_object_frame
 
 
-MomShownObjectTextFrame*
+QTextFrame*
 MomTextDocument::make_shown_object_frame(MomObject*pob)
 {
-  MOM_ASSERT(pob != null && pob->vkind() == MomKind::TagObjectK,
+  MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomTextDocument::make_shown_object_frame bad pob");
-  auto ofram = find_shown_object_frame(pob);
-  if (ofram)
+  QTextFrame* fram = nullptr;
+  auto itob = _shownobmap.find(pob);
+  if (itob != _shownobmap.end())
+    fram = itob->second;
+  MOM_DEBUGLOG(qgui, "MomTextDocument::make_shown_object_frame pob=" << pob << " fram=" << fram);
+  if (fram)
     {
-#warning should clear ofram in make_shown_object_frame
-      return ofram;
+      auto subframlist = fram->childFrames();
+      for (QTextFrame* subfram : subframlist)
+        subfram->deleteLater();
     }
+  else
+    {
+      auto itprevob = _shownobmap.lower_bound(pob);
+      if (itprevob != _shownobmap.end())
+        {
+          MomObject*prevob = itprevob->first;
+          QTextFrame*prevfram = itprevob->second;
+          MOM_DEBUGLOG(qgui, "MomTextDocument::make_shown_object_frame pob=" << pob
+                       << " prevob=" << prevob << " prevfram=" << prevfram);
+          QTextCursor prevcurs = prevfram->lastCursorPosition();
+          MOM_DEBUGLOG(qgui, "MomTextDocument::make_shown_object_frame pob=" << pob
+                       << " insert before prevob=" << prevob
+                       << " prevcurs.pos=" << prevcurs.position());
+          prevcurs.insertText("\n");
+          fram = prevcurs.insertFrame(_obframeformat);
+        }
+      else
+        {
+          QTextCursor curs(this);
+          fram = curs.insertFrame(_obframeformat);;
+          MOM_DEBUGLOG(qgui, "MomTextDocument::make_shown_object_frame pob=" << pob
+                       << " insert at start pob=" << pob);
+          curs.insertText("\n");
+        }
+      std::string obnamstr;
+      std::string obidstr = pob->id().to_string();
+      {
+        std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
+        obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
+      }
+      {
+        std::ostringstream outs;
+        if (!obnamstr.empty())
+          outs << "<p class='namedtitle_cl'>"
+               << "&#8280;" // U+2058 FOUR DOT PUNCTUATION ⁘
+               << " " << obnamstr
+               << " <span class='namedid_cl'>" << obidstr << "</span>"
+               << "</p>\n";
+        else
+          outs << "<p class='anontitle_cl'>"
+               << "&#8278;" // U+2056 THREE DOT PUNCTUATION ⁖
+               << " " << obidstr
+               << "</p>\n";
+        fram->firstCursorPosition().insertHtml(QString(outs.str().c_str()));
+      }
+      MOM_DEBUGLOG(qgui, "MomTextDocument::make_shown_object_frame pob=" << pob << " new fram=" << fram);
+    } // when new frame
 } // end MomTextDocument::make_shown_object_frame
 
-MomShownObjectTextFrame::MomShownObjectTextFrame(MomObject*pob, MomTextDocument* parent)
-  : QTextFrame(parent), _shownpob(pob)
+void
+MomTextDocument::insert_objref_at_cursor(MomObject*pob, QTextCursor &curs)
 {
-} // end MomShownObjectTextFrame::MomShownObjectTextFrame
+  MOM_DEBUGLOG(qgui, "MomTextDocument::insert_objref_at_cursor start pob=" << pob
+               << " curs.pos=" << curs.position());
+} // end MomTextDocument::insert_objref_at_cursor
 
-MomShownObjectTextFrame::~MomShownObjectTextFrame()
-{
-  _shownpob = nullptr;
-} // end MomShownObjectTextFrame::~MomShownObjectTextFrame
 
 void
-MomShownObjectTextFrame::scan_gc(MomGC*gc)
+MomTextDocument::removed_object_frame(QTextFrame*fr)
 {
-  gc->scan_object(_shownpob);
-} // end MomShownObjectTextFrame::scan_gc
+  auto itfr = _shownframemap.find(fr);
+  MOM_ASSERT(itfr != _shownframemap.end(), "MomTextDocument::removed_object_frame invalid frame " << fr);
+  MomObject*pob = itfr->second;
+  MOM_ASSERT(pob != nullptr, "MomTextDocument::removed_object_frame corrupted frame " << fr);
+  MOM_DEBUGLOG(qgui,"MomTextDocument::removed_object_frame fr=" << fr << " pob=" << pob);
+  auto itob = _shownobmap.find(pob);
+  MOM_ASSERT(itob != _shownobmap.end(),
+             "MomTextDocument::removed_object_frame corruption: pob=" << pob << " fr=" << fr);
+  _shownframemap.erase(itfr);
+  _shownobmap.erase(itob);
+} // end MomTextDocument::removed_object_frame
 
 void
 MomTextDocument::scan_gc(MomGC*gc)
@@ -184,16 +245,6 @@ MomTextDocument::scan_gc(MomGC*gc)
   {
     for (auto it: _shownobmap)
       it.first->scan_gc(gc);
-  }
-  auto rootfram = rootFrame();
-  {
-    auto listframe = rootfram->childFrames();
-    for (auto it: listframe)
-      {
-        auto obfr = dynamic_cast<MomShownObjectTextFrame*>(&(*it));
-        if (obfr)
-          obfr->scan_gc(gc);
-      }
   }
 } // end MomTextDocument::scan_gc
 
@@ -427,7 +478,7 @@ MomMainWindow::show_object(MomObject*pob)
 {
   MOM_ASSERT(pob != nullptr && pob->kindw() == MomKind::TagObjectK,
              "MomMainWindow::show_object bad pob");
-  MomShownObjectTextFrame* obfr = _doc.make_shown_object_frame(pob);
+  QTextFrame* obfr = _frame->doc()->make_shown_object_frame(pob);
   MOM_WARNLOG("MomMainWindow::show_object unimplemented pob=" << pob);
 #warning MomMainWindow::show_object unimplemented
 } // end MomMainWindow::show_object
