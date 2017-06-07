@@ -1,4 +1,25 @@
 /* file browsermom.css */
-.body {
-    bgcolor: "lightyellow"
+body {
+    background-color: lightyellow;
+}
+
+p.namedtitle_cl {
+    background-color: azure;
+    color: firebrick;
+    font-family: Arial;
+    font-size: 12.5pt;
+}
+
+p.anontitle_cl {
+    background-color: lightpink;
+    color: navy;
+    font-family: inconsolata;
+    font-size: 12.5pt;
+}
+    
+span.namedid_cl {
+    color: navy;
+    font-size: 10pt;
+    font-style: italic
+    font-family: DejaVu Sans Mono;
 }
