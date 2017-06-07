@@ -235,6 +235,7 @@ MomTextDocument::insert_objref_at_cursor(MomObject*pob, QTextCursor &curs)
 void
 MomTextDocument::removed_object_frame(QTextFrame*fr)
 {
+  MOM_DEBUGLOG(qgui, "MomTextDocument::removed_object_frame fr=" << fr);
   auto itfr = _shownframemap.find(fr);
   MOM_ASSERT(itfr != _shownframemap.end(), "MomTextDocument::removed_object_frame invalid frame " << fr);
   MomObject*pob = itfr->second;
