@@ -1,4 +1,4 @@
--- dump 2017 Jun 01 from mom_user dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jun 07 from mom_user dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -35,6 +35,7 @@ END TRANSACTION; --- for schema
 
 ------- TABLE t_globdata @@@@@@
 BEGIN TRANSACTION; --- for t_globdata
+INSERT INTO t_globdata VALUES('anon1','_5duwaaKJiRS_6cHHv0uehF0');
 END TRANSACTION; ---- for t_globdata
 
 ------- TABLE t_names @@@@@@
@@ -43,7 +44,12 @@ END TRANSACTION; ---- for t_names
 
 ------- TABLE t_objects @@@@@@
 BEGIN TRANSACTION; --- for t_objects
+INSERT INTO t_objects VALUES('_5duwaaKJiRS_6cHHv0uehF0',1496829075.5,'
+
+','','','');
 
 END TRANSACTION; ---- for t_objects
+
+------- END DUMP @@@@@
 
 -- monimelt-dump-state end dump mom_user

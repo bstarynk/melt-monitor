@@ -1,4 +1,4 @@
--- dump 2017 Jun 01 from mom_global dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jun 07 from mom_global dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -87,5 +87,7 @@ INSERT INTO t_objects VALUES('_7QeFDN33m7B_3dQv2OqqbH6',1493382726.98,'
 ','named','get','@NAMEDPROXY: __');
 
 END TRANSACTION; ---- for t_objects
+
+------- END DUMP @@@@@
 
 -- monimelt-dump-state end dump mom_global
