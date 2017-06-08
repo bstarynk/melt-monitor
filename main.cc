@@ -20,8 +20,11 @@
 
 #include "meltmoni.hh"
 
+bool mom_with_gui;
+
 std::mutex  MomRegisterPayload::_pd_mtx_;
 std::map<std::string,const MomVtablePayload_st*>  MomRegisterPayload::_pd_dict_;
+
 // libbacktrace from GCC, i.e. libgcc-6-dev package
 #include <backtrace.h>
 #include <cxxabi.h>
@@ -1132,7 +1135,7 @@ usage_mom (const char *argv0)
   putchar ('\n');
   printf ("\t -d | --dump <dumpdir>" " \t# Dump the state.\n");
   printf ("\t -L | --load <loaddir>" " \t# Load the state.\n");
-  printf ("\t -W | --web <host>:<port>" " \t# Run onion web service, e.g. -W localhost:8086\n");
+  printf ("\t -G | --gui" "\t# Run the GTK GUI\n");
   printf ("\t --chdir-first dirpath" " \t#Change directory at first \n");
   printf ("\t --chdir-after-load dirpath"
           " \t#Change directory after load\n");
@@ -1220,7 +1223,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   int opt = -1;
   char *commentstr = nullptr;
   int myargindex = 0;
-  while ((opt = getopt_long (argc, argv, "hVd:sD:L:J:W:",
+  while ((opt = getopt_long (argc, argv, "hVGd:sD:L:J:",
                              mom_long_options, &myargindex)) >= 0)
     {
       switch (opt)
@@ -1253,8 +1256,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             }
           MOM_INFORMPRINTF("with %d jobs (working threads)", mom_nb_jobs);
           break;
-        case 'W':/* --web host:port */
-          mom_web_option = optarg;
+        case 'G': /* --gui */
+          mom_with_gui = true;
           break;
         case 'L': /* --load filepath */
           if (!optarg || access (optarg, R_OK))
@@ -1534,8 +1537,12 @@ main (int argc_main, char **argv_main)
   MomObject::initialize_predefined();
   if (load_state_mom && load_state_mom[0] && load_state_mom[0] != '-')
     mom_load_from_directory(load_state_mom);
-  if (mom_web_option)
-    mom_run_web_onion(mom_web_option);
+  if (mom_with_gui)
+    {
+      int res = mom_run_gtkmm_gui(argc, argv);
+      if (res!=0)
+        MOM_WARNPRINTF("mom_run_gtkmm_gui returned %d", res);
+    }
 #warning missing stuff in main
   if (mom_dump_dir)
     mom_dump_in_directory(mom_dump_dir);

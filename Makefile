@@ -31,13 +31,13 @@ INDENTFLAGS= --gnu-style --no-tabs --honour-newlines
 ASTYLEFLAGS= --style=gnu -s2
 #PACKAGES= sqlite_modern_cpp glib-2.0 sqlite3 jansson Qt5Gui
 #PACKAGES= sqlite_modern_cpp glib-2.0 Qt5Gui Qt5Widgets
-PACKAGES= sqlite_modern_cpp glib-2.0 
+PACKAGES= sqlite_modern_cpp gtkmm-3.0 glib-2.0 
 PKGCONFIG= pkg-config
 PREPROFLAGS= -I. -I/usr/local/include $(shell $(PKGCONFIG) --cflags $(PACKAGES))
 OPTIMPICFLAGS= -fPIC
 OPTIMFLAGS= -Og -g3 $(OPTIMPICFLAGS)
 SQLITE3=sqlite3
-QTMOC= moc
+
 
 LIBES= -L/usr/local/lib $(shell $(PKGCONFIG) --libs $(PACKAGES)) \
 	$(shell $(CXX) -print-file-name=libbacktrace.a) \
@@ -46,19 +46,24 @@ LIBES= -L/usr/local/lib $(shell $(PKGCONFIG) --libs $(PACKAGES)) \
 PLUGIN_SOURCES= $(sort $(wildcard momplug_*.cc))
 PLUGINS=  $(patsubst %.c,%.so,$(PLUGIN_SOURCES))
 # modules are generated inside modules/
-MODULE_SOURCES= $(sort $(wildcard modules/momg_*.qcc) $(wildcard modules/momg_*.cc))
+MODULE_SOURCES= $(sort  $(wildcard modules/momg_*.cc))
 # generated headers
 GENERATED_HEADERS= $(sort $(wildcard _mom*.h) $(wildcard MOM_*.h))
-MODULES=  $(patsubst %.cc,%.so,$(MODULE_SOURCES)) $(patsubst %.qcc,%.so,$(MODULE_SOURCES))
+MODULES=  $(patsubst %.cc,%.so,$(MODULE_SOURCES))
+
 CSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.c)))
 CXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.cc)))
-QTCXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.qcc)))
 SHSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.sh)))
-OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES)) $(patsubst %.qcc,%.o,$(QTCXXSOURCES))
+
+OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES))
+
 RM= rm -fv
+
+
 .PHONY: all checkgithooks installgithooks dump restore
 .PHONY: dumpuserstate dumpglobstate restoreuserstate restoreglobstate
-.PHONY: tags modules plugins clean tests 
+.PHONY: tags modules plugins clean tests
+
 all: checkgithooks monimelt
 
 
@@ -106,13 +111,8 @@ $(OBJECTS): meltmoni.hh.gch
 meltmoni.hh.gch: meltmoni.hh $(GENERATED_HEADERS)
 	$(COMPILE.cc) $(CXXFLAGS) -c $< -o $@
 
-%.o: %.qcc  meltmoni.hh.gch %.moc.h
-	$(COMPILE.cc) $(CXXFLAGS) -c -x c++ $< -o $@
 
-.SUFFIXES: .qcc
 
-%.moc.h: %.qcc  meltmoni.hh $(GENERATED_HEADERS)
-	$(QTMOC) $(PREPROFLAGS) -o $@ $<
 
 monimelt: $(OBJECTS) 
 	@if [ -f $@ ]; then echo -n backup old executable: ' ' ; mv -v $@ $@~ ; fi
@@ -130,10 +130,6 @@ indent: .indent.pro
 	for g in $(wildcard [a-z]*.cc) ; do \
 	  echo astyling $$g ; cp $$g $$g% ; \
 	  $(ASTYLE)  $(ASTYLEFLAGS) $$g ; \
-	done
-	for g in $(wildcard [a-z]*.qcc) ; do \
-	  echo astyling $$g ; cp $$g $$g% ; \
-	  $(ASTYLE)  --mode=c  $(ASTYLEFLAGS) $$g ; \
 	done
 
 dump: dumpuserstate dumpglobstate monimelt-dump-state.sh | mom_global.sqlite mom_user.sqlite 
