@@ -23,3 +23,9 @@ tt.namedid_cl {
     font-style: italic;
     font-family: DejaVu Sans Mono;
 }
+
+.commandwin_cl {
+    background-color: ivory;
+    font-family: Courier;
+    font-size: 10pt;
+}

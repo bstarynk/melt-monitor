@@ -27,9 +27,15 @@ class MomApplication : public Gtk::Application
 {
   static MomApplication* _itself_;
   bool _dont_dump;
+  Glib::RefPtr<Gtk::CssProvider> _css_provider;
   friend int mom_run_gtkmm_gui(int& argc, char**argv);
   friend class MomMainWindow;
+  void scan_own_gc(MomGC*);
 public:
+  Glib::RefPtr<Gtk::CssProvider> css()
+  {
+    return _css_provider;
+  };
   MomApplication(int& argc, char**argv, const char*name);
   ~MomApplication();
   static Glib::RefPtr<MomApplication> create(int& argc, char**argv, const char*name);
@@ -41,7 +47,10 @@ public:
   void on_activate(void);
   void do_exit(void);
   void do_dump(void);
-};				// end MomApplication
+  void scan_gc(MomGC*);
+};				// end class MomApplication
+
+
 
 class MomMainWindow : public Gtk::Window
 {
@@ -74,6 +83,7 @@ public:
     show_status_decisec(std::string(msg), delay_decisec);
   };
   void do_window_dump(void);
+  void scan_gc(MomGC*);
 };				// end class MomMainWindow
 
 ////////////////////////////////////////////////////////////////
@@ -82,7 +92,8 @@ MomApplication* MomApplication::_itself_;
 
 MomApplication::MomApplication(int& argc, char**argv, const char*name)
   : Gtk::Application(argc, argv, name),
-    _dont_dump(false)
+    _dont_dump(false),
+    _css_provider()
 {
   _itself_ = this;
 };				// end MomApplication::MomApplication
@@ -106,6 +117,8 @@ MomApplication::on_activate(void)
   MOM_DEBUGLOG(gui,"MomApplication::on_activate start"
                << MOM_SHOW_BACKTRACE("on_activate"));
   Gtk::Application::on_activate();
+  _css_provider = Gtk::CssProvider::get_default();
+  _css_provider->load_from_path("browsermom.css");
   auto mainwin = new MomMainWindow();
   add_window(*mainwin);
   mainwin->show();
@@ -122,7 +135,27 @@ MomApplication::create(int &argc, char**argv, const char*name)
 } // end MomApplication::create
 
 
+void
+MomApplication::scan_own_gc(MomGC*gc)
+{
+#warning MomApplication::scan_own_gc incomplete
+} // end MomApplication::scan_own_gc
 
+
+void
+MomApplication::scan_gc(MomGC*gc)
+{
+  scan_own_gc(gc);
+  {
+    auto listwindows = get_windows();
+    for (auto win : listwindows)
+      {
+        auto mainwin = dynamic_cast<MomMainWindow*>(win);
+        if (!mainwin) continue;
+        mainwin->scan_gc(gc);
+      }
+  }
+} // end MomApplication::scan_gc
 
 ////////////////
 
@@ -160,6 +193,11 @@ MomMainWindow::MomMainWindow()
     _txvtop(_buf), _txvbot(_buf),
     _txvcmd()
 {
+  {
+    auto screen = Gdk::Screen::get_default();
+    auto ctx = get_style_context();
+    ctx->add_provider_for_screen(screen,MomApplication::itself()->css(), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  }
   add(_vbox);
   _menubar.append(_mit_app);
   _menubar.append(_mit_edit);
@@ -237,6 +275,13 @@ MomMainWindow::do_window_dump(void)
   outs.flush();
   show_status_decisec(outs.str(), showdumpdelay);
 } // end MomMainWindow::do_window_dump
+
+
+void
+MomMainWindow::scan_gc(MomGC*gc)
+{
+#warning MomMainWindow::scan_gc incomplete
+} // end MomApplication::scan_gc
 
 void
 MomApplication::do_exit(void)
