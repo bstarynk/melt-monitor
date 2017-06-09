@@ -24,8 +24,15 @@ tt.namedid_cl {
     font-family: DejaVu Sans Mono;
 }
 
-.commandwin_cl {
-    background-color: ivory;
-    font-family: Courier;
-    font-size: 10pt;
+/* not everything works below! */
+.commandwin_cl  {
+    background-color: lightpink;
+    color: firebrick;
+    font-family: FreeMono;
+    font-style: italic;
+    font-weight: bold;
+    font-size: 15pt;
+    border: 3pt;
+    border-color: RoyalBlue4;
+    margin: 2pt;
 }

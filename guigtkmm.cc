@@ -234,9 +234,13 @@ MomMainWindow::MomMainWindow()
   _scrwbot.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
   _panedtx.add1(_scrwtop);
   _panedtx.add2(_scrwbot);
-  _vbox.pack_start(_txvcmd,Gtk::PACK_EXPAND_WIDGET);
+  {
+    _vbox.pack_start(_txvcmd,Gtk::PACK_EXPAND_WIDGET);
+    _txvcmd.set_vexpand(false);
+    auto ctx = _txvcmd.get_style_context();
+    ctx->add_class("commandwin_cl");
+  }
   _vbox.pack_end(_statusbar,Gtk::PACK_SHRINK);
-  _txvcmd.set_vexpand(false);
   set_default_size(550,300);
   show_all_children();
 };				// end MomMainWindow::MomMainWindow
