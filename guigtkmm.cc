@@ -22,7 +22,17 @@
 
 #include <gtkmm.h>
 
-class MomMainWindow : public Gtk::ApplicationWindow
+class MomApplication : public Gtk::Application
+{
+public:
+  MomApplication(int& argc, char**argv, const char*name);
+  ~MomApplication();
+  static Glib::RefPtr<MomApplication> create(int& argc, char**argv, const char*name);
+  void on_startup(void);
+  void on_activate(void);
+};				// end MomApplication
+
+class MomMainWindow : public Gtk::Window
 {
   Gtk::Box _vbox;
   Glib::RefPtr<Gtk::TextBuffer> _buf;
@@ -33,12 +43,54 @@ class MomMainWindow : public Gtk::ApplicationWindow
   Gtk::TextView _txvbot;
   Gtk::TextView _txvcmd;
 public:
-  MomMainWindow(const Glib::RefPtr<Gtk::Application>&app);
+  MomMainWindow();
   ~MomMainWindow();
 };				// end class MomMainWindow
+////////////////////////////////////////////////////////////////
 
-MomMainWindow::MomMainWindow(const Glib::RefPtr<Gtk::Application>&app)
-  : Gtk::ApplicationWindow(app),
+
+MomApplication::MomApplication(int& argc, char**argv, const char*name)
+  : Gtk::Application(argc, argv, name)
+{
+};				// end MomApplication::MomApplication
+
+MomApplication::~MomApplication()
+{
+};				// end MomApplication::~MomApplication
+
+void
+MomApplication::on_startup(void)
+{
+  MOM_DEBUGLOG(gui,"MomApplication::on_startup start");
+  Gtk::Application::on_startup();
+}
+
+void
+MomApplication::on_activate(void)
+{
+  MOM_DEBUGLOG(gui,"MomApplication::on_activate");
+  Gtk::Application::on_activate();
+  auto mainwin = new MomMainWindow();
+  add_window(*mainwin);
+  mainwin->show();
+  MOM_DEBUGLOG(gui,"MomApplication::on_activate mainwin=" << mainwin);
+  //  mainwin->show();
+}
+
+Glib::RefPtr<MomApplication>
+MomApplication::create(int &argc, char**argv, const char*name)
+{
+  auto app = Glib::RefPtr<MomApplication>(new MomApplication(argc, argv, name));
+  MOM_DEBUGLOG(gui, "MomApplication::create app=" << &app);
+  return app;
+} // end MomApplication::create
+
+
+
+
+////////////////
+MomMainWindow::MomMainWindow()
+  : Gtk::Window(),
     _vbox(Gtk::ORIENTATION_VERTICAL),
     _buf(Gtk::TextBuffer::create()),
     _panedtx(Gtk::ORIENTATION_VERTICAL),
@@ -46,14 +98,18 @@ MomMainWindow::MomMainWindow(const Glib::RefPtr<Gtk::Application>&app)
     _txvcmd()
 {
   add(_vbox);
-  _vbox.pack_start(_panedtx,Gtk::PACK_SHRINK);
+  _vbox.set_spacing(2);
+  _vbox.set_border_width(1);
+  _vbox.pack_start(_panedtx,Gtk::PACK_EXPAND_WIDGET);
   _scrwtop.add(_txvtop);
   _scrwtop.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
   _scrwbot.add(_txvbot);
   _scrwbot.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
   _panedtx.add1(_scrwtop);
   _panedtx.add2(_scrwbot);
-  _vbox.pack_start(_txvcmd,Gtk::PACK_SHRINK);
+  _vbox.pack_start(_txvcmd,Gtk::PACK_EXPAND_WIDGET);
+  _txvcmd.set_vexpand(false);
+  set_default_size(450,300);
   show_all_children();
 };				// end MomMainWindow::MomMainWindow
 
@@ -65,9 +121,10 @@ MomMainWindow::~MomMainWindow()
 int
 mom_run_gtkmm_gui(int& argc, char**argv)
 {
-  auto app = Gtk::Application::create(argc, argv, "org.gcc-melt.monitor");
-  MomMainWindow window(app);
+  MOM_DEBUGLOG(gui, "mom_run_gtkmm_gui argc=" << argc);
+  auto app = MomApplication::create(argc, argv, "org.gcc-melt.monitor");
   MOM_INFORMPRINTF("running mom_run_gtkmm_gui");
-  window.set_default_size(200,300);
-  return app->run(window);
+  int ok= app->run();
+  MOM_DEBUGLOG(gui,"mom_run_gtkmm_gui ok="<<ok);
+  return ok;
 } // end mom_run_gtkmm_gui
