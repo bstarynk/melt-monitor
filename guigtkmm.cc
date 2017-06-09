@@ -62,11 +62,20 @@ class MomMainWindow : public Gtk::Window
   Gtk::TextView _txvtop;
   Gtk::TextView _txvbot;
   Gtk::TextView _txvcmd;
+  Gtk::Statusbar _statusbar;
 public:
   MomMainWindow();
   ~MomMainWindow();
-  void do_quit(void);
+  void do_window_quit(void);
+  void show_status_decisec(const std::string&msg, int delay_decisec);
+  void clear_statusbar(void);
+  void show_status_decisec(const char*msg, int delay_decisec)
+  {
+    show_status_decisec(std::string(msg), delay_decisec);
+  };
+  void do_window_dump(void);
 };				// end class MomMainWindow
+
 ////////////////////////////////////////////////////////////////
 
 MomApplication* MomApplication::_itself_;
@@ -116,6 +125,24 @@ MomApplication::create(int &argc, char**argv, const char*name)
 
 
 ////////////////
+
+
+void
+MomMainWindow::clear_statusbar(void)
+{
+  _statusbar.remove_all_messages();
+} // end MomMainWindow::clear_statusbar
+
+void
+MomMainWindow::show_status_decisec(const std::string&msg, int delay_decisec)
+{
+  clear_statusbar();
+  (void) _statusbar.push(msg);
+  Glib::signal_timeout().connect_once
+  (sigc::mem_fun(this,&MomMainWindow::clear_statusbar),
+   delay_decisec*100+5);
+} // end MomMainWindow::show_status_decisec
+
 MomMainWindow::MomMainWindow()
   : Gtk::Window(),
     _vbox(Gtk::ORIENTATION_VERTICAL),
@@ -141,9 +168,9 @@ MomMainWindow::MomMainWindow()
   _menu_app.append(_mit_app_quit);
   _menu_app.append(_mit_app_exit);
   _menu_app.append(_mit_app_dump);
-  _mit_app_quit.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_quit));
+  _mit_app_quit.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_window_quit));
   _mit_app_exit.signal_activate().connect(sigc::mem_fun(*MomApplication::itself(),&MomApplication::do_exit));
-  _mit_app_dump.signal_activate().connect(sigc::mem_fun(*MomApplication::itself(),&MomApplication::do_dump));
+  _mit_app_dump.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_window_dump));
   _menu_edit.append(_mit_edit_copy);
   _vbox.set_spacing(2);
   _vbox.set_border_width(1);
@@ -156,8 +183,9 @@ MomMainWindow::MomMainWindow()
   _panedtx.add1(_scrwtop);
   _panedtx.add2(_scrwbot);
   _vbox.pack_start(_txvcmd,Gtk::PACK_EXPAND_WIDGET);
+  _vbox.pack_end(_statusbar,Gtk::PACK_SHRINK);
   _txvcmd.set_vexpand(false);
-  set_default_size(450,300);
+  set_default_size(550,300);
   show_all_children();
 };				// end MomMainWindow::MomMainWindow
 
@@ -167,9 +195,9 @@ MomMainWindow::~MomMainWindow()
 };				// end MomMainWindow::~MomMainWindow
 
 void
-MomMainWindow::do_quit(void)
+MomMainWindow::do_window_quit(void)
 {
-  MOM_DEBUGLOG(gui, "MomMainWindow::do_quit");
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_window_quit");
   Gtk::MessageDialog dialog(*this, "Quit ... ?",
                             false /* use_markup */, Gtk::MESSAGE_QUESTION,
                             Gtk::BUTTONS_OK_CANCEL);
@@ -181,6 +209,34 @@ MomMainWindow::do_quit(void)
       MomApplication::itself()->quit();
     }
 } // end MomMainWindow::do_quit
+
+void
+MomMainWindow::do_window_dump(void)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_window_dump");
+  long nbob = 0;
+  unsigned constexpr showdumpdelay = 32;
+  std::ostringstream outs;
+  if (!mom_dump_dir)
+    {
+      char cwdbuf[128];
+      memset (cwdbuf, 0, sizeof(cwdbuf));
+      if (!getcwd(cwdbuf, sizeof(cwdbuf)))
+        cwdbuf[0] = '.';
+      MOM_INFORMPRINTF("MomMainWindow::do_window_dump dumping state in current directory %s",
+                       cwdbuf);
+      nbob = mom_dump_in_directory(".");
+      outs << "dumped " << nbob << " objects in current dir. " << cwdbuf;
+    }
+  else
+    {
+      MOM_INFORMPRINTF("MomMainWindow::do_window_dump dumping state in %s", mom_dump_dir);
+      nbob = mom_dump_in_directory(mom_dump_dir);
+      outs << "dumped " << nbob << " objects in directory " << mom_dump_dir;
+    }
+  outs.flush();
+  show_status_decisec(outs.str(), showdumpdelay);
+} // end MomMainWindow::do_window_dump
 
 void
 MomApplication::do_exit(void)
