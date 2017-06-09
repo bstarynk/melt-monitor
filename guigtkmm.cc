@@ -61,14 +61,16 @@ MomApplication::~MomApplication()
 void
 MomApplication::on_startup(void)
 {
-  MOM_DEBUGLOG(gui,"MomApplication::on_startup start" << MOM_SHOW_BACKTRACE("on_startup"));
+  MOM_DEBUGLOG(gui,"MomApplication::on_startup start"
+               << MOM_SHOW_BACKTRACE("on_startup"));
   Gtk::Application::on_startup();
 }
 
 void
 MomApplication::on_activate(void)
 {
-  MOM_DEBUGLOG(gui,"MomApplication::on_activate");
+  MOM_DEBUGLOG(gui,"MomApplication::on_activate start"
+               << MOM_SHOW_BACKTRACE("on_activate"));
   Gtk::Application::on_activate();
   auto mainwin = new MomMainWindow();
   add_window(*mainwin);
@@ -124,7 +126,20 @@ mom_run_gtkmm_gui(int& argc, char**argv)
   MOM_DEBUGLOG(gui, "mom_run_gtkmm_gui argc=" << argc);
   auto app = MomApplication::create(argc, argv, "org.gcc-melt.monitor");
   MOM_INFORMPRINTF("running mom_run_gtkmm_gui");
-  int ok= app->run();
-  MOM_DEBUGLOG(gui,"mom_run_gtkmm_gui ok="<<ok);
-  return ok;
+  int runcode= app->run();
+  MOM_DEBUGLOG(gui,"mom_run_gtkmm_gui runcode="<<runcode);
+  if (runcode==0)
+    {
+      if (!mom_dump_dir)
+        {
+          char cwdbuf[128];
+          memset (cwdbuf, 0, sizeof(cwdbuf));
+          MOM_INFORMPRINTF("mom_run_gtkmm_gui dumping state in current directory %s",
+                           getcwd(cwdbuf, sizeof(cwdbuf))?:".");
+          mom_dump_in_directory(".");
+        }
+    }
+  else
+    MOM_INFORMPRINTF("mom_run_gtkmm_gui runcode=%d", runcode);
+  return runcode;
 } // end mom_run_gtkmm_gui
