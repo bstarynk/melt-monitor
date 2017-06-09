@@ -61,7 +61,7 @@ MomApplication::~MomApplication()
 void
 MomApplication::on_startup(void)
 {
-  MOM_DEBUGLOG(gui,"MomApplication::on_startup start");
+  MOM_DEBUGLOG(gui,"MomApplication::on_startup start" << MOM_SHOW_BACKTRACE("on_startup"));
   Gtk::Application::on_startup();
 }
 
