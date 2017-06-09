@@ -35,6 +35,15 @@ public:
 class MomMainWindow : public Gtk::Window
 {
   Gtk::Box _vbox;
+  Gtk::MenuBar _menubar;
+  Gtk::MenuItem _mit_app;
+  Gtk::MenuItem _mit_edit;
+  Gtk::Menu _menu_app;
+  Gtk::Menu _menu_edit;
+  Gtk::MenuItem _mit_app_quit;
+  Gtk::MenuItem _mit_app_exit;
+  Gtk::MenuItem _mit_app_dump;
+  Gtk::MenuItem _mit_edit_copy;
   Glib::RefPtr<Gtk::TextBuffer> _buf;
   Gtk::Paned _panedtx;
   Gtk::ScrolledWindow _scrwtop;
@@ -94,14 +103,32 @@ MomApplication::create(int &argc, char**argv, const char*name)
 MomMainWindow::MomMainWindow()
   : Gtk::Window(),
     _vbox(Gtk::ORIENTATION_VERTICAL),
+    _menubar(),
+    _mit_app("_App",true),
+    _mit_edit("_Edit",true),
+    _menu_app(),
+    _menu_edit(),
+    _mit_app_quit("_Quit",true),
+    _mit_app_exit("e_Xit",true),
+    _mit_app_dump("_Dump",true),
+    _mit_edit_copy("_Copy",true),
     _buf(Gtk::TextBuffer::create()),
     _panedtx(Gtk::ORIENTATION_VERTICAL),
     _txvtop(_buf), _txvbot(_buf),
     _txvcmd()
 {
   add(_vbox);
+  _menubar.append(_mit_app);
+  _menubar.append(_mit_edit);
+  _mit_app.set_submenu(_menu_app);
+  _mit_edit.set_submenu(_menu_edit);
+  _menu_app.append(_mit_app_quit);
+  _menu_app.append(_mit_app_exit);
+  _menu_app.append(_mit_app_dump);
+  _menu_edit.append(_mit_edit_copy);
   _vbox.set_spacing(2);
   _vbox.set_border_width(1);
+  _vbox.pack_start(_menubar,Gtk::PACK_SHRINK);
   _vbox.pack_start(_panedtx,Gtk::PACK_EXPAND_WIDGET);
   _scrwtop.add(_txvtop);
   _scrwtop.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
