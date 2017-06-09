@@ -32,7 +32,7 @@ class MomApplication : public Gtk::Application
   friend class MomMainWindow;
   void scan_own_gc(MomGC*);
 public:
-  Glib::RefPtr<Gtk::CssProvider> css()
+  Glib::RefPtr<Gtk::CssProvider> css_provider()
   {
     return _css_provider;
   };
@@ -43,6 +43,7 @@ public:
   {
     return _itself_;
   };
+  void on_parsing_css_error(const Glib::RefPtr<const Gtk::CssSection>& section, const Glib::Error& error);
   void on_startup(void);
   void on_activate(void);
   void do_exit(void);
@@ -104,6 +105,16 @@ MomApplication::~MomApplication()
 };				// end MomApplication::~MomApplication
 
 void
+MomApplication::on_parsing_css_error(const Glib::RefPtr<const Gtk::CssSection>& section, const Glib::Error& error)
+{
+  auto file = section->get_file();
+  MOM_WARNLOG("MomApplication parsing css error: " << error.what() << "@" << (file?file->get_path():std::string("?"))
+              << " start L#" << (section->get_start_line()+1) << ",P" << section->get_start_position()
+              << ", end L#" << (section->get_end_line()+1) << ",P" << section->get_end_position()
+              << std::endl << MOM_SHOW_BACKTRACE("CSS Parsing error"));
+} // end MomApplication::on_parsing_css_error
+
+void
 MomApplication::on_startup(void)
 {
   MOM_DEBUGLOG(gui,"MomApplication::on_startup start"
@@ -118,6 +129,9 @@ MomApplication::on_activate(void)
                << MOM_SHOW_BACKTRACE("on_activate"));
   Gtk::Application::on_activate();
   _css_provider = Gtk::CssProvider::get_default();
+  _css_provider->signal_parsing_error()
+  .connect(sigc::mem_fun(*this,&MomApplication::on_parsing_css_error));
+
   _css_provider->load_from_path("browsermom.css");
   auto mainwin = new MomMainWindow();
   add_window(*mainwin);
@@ -196,7 +210,7 @@ MomMainWindow::MomMainWindow()
   {
     auto screen = Gdk::Screen::get_default();
     auto ctx = get_style_context();
-    ctx->add_provider_for_screen(screen,MomApplication::itself()->css(), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    ctx->add_provider_for_screen(screen,MomApplication::itself()->css_provider(), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
   }
   add(_vbox);
   _menubar.append(_mit_app);
