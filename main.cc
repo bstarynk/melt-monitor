@@ -244,6 +244,19 @@ void mom_backtracestr_at (const char*fil, int lin, const std::string&str)
   mom_informprintf_at (fil, lin, "BACKTRACE %s", backdata.bt_outs.str().c_str());
 } // end mom_backtracestr_at
 
+void
+MomShowBacktraceAt::output(std::ostream&outs) const
+{
+  MomBacktraceData backdata(_sb_fil, _sb_lin);
+  backdata.bt_outs << " !+! " << _sb_msg << std::endl;
+  backtrace_full (btstate_mom, 2,
+                  MomBacktraceData::bt_callback,
+                  MomBacktraceData::bt_err_callback,
+                  (void *) &backdata);
+  backdata.bt_outs << std::endl;
+  outs << backdata.bt_outs.str();
+} // end MomShowBacktraceAt::output
+
 
 void mom_abort(void)
 {

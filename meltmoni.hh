@@ -471,7 +471,7 @@ public:
   MomShowString(MomShowString&&) = default;
   ~MomShowString() = default;
   void output(std::ostream& os) const;
-};
+};				// end MomShowString
 
 inline
 std::ostream& operator << (std::ostream& out, const MomShowString shs)
@@ -479,6 +479,33 @@ std::ostream& operator << (std::ostream& out, const MomShowString shs)
   shs.output(out);
   return out;
 }
+
+class MomShowBacktraceAt
+{
+  const char*_sb_fil;
+  int _sb_lin;
+  std::string _sb_msg;
+public:
+  explicit MomShowBacktraceAt(const char*fil, int lin, const std::string&msg) : _sb_fil(fil), _sb_lin(lin), _sb_msg(msg) {};
+  explicit MomShowBacktraceAt(const char*fil, int lin, const char*msg)
+    : MomShowBacktraceAt(fil, lin, std::string(msg)) {};
+  ~MomShowBacktraceAt()
+  {
+    _sb_fil=nullptr;
+    _sb_lin=0;
+    _sb_msg.clear();
+  };
+  void output(std::ostream& outs) const;
+}; // end MomShowBacktraceAt
+
+static inline std::ostream&
+operator  << (std::ostream&outs, const MomShowBacktraceAt&ba)
+{
+  ba.output(outs);
+  return outs;
+}
+
+#define MOM_SHOW_BACKTRACE(Msg) MomShowBacktraceAt(__FILE__,__LINE__,(Msg))
 
 class MomDoShow
 {
