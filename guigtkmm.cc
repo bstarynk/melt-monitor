@@ -22,14 +22,25 @@
 
 #include <gtkmm.h>
 
+class MomMainWindow;
 class MomApplication : public Gtk::Application
 {
+  static MomApplication* _itself_;
+  bool _dont_dump;
+  friend int mom_run_gtkmm_gui(int& argc, char**argv);
+  friend class MomMainWindow;
 public:
   MomApplication(int& argc, char**argv, const char*name);
   ~MomApplication();
   static Glib::RefPtr<MomApplication> create(int& argc, char**argv, const char*name);
+  static MomApplication* itself(void)
+  {
+    return _itself_;
+  };
   void on_startup(void);
   void on_activate(void);
+  void do_exit(void);
+  void do_dump(void);
 };				// end MomApplication
 
 class MomMainWindow : public Gtk::Window
@@ -54,17 +65,22 @@ class MomMainWindow : public Gtk::Window
 public:
   MomMainWindow();
   ~MomMainWindow();
+  void do_quit(void);
 };				// end class MomMainWindow
 ////////////////////////////////////////////////////////////////
 
+MomApplication* MomApplication::_itself_;
 
 MomApplication::MomApplication(int& argc, char**argv, const char*name)
-  : Gtk::Application(argc, argv, name)
+  : Gtk::Application(argc, argv, name),
+    _dont_dump(false)
 {
+  _itself_ = this;
 };				// end MomApplication::MomApplication
 
 MomApplication::~MomApplication()
 {
+  _itself_ = nullptr;
 };				// end MomApplication::~MomApplication
 
 void
@@ -125,6 +141,9 @@ MomMainWindow::MomMainWindow()
   _menu_app.append(_mit_app_quit);
   _menu_app.append(_mit_app_exit);
   _menu_app.append(_mit_app_dump);
+  _mit_app_quit.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_quit));
+  _mit_app_exit.signal_activate().connect(sigc::mem_fun(*MomApplication::itself(),&MomApplication::do_exit));
+  _mit_app_dump.signal_activate().connect(sigc::mem_fun(*MomApplication::itself(),&MomApplication::do_dump));
   _menu_edit.append(_mit_edit_copy);
   _vbox.set_spacing(2);
   _vbox.set_border_width(1);
@@ -147,6 +166,48 @@ MomMainWindow::~MomMainWindow()
 {
 };				// end MomMainWindow::~MomMainWindow
 
+void
+MomMainWindow::do_quit(void)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_quit");
+  Gtk::MessageDialog dialog(*this, "Quit ... ?",
+                            false /* use_markup */, Gtk::MESSAGE_QUESTION,
+                            Gtk::BUTTONS_OK_CANCEL);
+  dialog.set_secondary_text( "Quit without saving state.");
+  int result = dialog.run();
+  if (result == Gtk::RESPONSE_OK)
+    {
+      MomApplication::itself()->_dont_dump = true;
+      MomApplication::itself()->quit();
+    }
+} // end MomMainWindow::do_quit
+
+void
+MomApplication::do_exit(void)
+{
+  MOM_DEBUGLOG(gui, "MomApplication::do_exit");
+  quit();
+} // end MomApplication::do_exit
+
+void
+MomApplication::do_dump(void)
+{
+  MOM_DEBUGLOG(gui, "MomApplication::do_dump");
+  if (!mom_dump_dir)
+    {
+      char cwdbuf[128];
+      memset (cwdbuf, 0, sizeof(cwdbuf));
+      MOM_INFORMPRINTF("MomApplication::do_dump dumping state in current directory %s",
+                       getcwd(cwdbuf, sizeof(cwdbuf))?:".");
+      mom_dump_in_directory(".");
+    }
+  else
+    {
+      MOM_INFORMPRINTF("MomApplication::do_dump dumping state in %s", mom_dump_dir);
+      mom_dump_in_directory(mom_dump_dir);
+    }
+} // end MomApplication::do_dump
+
 int
 mom_run_gtkmm_gui(int& argc, char**argv)
 {
@@ -155,7 +216,7 @@ mom_run_gtkmm_gui(int& argc, char**argv)
   MOM_INFORMPRINTF("running mom_run_gtkmm_gui");
   int runcode= app->run();
   MOM_DEBUGLOG(gui,"mom_run_gtkmm_gui runcode="<<runcode);
-  if (runcode==0)
+  if (runcode==0 && !app->_dont_dump)
     {
       if (!mom_dump_dir)
         {
@@ -165,8 +226,13 @@ mom_run_gtkmm_gui(int& argc, char**argv)
                            getcwd(cwdbuf, sizeof(cwdbuf))?:".");
           mom_dump_in_directory(".");
         }
+      else
+        {
+          MOM_INFORMPRINTF("mom_run_gtkmm_gui dumping state in %s", mom_dump_dir);
+          mom_dump_in_directory(mom_dump_dir);
+        }
     }
   else
-    MOM_INFORMPRINTF("mom_run_gtkmm_gui runcode=%d", runcode);
+    MOM_INFORMPRINTF("mom_run_gtkmm_gui runcode=%d dontdump %s", runcode, app->_dont_dump?"true":"false");
   return runcode;
 } // end mom_run_gtkmm_gui
