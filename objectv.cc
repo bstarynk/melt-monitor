@@ -344,7 +344,7 @@ MomObject::MomObject(const MomIdent id, MomHash h)
     _ob_id(id),
     _ob_space(ATOMIC_VAR_INIT(MomSpace::TransientSp)),
     _ob_magic(false),
-    _ob_mtime(0.0),
+    _ob_mtim(ATOMIC_VAR_INIT(0.0)),
     _ob_shmtx(),
     _ob_attrs{},
     _ob_comps(),
@@ -513,7 +513,7 @@ MomObject::initialize_predefined(void)
 #define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) do {		\
   MOM_PREDEF(Id) = make_object_of_id(MomIdent(Hi,Lo));	\
   MOM_PREDEF(Id)->set_space(MomSpace::PredefSp);        \
-  MOM_PREDEF(Id)->unsync_touch();			\
+  MOM_PREDEF(Id)->touch();				\
 } while(0);
 #include "_mom_predef.h"
 } // end MomObject::initialize_predefined

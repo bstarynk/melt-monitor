@@ -172,7 +172,7 @@ MomLoader::load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool 
     auto id = MomIdent::make_from_cstr(idstr.c_str(),true);
     auto pob = ld->load_find_object_by_id(id);
     if (pob)
-      pob->_ob_mtime = mtim;
+      pob->touch(mtim);
   };
   MOM_DEBUGLOG(load,"load_touch_objects_from_db end user=" << (user?"true":"false"));
 } // end MomLoader::load_touch_objects_from_db
@@ -1199,7 +1199,7 @@ MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dum
 		       << " with strange space#" << (int)sp);
       return;
     }
-    obmtime = pob->_ob_mtime;
+    obmtime = pob->mtime();
     {
       std::ostringstream outcontent;
       MomDumpEmitter emitcontent(outcontent, this);

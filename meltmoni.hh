@@ -2019,7 +2019,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   const MomIdent _ob_id;
   std::atomic<MomSpace> _ob_space;
   std::atomic<bool> _ob_magic;
-  double _ob_mtime;
+  std::atomic<double> _ob_mtim;
   mutable std::shared_mutex _ob_shmtx;
   std::unordered_map<MomObject*,MomValue,MomObjptrHash> _ob_attrs;
   std::vector<MomValue> _ob_comps;
@@ -2280,13 +2280,17 @@ public:
   {
     _ob_comps.reserve(_ob_comps.size()+n);
   }
-  void unsync_touch(double t)
+  double mtime(void) const
   {
-    _ob_mtime = t;
+    return _ob_mtim.load();
   }
-  void unsync_touch(void)
+  void touch(double t)
   {
-    unsync_touch(mom_clock_time(CLOCK_REALTIME));
+    _ob_mtim.store(t);
+  }
+  void touch(void)
+  {
+    touch(mom_clock_time(CLOCK_REALTIME));
   };
   MomPayload* unsync_payload() const
   {
