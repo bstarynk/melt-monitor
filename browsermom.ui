@@ -1,19 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- file browsertag.ui for GtkBuilder describing tags in browsing textview -->
+<!-- file browsermom.ui for GtkBuilder describing tags in browsing textview -->
 <!-- see also https://stackoverflow.com/q/39466395/841108 -->
 <interface>
     <requires lib="gtk+" version="3.22"/>
     <object class='GtkTextTagTable' id='browsertagtable_id'>
+      <!-- page_title_tag for the entire page -->
         <child type="tag">
             <object class='GtkTextTag'>
                 <property name="name">page_title_tag</property>
                 <property name="font">Arial Bold</property>
-                <property name="scale">1.3</property>
+                <property name="scale">1.35</property>
                 <property name="paragraph-background">lemonchiffon1</property>
                 <property name="pixels-above-lines">3</property>
                 <property name="pixels-below-lines">6</property>
                 <property name="foreground">navyblue</property>
                 <property name="justification">GTK_JUSTIFY_CENTER</property>
+            </object>
+        </child>
+      <!-- object_title_tag for start of object -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">object_title_tag</property>
+                <property name="font">Cabin Medium</property>
+                <property name="scale">1.27</property>
+                <property name="paragraph-background">cornsilk</property>
+                <property name="pixels-above-lines">2</property>
+                <property name="pixels-below-lines">3</property>
+                <property name="foreground">navyblue</property>
+                <property name="justification">GTK_JUSTIFY_CENTER</property>
+            </object>
+        </child>
+      <!-- object_title_name_tag for title of named -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">object_title_name_tag</property>
+                <property name="font">DejaVu Sans Bold</property>
+            </object>
+        </child>
+      <!-- object_title_id_tag for title of id -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">object_title_id_tag</property>
+                <property name="foreground">DarkOliveGreen</property>
+                <property name="font">Courier New Bold</property>
+                <property name="scale">O.9</property>
+            </object>
+        </child>
+      <!-- object_title_anon_tag for title of anonymous -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">object_title_anon_tag</property>
+                <property name="font">Courier New Bold</property>
+                <property name="foreground">SteelBlue</property>
             </object>
         </child>
     </object>

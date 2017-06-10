@@ -75,6 +75,14 @@ public:
     MomObject*_sh_ob;
     Glib::RefPtr<Gtk::TextMark> _sh_startmark;
     Glib::RefPtr<Gtk::TextMark> _sh_endmark;
+    MomShownObject(MomObject*ob, Glib::RefPtr<Gtk::TextMark> startmk, Glib::RefPtr<Gtk::TextMark> endmk)
+      : _sh_ob(ob), _sh_startmark(startmk), _sh_endmark(endmk) {};
+    ~MomShownObject()
+    {
+      _sh_ob=nullptr;
+      _sh_startmark.clear();
+      _sh_endmark.clear();
+    };
   };
 private:
   Gtk::Box _mwi_vbox;
@@ -107,6 +115,7 @@ public:
     show_status_decisec(std::string(msg), delay_decisec);
   };
   void display_full_browser(void);
+  void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob);
   void do_window_dump(void);
   void scan_gc(MomGC*);
 };				// end class MomMainWindow
@@ -220,7 +229,67 @@ MomMainWindow::display_full_browser(void)
   auto it = _mwi_buf->begin();
   it = _mwi_buf->insert_with_tag (it, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob), "page_title_tag");
   it = _mwi_buf->insert(it, "\n");
+  for (auto itob : _mwi_shownobmap)
+    {
+      browser_insert_object_display(it, itob.first);
+      it = _mwi_buf->insert(it, "\n");
+    }
 } // end MomMainWindow::display_full_browser
+
+void
+MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
+{
+  MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
+             "MomMainWindow::browser_insert_object_display bad object");
+  char obidbuf[32];
+  memset(obidbuf, 0, sizeof(obidbuf));
+  pob->id().to_cbuf32(obidbuf);
+  std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
+  std::string obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
+  auto itm = _mwi_shownobmap.find(pob);
+  bool found = false;
+  if (itm == _mwi_shownobmap.end())
+    {
+      auto begmark = _mwi_buf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ true);
+      auto endmark = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
+      auto pairitb = _mwi_shownobmap.emplace(pob,MomShownObject(pob,begmark,endmark));
+      itm = pairitb.first;
+      found = false;
+    }
+  else found = true;
+  MomShownObject& shob = itm->second;
+  /// the title bar
+  MOM_ASSERT(shob._sh_ob == pob, "MomMainWindow::browser_insert_object_display corrupted shob");
+  if (found)
+    _mwi_buf->move_mark(shob._sh_startmark, txit);
+  txit = _mwi_buf->insert_with_tag (txit, " \342\201\202 " /* U+2042 ASTERISM ⁂ */, "object_title_tag");
+  if (!obnamstr.empty())
+    {
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              Glib::ustring(obnamstr.c_str()),
+              std::vector<Glib::ustring> {"object_title_tag","object_title_name_tag"});
+      txit = _mwi_buf->insert_with_tag (txit, " = ", "object_title_tag");
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              Glib::ustring(obidbuf),
+              std::vector<Glib::ustring> {"object_title_tag","object_title_id_tag"});
+    }
+  else   // anonymous
+    {
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              Glib::ustring(obidbuf),
+              std::vector<Glib::ustring> {"object_title_tag","object_title_anon_tag"});
+      // should show some potential complement
+    }
+  txit = _mwi_buf->insert(txit, "\n");
+  /// should show the content
+#warning MomMainWindow::browser_insert_object_display very incomplete
+  txit = _mwi_buf->insert(txit, "\n");
+  _mwi_buf->move_mark(shob._sh_endmark, txit);
+} // end MomMainWindow::browser_insert_object_display
+
 
 void
 MomMainWindow::clear_mwi_statusbar(void)
