@@ -218,7 +218,7 @@ MomMainWindow::display_full_browser(void)
   int nbshownob = _mwi_shownobmap.size();
   _mwi_buf->set_text("");
   auto it = _mwi_buf->begin();
-  it = _mwi_buf->insert_with_tag (it, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob), "title_tag");
+  it = _mwi_buf->insert_with_tag (it, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob), "page_title_tag");
   it = _mwi_buf->insert(it, "\n");
 } // end MomMainWindow::display_full_browser
 
