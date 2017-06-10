@@ -26,15 +26,21 @@ class MomMainWindow;
 class MomApplication : public Gtk::Application
 {
   static MomApplication* _itself_;
-  bool _dont_dump;
-  Glib::RefPtr<Gtk::CssProvider> _css_provider;
+  bool _app_dont_dump;
+  Glib::RefPtr<Gtk::CssProvider> _app_css_provider;
+  Glib::RefPtr<Gtk::Builder> _app_ui_builder;
+  Glib::RefPtr<Gtk::TextTagTable> _app_browse_tagtable;
   friend int mom_run_gtkmm_gui(int& argc, char**argv);
   friend class MomMainWindow;
   void scan_own_gc(MomGC*);
 public:
-  Glib::RefPtr<Gtk::CssProvider> css_provider()
+  Glib::RefPtr<Gtk::TextTagTable> browser_tagtable(void)
   {
-    return _css_provider;
+    return _app_browse_tagtable;
+  };
+  Glib::RefPtr<Gtk::CssProvider> css_provider(void)
+  {
+    return _app_css_provider;
   };
   MomApplication(int& argc, char**argv, const char*name);
   ~MomApplication();
@@ -55,30 +61,30 @@ public:
 
 class MomMainWindow : public Gtk::Window
 {
-  Gtk::Box _vbox;
-  Gtk::MenuBar _menubar;
-  Gtk::MenuItem _mit_app;
-  Gtk::MenuItem _mit_edit;
-  Gtk::Menu _menu_app;
-  Gtk::Menu _menu_edit;
-  Gtk::MenuItem _mit_app_quit;
-  Gtk::MenuItem _mit_app_exit;
-  Gtk::MenuItem _mit_app_dump;
-  Gtk::MenuItem _mit_edit_copy;
-  Glib::RefPtr<Gtk::TextBuffer> _buf;
-  Gtk::Paned _panedtx;
-  Gtk::ScrolledWindow _scrwtop;
-  Gtk::ScrolledWindow _scrwbot;
-  Gtk::TextView _txvtop;
-  Gtk::TextView _txvbot;
-  Gtk::TextView _txvcmd;
-  Gtk::Statusbar _statusbar;
+  Gtk::Box _mwi_vbox;
+  Gtk::MenuBar _mwi_menubar;
+  Gtk::MenuItem _mwi_mit_app;
+  Gtk::MenuItem _mwi_mit_edit;
+  Gtk::Menu _mwi_menu_app;
+  Gtk::Menu _mwi_menu_edit;
+  Gtk::MenuItem _mwi_mit_app_quit;
+  Gtk::MenuItem _mwi_mit_app_exit;
+  Gtk::MenuItem _mwi_mit_app_dump;
+  Gtk::MenuItem _mwi_mit_edit_copy;
+  Glib::RefPtr<Gtk::TextBuffer> _mwi_buf;
+  Gtk::Paned _mwi_panedtx;
+  Gtk::ScrolledWindow _mwi_scrwtop;
+  Gtk::ScrolledWindow _mwi_scrwbot;
+  Gtk::TextView _mwi_txvtop;
+  Gtk::TextView _mwi_txvbot;
+  Gtk::TextView _mwi_txvcmd;
+  Gtk::Statusbar _mwi_statusbar;
 public:
   MomMainWindow();
   ~MomMainWindow();
   void do_window_quit(void);
   void show_status_decisec(const std::string&msg, int delay_decisec);
-  void clear_statusbar(void);
+  void clear_mwi_statusbar(void);
   void show_status_decisec(const char*msg, int delay_decisec)
   {
     show_status_decisec(std::string(msg), delay_decisec);
@@ -93,8 +99,10 @@ MomApplication* MomApplication::_itself_;
 
 MomApplication::MomApplication(int& argc, char**argv, const char*name)
   : Gtk::Application(argc, argv, name),
-    _dont_dump(false),
-    _css_provider()
+    _app_dont_dump(false),
+    _app_css_provider(),
+    _app_ui_builder(),
+    _app_browse_tagtable()
 {
   _itself_ = this;
 };				// end MomApplication::MomApplication
@@ -125,20 +133,32 @@ MomApplication::on_startup(void)
 void
 MomApplication::on_activate(void)
 {
+  constexpr const char* browserui_path = "browsermom.ui";
+  constexpr const char* browsercss_path = "browsermom.css";
+  constexpr const char* browsertagtable_id = "browsertagtable_id";
   MOM_DEBUGLOG(gui,"MomApplication::on_activate start"
                << MOM_SHOW_BACKTRACE("on_activate"));
   Gtk::Application::on_activate();
-  _css_provider = Gtk::CssProvider::get_default();
-  _css_provider->signal_parsing_error()
+  _app_css_provider = Gtk::CssProvider::get_default();
+  _app_css_provider->signal_parsing_error()
   .connect(sigc::mem_fun(*this,&MomApplication::on_parsing_css_error));
-
-  _css_provider->load_from_path("browsermom.css");
+  _app_css_provider->load_from_path(browsercss_path);
+  _app_ui_builder =  Gtk::Builder::create_from_file (browserui_path);
+  if (!_app_ui_builder)
+    MOM_FATAPRINTF("failed to parse UI file %s", browserui_path);
+  {
+    Glib::RefPtr<Glib::Object>  plaintagtable = _app_ui_builder->get_object(browsertagtable_id);
+    if (!plaintagtable)
+      MOM_FATAPRINTF("failed to use UI file %s, can't find %s", browserui_path, browsertagtable_id);
+    _app_browse_tagtable = Glib::RefPtr<Gtk::TextTagTable>::cast_dynamic(plaintagtable);
+    if (!_app_browse_tagtable)
+      MOM_FATAPRINTF("failed to use UI file %s, %s is not a TextTagTable", browserui_path, browsertagtable_id);
+  }
   auto mainwin = new MomMainWindow();
   add_window(*mainwin);
   mainwin->show();
   MOM_DEBUGLOG(gui,"MomApplication::on_activate mainwin=" << mainwin);
-  //  mainwin->show();
-}
+} // end MomApplication::on_activate
 
 Glib::RefPtr<MomApplication>
 MomApplication::create(int &argc, char**argv, const char*name)
@@ -175,72 +195,74 @@ MomApplication::scan_gc(MomGC*gc)
 
 
 void
-MomMainWindow::clear_statusbar(void)
+MomMainWindow::clear_mwi_statusbar(void)
 {
-  _statusbar.remove_all_messages();
-} // end MomMainWindow::clear_statusbar
+  _mwi_statusbar.remove_all_messages();
+} // end MomMainWindow::clear_mwi_statusbar
 
 void
 MomMainWindow::show_status_decisec(const std::string&msg, int delay_decisec)
 {
-  clear_statusbar();
-  (void) _statusbar.push(msg);
+  clear_mwi_statusbar();
+  (void) _mwi_statusbar.push(msg);
   Glib::signal_timeout().connect_once
-  (sigc::mem_fun(this,&MomMainWindow::clear_statusbar),
+  (sigc::mem_fun(this,&MomMainWindow::clear_mwi_statusbar),
    delay_decisec*100+5);
 } // end MomMainWindow::show_status_decisec
 
 MomMainWindow::MomMainWindow()
   : Gtk::Window(),
-    _vbox(Gtk::ORIENTATION_VERTICAL),
-    _menubar(),
-    _mit_app("_App",true),
-    _mit_edit("_Edit",true),
-    _menu_app(),
-    _menu_edit(),
-    _mit_app_quit("_Quit",true),
-    _mit_app_exit("e_Xit",true),
-    _mit_app_dump("_Dump",true),
-    _mit_edit_copy("_Copy",true),
-    _buf(Gtk::TextBuffer::create()),
-    _panedtx(Gtk::ORIENTATION_VERTICAL),
-    _txvtop(_buf), _txvbot(_buf),
-    _txvcmd()
+    _mwi_vbox(Gtk::ORIENTATION_VERTICAL),
+    _mwi_menubar(),
+    _mwi_mit_app("_App",true),
+    _mwi_mit_edit("_Edit",true),
+    _mwi_menu_app(),
+    _mwi_menu_edit(),
+    _mwi_mit_app_quit("_Quit",true),
+    _mwi_mit_app_exit("e_Xit",true),
+    _mwi_mit_app_dump("_Dump",true),
+    _mwi_mit_edit_copy("_Copy",true),
+    _mwi_buf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
+    _mwi_panedtx(Gtk::ORIENTATION_VERTICAL),
+    _mwi_txvtop(_mwi_buf), _mwi_txvbot(_mwi_buf),
+    _mwi_txvcmd()
 {
   {
     auto screen = Gdk::Screen::get_default();
     auto ctx = get_style_context();
     ctx->add_provider_for_screen(screen,MomApplication::itself()->css_provider(), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
   }
-  add(_vbox);
-  _menubar.append(_mit_app);
-  _menubar.append(_mit_edit);
-  _mit_app.set_submenu(_menu_app);
-  _mit_edit.set_submenu(_menu_edit);
-  _menu_app.append(_mit_app_quit);
-  _menu_app.append(_mit_app_exit);
-  _menu_app.append(_mit_app_dump);
-  _mit_app_quit.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_window_quit));
-  _mit_app_exit.signal_activate().connect(sigc::mem_fun(*MomApplication::itself(),&MomApplication::do_exit));
-  _mit_app_dump.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_window_dump));
-  _menu_edit.append(_mit_edit_copy);
-  _vbox.set_spacing(2);
-  _vbox.set_border_width(1);
-  _vbox.pack_start(_menubar,Gtk::PACK_SHRINK);
-  _vbox.pack_start(_panedtx,Gtk::PACK_EXPAND_WIDGET);
-  _scrwtop.add(_txvtop);
-  _scrwtop.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
-  _scrwbot.add(_txvbot);
-  _scrwbot.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
-  _panedtx.add1(_scrwtop);
-  _panedtx.add2(_scrwbot);
+  add(_mwi_vbox);
+  _mwi_menubar.append(_mwi_mit_app);
+  _mwi_menubar.append(_mwi_mit_edit);
+  _mwi_mit_app.set_submenu(_mwi_menu_app);
+  _mwi_mit_edit.set_submenu(_mwi_menu_edit);
+  _mwi_menu_app.append(_mwi_mit_app_quit);
+  _mwi_menu_app.append(_mwi_mit_app_exit);
+  _mwi_menu_app.append(_mwi_mit_app_dump);
+  _mwi_mit_app_quit.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_window_quit));
+  _mwi_mit_app_exit.signal_activate().connect(sigc::mem_fun(*MomApplication::itself(),&MomApplication::do_exit));
+  _mwi_mit_app_dump.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_window_dump));
+  _mwi_menu_edit.append(_mwi_mit_edit_copy);
+  _mwi_vbox.set_spacing(2);
+  _mwi_vbox.set_border_width(1);
+  _mwi_vbox.pack_start(_mwi_menubar,Gtk::PACK_SHRINK);
+  _mwi_vbox.pack_start(_mwi_panedtx,Gtk::PACK_EXPAND_WIDGET);
+  _mwi_txvtop.set_editable(false);
+  _mwi_txvbot.set_editable(false);
+  _mwi_scrwtop.add(_mwi_txvtop);
+  _mwi_scrwtop.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
+  _mwi_scrwbot.add(_mwi_txvbot);
+  _mwi_scrwbot.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
+  _mwi_panedtx.add1(_mwi_scrwtop);
+  _mwi_panedtx.add2(_mwi_scrwbot);
   {
-    _vbox.pack_start(_txvcmd,Gtk::PACK_EXPAND_WIDGET);
-    _txvcmd.set_vexpand(false);
-    auto ctx = _txvcmd.get_style_context();
+    _mwi_vbox.pack_start(_mwi_txvcmd,Gtk::PACK_EXPAND_WIDGET);
+    _mwi_txvcmd.set_vexpand(false);
+    auto ctx = _mwi_txvcmd.get_style_context();
     ctx->add_class("commandwin_cl");
   }
-  _vbox.pack_end(_statusbar,Gtk::PACK_SHRINK);
+  _mwi_vbox.pack_end(_mwi_statusbar,Gtk::PACK_SHRINK);
   set_default_size(550,300);
   show_all_children();
 };				// end MomMainWindow::MomMainWindow
@@ -261,7 +283,7 @@ MomMainWindow::do_window_quit(void)
   int result = dialog.run();
   if (result == Gtk::RESPONSE_OK)
     {
-      MomApplication::itself()->_dont_dump = true;
+      MomApplication::itself()->_app_dont_dump = true;
       MomApplication::itself()->quit();
     }
 } // end MomMainWindow::do_quit
@@ -335,7 +357,7 @@ mom_run_gtkmm_gui(int& argc, char**argv)
   MOM_INFORMPRINTF("running mom_run_gtkmm_gui");
   int runcode= app->run();
   MOM_DEBUGLOG(gui,"mom_run_gtkmm_gui runcode="<<runcode);
-  if (runcode==0 && !app->_dont_dump)
+  if (runcode==0 && !app->_app_dont_dump)
     {
       if (!mom_dump_dir)
         {
@@ -352,6 +374,6 @@ mom_run_gtkmm_gui(int& argc, char**argv)
         }
     }
   else
-    MOM_INFORMPRINTF("mom_run_gtkmm_gui runcode=%d dontdump %s", runcode, app->_dont_dump?"true":"false");
+    MOM_INFORMPRINTF("mom_run_gtkmm_gui runcode=%d dontdump %s", runcode, app->_app_dont_dump?"true":"false");
   return runcode;
 } // end mom_run_gtkmm_gui
