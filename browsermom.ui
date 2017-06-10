@@ -4,5 +4,15 @@
 <interface>
   <requires lib="gtk+" version="3.22"/>
   <object class='GtkTextTagTable' id='browsertagtable_id'>
+    <child type="tag">
+    <object class='GtkTextTag'>
+      <property name="name">title_tag</property>
+      <property name="font">Arial Bold</property>
+      <property name="scale">1.3</property>
+      <property name="background">lemonchiffon1</property>
+      <property name="foreground">navyblue</property>
+      <property name="justification">GTK_JUSTIFY_CENTER</property>
+    </object>
+    </child>
   </object>
 </interface>
