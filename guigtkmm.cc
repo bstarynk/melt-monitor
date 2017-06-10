@@ -49,6 +49,14 @@ public:
   {
     return _itself_;
   };
+  Glib::RefPtr<Gtk::TextTag> lookup_tag (const Glib::ustring& name)
+  {
+    return _app_browse_tagtable->lookup(name);
+  };
+  Glib::RefPtr<Gtk::TextTag> lookup_tag (const char*namestr)
+  {
+    return lookup_tag (Glib::ustring(namestr));
+  };
   void on_parsing_css_error(const Glib::RefPtr<const Gtk::CssSection>& section, const Glib::Error& error);
   void on_startup(void);
   void on_activate(void);
@@ -61,6 +69,14 @@ public:
 
 class MomMainWindow : public Gtk::Window
 {
+public:
+  struct MomShownObject
+  {
+    MomObject*_sh_ob;
+    Glib::RefPtr<Gtk::TextMark> _sh_startmark;
+    Glib::RefPtr<Gtk::TextMark> _sh_endmark;
+  };
+private:
   Gtk::Box _mwi_vbox;
   Gtk::MenuBar _mwi_menubar;
   Gtk::MenuItem _mwi_mit_app;
@@ -79,6 +95,7 @@ class MomMainWindow : public Gtk::Window
   Gtk::TextView _mwi_txvbot;
   Gtk::TextView _mwi_txvcmd;
   Gtk::Statusbar _mwi_statusbar;
+  std::map<MomObject*,MomShownObject,MomObjNameLess> _mwi_shownobmap;
 public:
   MomMainWindow();
   ~MomMainWindow();
@@ -89,6 +106,7 @@ public:
   {
     show_status_decisec(std::string(msg), delay_decisec);
   };
+  void display_full_browser(void);
   void do_window_dump(void);
   void scan_gc(MomGC*);
 };				// end class MomMainWindow
@@ -195,6 +213,16 @@ MomApplication::scan_gc(MomGC*gc)
 
 
 void
+MomMainWindow::display_full_browser(void)
+{
+  int nbshownob = _mwi_shownobmap.size();
+  _mwi_buf->set_text("");
+  auto it = _mwi_buf->begin();
+  it = _mwi_buf->insert_with_tag (it, Glib::ustring::compose("%1 objects", nbshownob), "title_tag");
+  it = _mwi_buf->insert(it, "\n");
+} // end MomMainWindow::display_full_browser
+
+void
 MomMainWindow::clear_mwi_statusbar(void)
 {
   _mwi_statusbar.remove_all_messages();
@@ -225,7 +253,9 @@ MomMainWindow::MomMainWindow()
     _mwi_buf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
     _mwi_panedtx(Gtk::ORIENTATION_VERTICAL),
     _mwi_txvtop(_mwi_buf), _mwi_txvbot(_mwi_buf),
-    _mwi_txvcmd()
+    _mwi_txvcmd(),
+    _mwi_statusbar(),
+    _mwi_shownobmap()
 {
   {
     auto screen = Gdk::Screen::get_default();
@@ -264,12 +294,14 @@ MomMainWindow::MomMainWindow()
   }
   _mwi_vbox.pack_end(_mwi_statusbar,Gtk::PACK_SHRINK);
   set_default_size(550,300);
+  display_full_browser();
   show_all_children();
 };				// end MomMainWindow::MomMainWindow
 
 
 MomMainWindow::~MomMainWindow()
 {
+  _mwi_shownobmap.clear();
 };				// end MomMainWindow::~MomMainWindow
 
 void
@@ -320,6 +352,10 @@ MomMainWindow::do_window_dump(void)
 void
 MomMainWindow::scan_gc(MomGC*gc)
 {
+  for (auto it: _mwi_shownobmap)
+    {
+      gc->scan_object(it.first);
+    }
 #warning MomMainWindow::scan_gc incomplete
 } // end MomApplication::scan_gc
 
