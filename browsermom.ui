@@ -54,6 +54,24 @@
                 <property name="foreground">SteelBlue</property>
             </object>
         </child>
+      <!-- object_title_depth_tag for depth of display -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">object_title_depth_tag</property>
+                <property name="foreground">thistle</property>
+                <property name="font">DejaVu Serif</property>
+                <property name="scale">O.7</property>
+            </object>
+        </child>
+      <!-- object_mtime_tag for modtime -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">object_mtime_tag</property>
+                <property name="foreground">SaddleBrown</property>
+                <property name="font">DejaVu Serif, Condensed Italics</property>
+                <property name="scale">O.9</property>
+            </object>
+        </child>
     </object>
 </interface>
 

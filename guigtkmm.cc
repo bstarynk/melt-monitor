@@ -70,6 +70,7 @@ public:
 class MomMainWindow : public Gtk::Window
 {
 public:
+  static constexpr const int _default_display_depth_ = 5;
   struct MomShownObject
   {
     MomObject*_sh_ob;
@@ -96,6 +97,7 @@ private:
   Gtk::MenuItem _mwi_mit_app_dump;
   Gtk::MenuItem _mwi_mit_edit_copy;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_buf;
+  int _mwi_dispdepth;
   Gtk::Paned _mwi_panedtx;
   Gtk::ScrolledWindow _mwi_scrwtop;
   Gtk::ScrolledWindow _mwi_scrwbot;
@@ -115,7 +117,9 @@ public:
     show_status_decisec(std::string(msg), delay_decisec);
   };
   void display_full_browser(void);
-  void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob);
+  void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob, int depth=0);
+  void browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, int depth);
+  void browser_insert_value(Gtk::TextIter& it, MomValue val, int depth);
   void do_window_dump(void);
   void scan_gc(MomGC*);
 };				// end class MomMainWindow
@@ -237,12 +241,14 @@ MomMainWindow::display_full_browser(void)
 } // end MomMainWindow::display_full_browser
 
 void
-MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
+MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob, int depth)
 {
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
   char obidbuf[32];
   memset(obidbuf, 0, sizeof(obidbuf));
+  if (depth<=0)
+    depth = _mwi_dispdepth;
   pob->id().to_cbuf32(obidbuf);
   std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
   std::string obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
@@ -257,6 +263,9 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
       found = false;
     }
   else found = true;
+  MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
+               << pob << " depth=" << depth
+               << " found=" << (found?"true":"false"));
   MomShownObject& shob = itm->second;
   /// the title bar
   MOM_ASSERT(shob._sh_ob == pob, "MomMainWindow::browser_insert_object_display corrupted shob");
@@ -281,15 +290,64 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
              (txit,
               Glib::ustring(obidbuf),
               std::vector<Glib::ustring> {"object_title_tag","object_title_anon_tag"});
-      // should show some potential complement
     }
+  txit = _mwi_buf->insert_with_tags_by_name
+         (txit,
+          Glib::ustring::compose(" \360\235\235\231 %1 " /* U+1D759 MATHEMATICAL SANS-SERIF BOLD CAPITAL DELTA 𝝙 */,
+                                 depth),
+          std::vector<Glib::ustring> {"object_title_tag","object_title_depth_tag"});
   txit = _mwi_buf->insert(txit, "\n");
+  /// show the modtime
+  {
+    constexpr double one_week = 86400*7.0;
+    constexpr double half_year = 86400/2*365.0;
+    char mtimbuf[72];
+    char mtimfract[8];
+    double obmtim = pob->mtime();
+    time_t mtim = obmtim;
+    int e;
+    snprintf(mtimfract, sizeof(mtimfract), "%.2f", frexp(obmtim,&e));
+    // the tm
+    struct tm obtm = {};
+    localtime_r(&mtim, &obtm);
+    double nowtim = mom_clock_time(CLOCK_REALTIME);
+    // modified this week
+    if (nowtim >= obmtim && nowtim - obmtim < one_week)
+      {
+        strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %d, %H:%M:%S", &obtm);
+        strcat(mtimbuf, mtimfract);
+      }
+    // modified half a year ago
+    else if (nowtim >= obmtim && nowtim - obmtim < half_year)
+      {
+        strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d, %H:%M:%S", &obtm);
+        strcat(mtimbuf, mtimfract);
+      }
+    else   // modified before, or in the future
+      {
+        strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d %Y, %H:%M:%S", &obtm);
+        strcat(mtimbuf, mtimfract);
+      }
+    txit = _mwi_buf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
+    txit = _mwi_buf->insert(txit, "\n");
+  }
   /// should show the content
 #warning MomMainWindow::browser_insert_object_display very incomplete
   txit = _mwi_buf->insert(txit, "\n");
   _mwi_buf->move_mark(shob._sh_endmark, txit);
 } // end MomMainWindow::browser_insert_object_display
 
+void
+MomMainWindow::browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, int depth)
+{
+#warning MomMainWindow::browser_insert_objptr incomplete
+} // end MomMainWindow::browser_insert_objptr
+
+void
+MomMainWindow::browser_insert_value(Gtk::TextIter& it, MomValue val, int depth)
+{
+#warning MomMainWindow::browser_insert_value incomplete
+} // end MomMainWindow::browser_insert_value
 
 void
 MomMainWindow::clear_mwi_statusbar(void)
@@ -320,6 +378,7 @@ MomMainWindow::MomMainWindow()
     _mwi_mit_app_dump("_Dump",true),
     _mwi_mit_edit_copy("_Copy",true),
     _mwi_buf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
+    _mwi_dispdepth(_default_display_depth_),
     _mwi_panedtx(Gtk::ORIENTATION_VERTICAL),
     _mwi_txvtop(_mwi_buf), _mwi_txvbot(_mwi_buf),
     _mwi_txvcmd(),
