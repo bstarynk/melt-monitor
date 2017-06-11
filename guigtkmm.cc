@@ -533,8 +533,8 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
       for (const char *pc = s; pc < end; pc = g_utf8_next_char (pc), uc = 0)
         {
           int linoff = txit.get_line_offset();
-          if (linoff +2 >=  _mwi_dispwidth && pc + 10 < end
-              || isspace(*pc) && linoff + 10 >=  2*_mwi_dispwidth/3 && pc + 10 < end)
+          if ((linoff +2 >=  _mwi_dispwidth && pc + 10 < end)
+              || (isspace(*pc) && linoff + 10 >=  2*_mwi_dispwidth/3 && pc + 10 < end))
             {
               txit = _mwi_buf->insert_with_tags_by_name (txit, "\"", tags);
               browser_insert_newline(txit, tags, depth);
@@ -651,9 +651,19 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
         _mwi_buf->insert_with_tags_by_name (txit, (istuple?"]":"}"), tagscopy);
     }
     break;
-#warning missing other cases for  MomMainWindow::browser_insert_value
+    //////
+    case MomKind::TagNodeK:  /// double sequence
+    {
+#warning missing Node case for  MomMainWindow::browser_insert_value
+      }
+      break;
+    //////
+    case MomKind::TagIntK:
+    case MomKind::TagNoneK:
+    case MomKind::Tag_LastK:
+      MOM_FATAPRINTF("MomMainWindow::browser_insert_value impossible tag %d",
+                     (int) vv->vkind());
     }
-#warning MomMainWindow::browser_insert_value incomplete
 } // end MomMainWindow::browser_insert_value
 
 void
