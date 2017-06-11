@@ -31,7 +31,8 @@ INDENTFLAGS= --gnu-style --no-tabs --honour-newlines
 ASTYLEFLAGS= --style=gnu -s2
 #PACKAGES= sqlite_modern_cpp glib-2.0 sqlite3 jansson Qt5Gui
 #PACKAGES= sqlite_modern_cpp glib-2.0 Qt5Gui Qt5Widgets
-PACKAGES= sqlite_modern_cpp gtkmm-3.0 glib-2.0 
+PACKAGES= sqlite_modern_cpp gtkmm-3.0 glib-2.0
+# sqlite_modern_cpp from github.com/aminroosta/sqlite_modern_cpp.git
 PKGCONFIG= pkg-config
 PREPROFLAGS= -I. -I/usr/local/include $(shell $(PKGCONFIG) --cflags $(PACKAGES))
 OPTIMPICFLAGS= -fPIC
