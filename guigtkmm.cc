@@ -71,6 +71,7 @@ class MomMainWindow : public Gtk::Window
 {
 public:
   static constexpr const int _default_display_depth_ = 5;
+  static constexpr const int _default_display_width_ = 80;
   struct MomShownObject
   {
     MomObject*_sh_ob;
@@ -98,6 +99,7 @@ private:
   Gtk::MenuItem _mwi_mit_edit_copy;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_buf;
   int _mwi_dispdepth;
+  int _mwi_dispwidth;
   Gtk::Paned _mwi_panedtx;
   Gtk::ScrolledWindow _mwi_scrwtop;
   Gtk::ScrolledWindow _mwi_scrwbot;
@@ -118,8 +120,10 @@ public:
   };
   void display_full_browser(void);
   void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob, int depth=0);
-  void browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, int depth);
-  void browser_insert_value(Gtk::TextIter& it, MomValue val, int depth);
+  void browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, const std::vector<Glib::ustring>& tags, int depth);
+  void browser_insert_value(Gtk::TextIter& it, MomValue val, const std::vector<Glib::ustring>& tags, int depth);
+  void browser_insert_space(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
+  void browser_insert_newline(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
   void do_window_dump(void);
   void scan_gc(MomGC*);
 };				// end class MomMainWindow
@@ -241,6 +245,24 @@ MomMainWindow::display_full_browser(void)
 } // end MomMainWindow::display_full_browser
 
 void
+MomMainWindow::browser_insert_space(Gtk::TextIter& txit, const std::vector<Glib::ustring>& tags, int depth)
+{
+  int linoff = txit.get_line_offset();
+  if (linoff >= _mwi_dispwidth)
+    browser_insert_newline(txit,tags,depth);
+  else
+    txit = _mwi_buf->insert_with_tags_by_name (txit, " ", tags);
+} // end MomMainWindow::browser_insert_space
+
+void
+MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Glib::ustring>& tags, int depth)
+{
+  if (depth<0) depth=0;
+  constexpr const char nlspaces[] = "\n                                                                ";
+  txit = _mwi_buf->insert_with_tags_by_name (txit, nlspaces, nlspaces + (depth % 16), tags);
+} // end MomMainWindow::browser_insert_newline
+
+void
 MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob, int depth)
 {
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
@@ -338,13 +360,14 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
 } // end MomMainWindow::browser_insert_object_display
 
 void
-MomMainWindow::browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, int depth)
+MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*ob, const std::vector<Glib::ustring>& tags, int depth)
 {
+  std::vector<Glib::ustring> tagscopy = tags;
 #warning MomMainWindow::browser_insert_objptr incomplete
 } // end MomMainWindow::browser_insert_objptr
 
 void
-MomMainWindow::browser_insert_value(Gtk::TextIter& it, MomValue val, int depth)
+MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val,const std::vector<Glib::ustring>& tags,  int depth)
 {
 #warning MomMainWindow::browser_insert_value incomplete
 } // end MomMainWindow::browser_insert_value
@@ -379,6 +402,7 @@ MomMainWindow::MomMainWindow()
     _mwi_mit_edit_copy("_Copy",true),
     _mwi_buf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
     _mwi_dispdepth(_default_display_depth_),
+    _mwi_dispwidth(_default_display_width_),
     _mwi_panedtx(Gtk::ORIENTATION_VERTICAL),
     _mwi_txvtop(_mwi_buf), _mwi_txvbot(_mwi_buf),
     _mwi_txvcmd(),
