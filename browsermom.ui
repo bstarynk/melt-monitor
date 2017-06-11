@@ -117,6 +117,13 @@
                 <property name="scale">1.05</property>
             </object>
         </child>
+      <!-- value_transient_tag for transient value -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">value_transient_tag</property>
+                <property name="background">OldLace</property>
+            </object>
+        </child>
 	<!-- end of browsertagtable_id object -->
     </object>
 </interface>
