@@ -468,7 +468,34 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
               tagscopy);
     }
     break;
-      //////
+    //////
+    case MomKind::TagDoubleSqK:  /// double sequence
+    {
+      auto dsv = reinterpret_cast<const MomDoubleSq*>(vv);
+      unsigned sz = dsv->sizew();
+      tagscopy.push_back("value_numberseq_tag");
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              "(:",
+              tagscopy);
+      for (unsigned ix=0; ix<sz; ix++)
+        {
+          if (ix>0)
+            browser_insert_space(txit, tagscopy, depth+1);
+          char numbuf[48];
+          memset(numbuf, 0, sizeof(numbuf));
+          snprintf(numbuf, sizeof(numbuf), "%.15g", dsv->unsafe_at(ix));
+          txit = _mwi_buf->insert_with_tags_by_name
+                 (txit,
+                  numbuf,
+                  tagscopy);
+        }
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              ":)",
+              tagscopy);
+    }
+    break;
 #warning missing other cases for  MomMainWindow::browser_insert_value
     }
 #warning MomMainWindow::browser_insert_value incomplete

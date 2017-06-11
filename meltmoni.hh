@@ -537,7 +537,6 @@ const char *mom_hexdump_data (char *buf, unsigned buflen,
 typedef std::uint32_t MomHash; // hash codes are on 32 bits, but could become on 56 bits!
 #define mom_hash(H) ((MomHash)(H))
 
-const char *mom_double_to_cstr (double x, char *buf, size_t buflen);
 
 std::string mom_input_quoted_utf8_string(std::istream& ins);
 
