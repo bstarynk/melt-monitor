@@ -302,14 +302,27 @@ again:
       return resv;
     }
   else if (pc=='"')   // JSON encoded UTF8 string, on the same line
+    /// however, a string may be continued with &+& (it is a literal string catenation operator)
+    /// eg "abc" &+& "def"  is the same as "abcdef"
     {
       bool gotstr = false;
-      std::string str = parse_string(&gotstr);
-      if (!gotstr)
-        MOM_PARSE_FAILURE(this, "failed to parse string");
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " string "
-                         << MomShowString(str));
-      return _parnobuild?nullptr:MomValue(MomString::make_from_string(str));
+      bool again = false;
+      std::string fullstr;
+      do
+        {
+          again = false;
+          std::string str = parse_string(&gotstr);
+          if (!gotstr)
+            MOM_PARSE_FAILURE(this, "failed to parse string");
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " string "
+                             << MomShowString(str));
+          skip_spaces();
+          fullstr += str;
+          if (hasdelim("&+&"))
+            again = true;
+        }
+      while (again);
+      return _parnobuild?nullptr:MomValue(MomString::make_from_string(fullstr));
     }
   // multi-line raw strings like `ab0|foobar\here|ab0`
   else if (pc=='`' && (nc=='_' || isalnum(nc) || nc=='|'))   // raw strings
