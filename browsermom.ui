@@ -133,6 +133,16 @@
                 <property name="font">Liberation Mono</property>
             </object>
         </child>
+      <!-- index_comment_tag for index-like comments -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">index_comment_tag</property>
+                <property name="background">bisque</property>
+                <property name="foreground">honeydew3</property>
+                <property name="font">Verdana</property>
+                <property name="scale">0.6</property>
+            </object>
+        </child>
       <!-- value_stresc_tag for string escape fragment (ie backslashes) -->
         <child type="tag">
             <object class='GtkTextTag'>
