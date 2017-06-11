@@ -499,10 +499,104 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
     ////
     case MomKind::TagStringK: /// string value
     {
+      std::vector<Glib::ustring> tagsescape = tags;
       auto strv = reinterpret_cast<const MomString*>(vv);
       unsigned sz = strv->sizew();
       std::string str = strv->string();
-#warning  MomMainWindow::browser_insert_value should show the string and colorize backslash escapes
+      txit = _mwi_buf->insert_with_tags_by_name	(txit, "\"", tags);
+      tagscopy.push_back("value_string_tag");
+      tagsescape.push_back("value_stresc_tag");
+      const char *s = str.c_str();
+      int len = strlen(s);
+      const char* end = s+len;
+      assert (s && g_utf8_validate (s, len, nullptr));
+      gunichar uc = 0;
+      for (const char *pc = s; pc < end; pc = g_utf8_next_char (pc), uc = 0)
+        {
+          int linoff = txit.get_line_offset();
+          if (linoff +2 >=  _mwi_dispwidth && pc + 10 < end
+              || isspace(*pc) && linoff + 10 >=  2*_mwi_dispwidth/3 && pc + 10 < end)
+            {
+              txit = _mwi_buf->insert_with_tags_by_name (txit, "\"", tags);
+              browser_insert_newline(txit, tags, depth);
+              txit = _mwi_buf->insert_with_tags_by_name (txit, "&+&", tagsescape);
+              txit = _mwi_buf->insert_with_tags_by_name (txit, " \"", tags);
+            }
+          uc = g_utf8_get_char (pc);
+          switch (uc)
+            {
+            case 0:
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\0", tagsescape);
+              break;
+            case '\"':
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\\"", tagsescape);
+              break;
+            case '\'':
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\\'", tagsescape);
+              break;
+            case '\a':
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\a", tagsescape);
+              break;
+            case '\b':
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\b", tagsescape);
+              break;
+            case '\f':
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\f", tagsescape);
+              break;
+            case '\n':
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\n", tagsescape);
+              break;
+            case '\r':
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\r", tagsescape);
+              break;
+            case '\t':
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\t", tagsescape);
+              break;
+            case '\v':
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\v", tagsescape);
+              break;
+            case '\033' /*ESCAPE*/:
+              txit =
+                _mwi_buf->insert_with_tags_by_name (txit, "\\e", tagsescape);
+              break;
+            default:
+            {
+              char buf[16];
+              memset (buf, 0, sizeof(buf));
+              if ((uc>=' ' && uc<127) || g_unichar_isprint(uc))
+                {
+                  g_unichar_to_utf8(uc, buf);
+                  txit =
+                    _mwi_buf->insert_with_tags_by_name (txit, buf, tagscopy);
+                }
+              else if (uc<0xffff)
+                {
+                  snprintf (buf, sizeof (buf), "\\u%04x", (int) uc);
+                  txit =
+                    _mwi_buf->insert_with_tags_by_name (txit, buf, tagsescape);
+                }
+              else
+                {
+                  snprintf (buf, sizeof (buf), "\\U%08x", (int) uc);
+                  txit =
+                    _mwi_buf->insert_with_tags_by_name (txit, buf, tagsescape);
+                }
+            }
+            break;
+            }
+        }
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit, "\"", tags);
     }
     break;
 #warning missing other cases for  MomMainWindow::browser_insert_value
