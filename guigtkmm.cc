@@ -496,6 +496,15 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
               tagscopy);
     }
     break;
+    ////
+    case MomKind::TagStringK: /// string value
+    {
+      auto strv = reinterpret_cast<const MomString*>(vv);
+      unsigned sz = strv->sizew();
+      std::string str = strv->string();
+#warning  MomMainWindow::browser_insert_value should show the string and colorize backslash escapes
+    }
+    break;
 #warning missing other cases for  MomMainWindow::browser_insert_value
     }
 #warning MomMainWindow::browser_insert_value incomplete
