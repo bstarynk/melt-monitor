@@ -20,6 +20,12 @@
 
 #include "meltmoni.hh"
 
+constexpr std::uint64_t MomParser::_par_word_limit_;
+constexpr double MomParser::_par_plain_time_limit_;
+constexpr double MomParser::_par_debug_time_limit_;
+constexpr const char MomParser::_par_comment_start1_[];
+constexpr const char MomParser::_par_comment_end1_[];
+
 #define MOM_PARSERDEBUGLOG(Pa,Log) do { if ((Pa)->_pardebug) MOM_DEBUGLOG(parse,Log); } while(0)
 #define MOM_THISPARSDBGLOG(Log) MOM_PARSERDEBUGLOG(this,Log)
 
