@@ -124,6 +124,16 @@
                 <property name="background">OldLace</property>
             </object>
         </child>
+      <!-- index_comment_tag for index-like comments -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">index_comment_tag</property>
+                <property name="background">bisque</property>
+                <property name="foreground">honeydew3</property>
+                <property name="font">Verdana Italic</property>
+                <property name="scale">0.6</property>
+            </object>
+        </child>
       <!-- value_string_tag for string value -->
         <child type="tag">
             <object class='GtkTextTag'>
@@ -133,16 +143,6 @@
                 <property name="font">Liberation Mono</property>
             </object>
         </child>
-      <!-- index_comment_tag for index-like comments -->
-        <child type="tag">
-            <object class='GtkTextTag'>
-                <property name="name">index_comment_tag</property>
-                <property name="background">bisque</property>
-                <property name="foreground">honeydew3</property>
-                <property name="font">Verdana</property>
-                <property name="scale">0.6</property>
-            </object>
-        </child>
       <!-- value_stresc_tag for string escape fragment (ie backslashes) -->
         <child type="tag">
             <object class='GtkTextTag'>
@@ -150,6 +150,13 @@
                 <property name="background">lavenderblush</property>
                 <property name="foreground">CadetBlue</property>
                 <property name="font">Oxygen Mono</property>
+            </object>
+        </child>
+      <!-- value_sequence_tag for sequence (set or tuple) value -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">value_sequence_tag</property>
+                <property name="background">lightcyan2</property>
             </object>
         </child>
 	<!-- end of browsertagtable_id object -->

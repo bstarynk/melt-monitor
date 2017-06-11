@@ -465,7 +465,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
                     _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
                 }
             }
-          snprintf(numbuf, sizeof(numbuf), "%lld", isv->unsafe_at(ix));
+          snprintf(numbuf, sizeof(numbuf), "%lld", (long long)isv->unsafe_at(ix));
           txit =
             _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagscopy);
         }
@@ -607,6 +607,39 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
         }
       txit = _mwi_buf->insert_with_tags_by_name
              (txit, "\"", tags);
+    }
+    break;
+    case MomKind::TagSetK:
+    case MomKind::TagTupleK:
+    {
+      auto seqv = reinterpret_cast<const MomAnyObjSeq*>(vv);
+      bool istuple = (vv->vkind() == MomKind::TagTupleK);
+      unsigned sz = seqv->sizew();
+      std::vector<Glib::ustring> tagsindex = tags;
+      tagscopy.push_back("value_sequence_tag");
+      tagsindex.push_back("index_comment_tag");
+      txit =
+        _mwi_buf->insert_with_tags_by_name (txit, (istuple?"[":"{"), tagscopy);
+      for (unsigned ix=0; ix<sz; ix++)
+        {
+          if (ix>0)
+            {
+              browser_insert_space(txit, tagscopy, depth+1);
+              if (ix % 10 == 0 && ix+4 < sz)
+                {
+                  char numbuf[24];
+                  memset(numbuf, 0, sizeof(numbuf));
+                  browser_insert_space(txit, tagscopy, depth+1);
+                  snprintf(numbuf, sizeof(numbuf), "|%d:|", ix);
+                  txit =
+                    _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
+                }
+            }
+          browser_insert_objptr(txit, seqv->unsafe_at(ix),
+                                tagscopy, depth+1);
+        };
+      txit =
+        _mwi_buf->insert_with_tags_by_name (txit, (istuple?"]":"}"), tagscopy);
     }
     break;
 #warning missing other cases for  MomMainWindow::browser_insert_value
