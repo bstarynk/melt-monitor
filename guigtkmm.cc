@@ -402,9 +402,10 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, const s
 } // end MomMainWindow::browser_insert_objptr
 
 void
-MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val,const std::vector<Glib::ustring>& tags,  int depth)
+MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std::vector<Glib::ustring>& tags,  int depth)
 {
   std::vector<Glib::ustring> tagscopy = tags;
+  if (depth<0) depth=0;
   if (val.is_empty())
     {
       tagscopy.push_back("value_nil_tag");
@@ -428,6 +429,48 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val,const std:
       return;
     }
   MOM_ASSERT(val.is_val(), "browser_insert_value corrupted val");
+  if (val.is_transient())
+    {
+      tagscopy.push_back("value_transient_tag");
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              "°",
+              tagscopy);
+    };
+  const MomAnyVal* vv = val.as_val();
+  switch(vv->vkind())
+    {
+    //////
+    case MomKind::TagIntSqK:  /// integer sequence
+    {
+      auto isv = reinterpret_cast<const MomIntSq*>(vv);
+      unsigned sz = isv->sizew();
+      tagscopy.push_back("value_numberseq_tag");
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              "(#",
+              tagscopy);
+      for (unsigned ix=0; ix<sz; ix++)
+        {
+          char numbuf[32];
+          memset(numbuf, 0, sizeof(numbuf));
+          if (ix>0)
+            browser_insert_space(txit, tagscopy, depth+1);
+          snprintf(numbuf, sizeof(numbuf), "%lld", isv->unsafe_at(ix));
+          txit = _mwi_buf->insert_with_tags_by_name
+                 (txit,
+                  numbuf,
+                  tagscopy);
+        }
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              "#)",
+              tagscopy);
+    }
+    break;
+      //////
+#warning missing other cases for  MomMainWindow::browser_insert_value
+    }
 #warning MomMainWindow::browser_insert_value incomplete
 } // end MomMainWindow::browser_insert_value
 
