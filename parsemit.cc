@@ -159,6 +159,11 @@ MomParser::parse_int(bool *pgotint)
 } // end MomParser::parse_int
 
 
+void
+MomParser::unterminated_small_comment(const char*missing)
+{
+  MOM_PARSE_FAILURE(this, "small comment not ending with " << missing);
+} // end MomParser::unterminated_small_comment
 
 MomValue
 MomParser::parse_value(bool *pgotval)
@@ -740,7 +745,7 @@ again:
   check_exhaustion();
   pc = peekbyte(0);
   nc = peekbyte(1);
-  if (pc < 127 && isspace(pc))
+  if (gotspacing())
     {
       skip_spaces();
       goto again;

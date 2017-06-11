@@ -2548,10 +2548,13 @@ private:
   std::function<void(TokenKind tok,int startcol, unsigned startlineno)>_parfun; // function called (e.g. for colorization)
   std::function<MomValue(MomParser*,const MomNode*, bool *pok)> _parvaleval;
   std::function<MomObject*(MomParser*,const MomNode*, bool *pok)> _parobjeval;
+  void unterminated_small_comment(const char*missing);
 public:
   static constexpr std::uint64_t _par_word_limit_ = 1<<28;
   static constexpr double _par_plain_time_limit_ = 0.3;
   static constexpr double _par_debug_time_limit_ = 0.5;
+  static constexpr const char _par_comment_start1_[] = "\342\214\251" /*U+2329 LEFT-POINTING ANGLE BRACKET 〈 */;
+  static constexpr const char _par_comment_end1_[] = "\342\214\252" /*U+232A RIGHT-POINTING ANGLE BRACKET 〉 */;
   class Mom_parse_failure : public Mom_runtime_failure
   {
     const MomParser *_pars;
@@ -2670,6 +2673,14 @@ public:
   {
     return !strncmp(str, peekchars(off), strlen(str));
   }
+  bool gotspacing (unsigned off=0) const
+  {
+    auto pc = peekbyte(off);
+    if (pc<127 && isspace(pc)) return true;
+    else if (pc=='|') return true;
+    else if (gotcstr(_par_comment_start1_,off)) return true;
+    return false;
+  }
   bool haskeyword(const char*str, unsigned off=0)
   {
     unsigned slen=strlen(str);
@@ -2732,6 +2743,24 @@ public:
         else if (peekbyte(0) == '/' && peekbyte(1) == '/')
           {
             next_line();
+            continue;
+          }
+        else if (peekbyte(0) == '|')
+          {
+            const char* rest = peekchars(1);
+            const char* endcomm = strchr(rest, '|');
+            if (!endcomm)
+              unterminated_small_comment("|");
+            else _parcol += endcomm-rest + 1;
+            continue;
+          }
+        else if (peekbyte(0) == _par_comment_start1_[0] && gotcstr(_par_comment_start1_))
+          {
+            const char* rest = peekchars(strlen(_par_comment_start1_));
+            const char*endcomm = strstr(rest, _par_comment_end1_);
+            if (!endcomm)
+              unterminated_small_comment(_par_comment_end1_);
+            else _parcol += endcomm-rest + strlen(_par_comment_end1_);
             continue;
           }
         else break;
