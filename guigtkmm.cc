@@ -441,6 +441,15 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
   switch(vv->vkind())
     {
     //////
+    case MomKind::TagObjectK: /// object occurence
+    {
+      auto obv = reinterpret_cast<const MomObject*>(vv);
+      MOM_ASSERT(obv != nullptr && obv->vkind() == MomKind::TagObjectK,
+                 "corrupted object in browser_insert_value");
+      browser_insert_objptr(txit, const_cast<MomObject*>(obv), tags, depth);
+    }
+    break;
+    //////
     case MomKind::TagIntSqK:  /// integer sequence
     {
       std::vector<Glib::ustring> tagsindex = tags;
