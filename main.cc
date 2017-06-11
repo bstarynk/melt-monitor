@@ -328,7 +328,6 @@ mom_output_utf8_escaped (FILE *f, const char *str, int len,
   gunichar uc = 0;
   const char *s = str;
   assert (s && g_utf8_validate (s, len, nullptr));
-  assert (s && g_utf8_validate (s, len, nullptr));
   for (const char *pc = s; pc < end; pc = g_utf8_next_char (pc), uc = 0)
     {
       uc = g_utf8_get_char (pc);
