@@ -618,6 +618,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
              (txit, "\"", tags);
     }
     break;
+#warning MomMainWindow::browser_insert_value should probably care of parenthesis and be able to match them
     case MomKind::TagSetK:
     case MomKind::TagTupleK:
     {
@@ -654,9 +655,51 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
     //////
     case MomKind::TagNodeK:  /// double sequence
     {
-#warning missing Node case for  MomMainWindow::browser_insert_value
-      }
-      break;
+      auto nodv = reinterpret_cast<const MomNode*>(vv);
+      bool istuple = (vv->vkind() == MomKind::TagTupleK);
+      unsigned sz = nodv->sizew();
+      std::vector<Glib::ustring> tagsindex = tags;
+      tagscopy.push_back("value_node_tag");
+      tagsindex.push_back("index_comment_tag");
+      txit =
+        _mwi_buf->insert_with_tags_by_name (txit, "*", tagscopy);
+      browser_insert_objptr(txit, nodv->conn(), tagscopy, depth);
+      browser_insert_space(txit, tagscopy, depth);
+      txit =
+        _mwi_buf->insert_with_tags_by_name (txit, "(", tagscopy);
+      if (depth >= _mwi_dispdepth)
+        {
+          txit =
+            _mwi_buf->insert_with_tags_by_name (txit,
+                                                // U+2026 HORIZONTAL ELLIPSIS …
+                                                "|\342\200\246|",
+                                                tagscopy);
+        }
+      else
+        {
+          for (unsigned ix=0; ix<sz; ix++)
+            {
+              if (ix>0)
+                {
+                  browser_insert_space(txit, tagscopy, depth+1);
+                  if (ix % 10 == 0 && ix+4 < sz)
+                    {
+                      char numbuf[24];
+                      memset(numbuf, 0, sizeof(numbuf));
+                      browser_insert_space(txit, tagscopy, depth+1);
+                      snprintf(numbuf, sizeof(numbuf), "|%d:|", ix);
+                      txit =
+                        _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
+                    }
+                }
+              browser_insert_value(txit, nodv->unsafe_at(ix),
+                                   tagscopy, depth+1);
+            };
+        }
+      txit =
+        _mwi_buf->insert_with_tags_by_name (txit, ")", tagscopy);
+    }
+    break;
     //////
     case MomKind::TagIntK:
     case MomKind::TagNoneK:
