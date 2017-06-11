@@ -72,6 +72,52 @@
                 <property name="scale">O.9</property>
             </object>
         </child>
+      <!-- objocc_named_tag for occurence of named object -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">objocc_named_tag</property>
+                <property name="foreground">sienna</property>
+                <property name="font">DejaVu Sans</property>
+                <property name="scale">1.0</property>
+            </object>
+        </child>
+      <!-- objocc_anon_tag for occurence of anonymous object -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">objocc_anon_tag</property>
+                <property name="foreground">slateblue4</property>
+                <property name="font">Liberation Mono</property>
+                <property name="scale">1.0</property>
+            </object>
+        </child>
+      <!-- objocc_nil_tag for nil objectptr -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">objocc_nil_tag</property>
+                <property name="foreground">darkviolet</property>
+                <property name="font">Liberation Mono Bold</property>
+                <property name="scale">1.05</property>
+            </object>
+        </child>
+      <!-- value_nil_tag for nil value -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">value_nil_tag</property>
+                <property name="foreground">slateblue4</property>
+                <property name="font">Courier New Bold</property>
+                <property name="scale">1.05</property>
+            </object>
+        </child>
+      <!-- value_numerical_tag for numerical value -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">value_numerical_tag</property>
+                <property name="foreground">DarkOrange4</property>
+                <property name="font">Courier New Bold Italic</property>
+                <property name="scale">1.05</property>
+            </object>
+        </child>
+	<!-- end of browsertagtable_id object -->
     </object>
 </interface>
 

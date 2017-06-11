@@ -71,7 +71,7 @@ class MomMainWindow : public Gtk::Window
 {
 public:
   static constexpr const int _default_display_depth_ = 5;
-  static constexpr const int _default_display_width_ = 80;
+  static constexpr const int _default_display_width_ = 72;
   struct MomShownObject
   {
     MomObject*_sh_ob;
@@ -258,7 +258,8 @@ void
 MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Glib::ustring>& tags, int depth)
 {
   if (depth<0) depth=0;
-  constexpr const char nlspaces[] = "\n                                                                ";
+  constexpr const char nlspaces[]
+    = "\n                                                                ";
   txit = _mwi_buf->insert_with_tags_by_name (txit, nlspaces, nlspaces + (depth % 16), tags);
 } // end MomMainWindow::browser_insert_newline
 
@@ -360,15 +361,73 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
 } // end MomMainWindow::browser_insert_object_display
 
 void
-MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*ob, const std::vector<Glib::ustring>& tags, int depth)
+MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, const std::vector<Glib::ustring>& tags, int depth)
 {
   std::vector<Glib::ustring> tagscopy = tags;
-#warning MomMainWindow::browser_insert_objptr incomplete
+  if (!pob)
+    {
+      tagscopy.push_back("objocc_nil_tag");
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              "__",
+              tagscopy);
+      return;
+    }
+  MOM_ASSERT(pob && pob->vkind() == MomKind::TagObjectK, "browser_insert_objptr corrupted pob");
+  std::string obnamstr;
+
+  char obidbuf[32];
+  memset(obidbuf, 0, sizeof(obidbuf));
+  pob->id().to_cbuf32(obidbuf);
+  {
+    std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
+    obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
+  }
+  if (obnamstr.empty())
+    {
+      tagscopy.push_back("objocc_anon_tag");
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              obidbuf,
+              tagscopy);
+    }
+  else
+    {
+      tagscopy.push_back("objocc_named_tag");
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              obnamstr.c_str(),
+              tagscopy);
+    }
 } // end MomMainWindow::browser_insert_objptr
 
 void
 MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val,const std::vector<Glib::ustring>& tags,  int depth)
 {
+  std::vector<Glib::ustring> tagscopy = tags;
+  if (val.is_empty())
+    {
+      tagscopy.push_back("value_nil_tag");
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              "__",
+              tagscopy);
+      return;
+    }
+  else if (val.is_tagint())
+    {
+      auto iv = val.as_tagint();
+      char numbuf[32];
+      memset(numbuf, 0, sizeof(numbuf));
+      snprintf(numbuf, sizeof(numbuf), "%lld", (long long) iv);
+      tagscopy.push_back("value_numerical_tag");
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,
+              numbuf,
+              tagscopy);
+      return;
+    }
+  MOM_ASSERT(val.is_val(), "browser_insert_value corrupted val");
 #warning MomMainWindow::browser_insert_value incomplete
 } // end MomMainWindow::browser_insert_value
 
