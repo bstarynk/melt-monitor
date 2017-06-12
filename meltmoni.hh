@@ -2256,6 +2256,15 @@ public:
       }
     return unsync_get_phys_attr(pobattr);
   }
+  // do a function for each attribute & value, until that function gives true
+  void unsync_each_phys_attr(std::function<bool(MomObject*pobattr,MomValue valattr)> fun)
+  {
+    for (auto it : _ob_attrs)
+      {
+        if (fun(it.first, it.second))
+          return;
+      }
+  };
   void unsync_put_phys_attr(const MomObject*pobattr, const MomValue valattr)
   {
     if (!pobattr)
