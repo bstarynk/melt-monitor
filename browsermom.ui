@@ -204,7 +204,17 @@
                 <property name="scale">0.96</property>
             </object>
         </child>
-	  
+	<!-- payload_tag for payload of object -->
+	<child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">payload_tag</property>
+                <property name="scale">1.01</property>
+                <property name="font">DejaVu Serif</property>
+                <property name="paragraph-background">lightcyan</property>
+                <property name="pixels-above-lines">2</property>
+                <property name="pixels-below-lines">2</property>
+            </object>
+        </child>
 	<!-- end of browsertagtable_id object -->
     </object>
 </interface>

@@ -456,7 +456,27 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
       }
     txit = _mwi_buf->insert(txit, "\n");
   }
-#warning MomMainWindow::browser_insert_object_display very incomplete
+  /// show the payload, if any
+  MomPayload* payl = pob->unsync_payload();
+  if (payl)
+    {
+      MomDisplayCtx dctxpayl(&shob);
+      MOM_ASSERT(payl->_py_vtbl && payl->_py_vtbl->pyv_magic ==  MOM_PAYLOADVTBL_MAGIC,
+                 "browser_insert_object_display corrupted payload of pob=" << pob);
+      std::vector<Glib::ustring> tagspayl{"payload_tag"};
+      std::vector<Glib::ustring> tagspaylindex{"payload_tag", "index_comment_tag"};
+      char atitlebuf[80];
+      memset(atitlebuf, 0, sizeof(atitlebuf));
+      snprintf(atitlebuf, sizeof(atitlebuf),
+               "%s payload %s/%s %s",
+               MomParser::_par_comment_start1_, payl->_py_vtbl->pyv_name,
+               payl->_py_vtbl->pyv_module?:"_",
+               MomParser::_par_comment_end1_);
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,atitlebuf, tagspaylindex);
+      browser_insert_newline(txit, tagspayl, 0);
+#warning MomMainWindow::browser_insert_object_display should probably display the payload wisely
+    }
   txit = _mwi_buf->insert(txit, "\n");
   _mwi_buf->move_mark(shob._sh_endmark, txit);
 } // end MomMainWindow::browser_insert_object_display
