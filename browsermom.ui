@@ -159,6 +159,33 @@
                 <property name="background">lightcyan2</property>
             </object>
         </child>
+	<!-- attributes_tag for attributes of object -->
+	<child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">attributes_tag</property>
+                <property name="scale">1.07</property>
+                <property name="font">DejaVu Serif</property>
+                <property name="paragraph-background">moccasin</property>
+                <property name="pixels-above-lines">2</property>
+                <property name="pixels-below-lines">2</property>
+            </object>
+        </child>
+	<!-- attrobj_tag for attribute object of object -->
+	<child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">attrobj_tag</property>
+                <property name="background">honeydew</property>
+            </object>
+        </child>
+	<!-- attrval_tag for attribute value of object -->
+	<child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">attrval_tag</property>
+                <property name="background">palegoldenrod</property>
+                <property name="scale">0.96</property>
+            </object>
+        </child>
+	  
 	<!-- end of browsertagtable_id object -->
     </object>
 </interface>

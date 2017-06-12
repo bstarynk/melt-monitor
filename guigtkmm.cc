@@ -89,6 +89,11 @@ public:
   struct MomDisplayCtx
   {
     MomShownObject* _dx_shob;
+    MomDisplayCtx(MomShownObject*shob) : _dx_shob(shob) {};
+    ~MomDisplayCtx()
+    {
+      _dx_shob=nullptr;
+    };
   };
 private:
   Gtk::Box _mwi_vbox;
@@ -123,7 +128,7 @@ public:
     show_status_decisec(std::string(msg), delay_decisec);
   };
   void display_full_browser(void);
-  void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob, int depth=0);
+  void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob);
   void browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth);
   void browser_insert_value(Gtk::TextIter& it, MomValue val, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth);
   void browser_insert_space(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
@@ -268,14 +273,13 @@ MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Gli
 } // end MomMainWindow::browser_insert_newline
 
 void
-MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob, int depth)
+MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
 {
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
   char obidbuf[32];
   memset(obidbuf, 0, sizeof(obidbuf));
-  if (depth<=0)
-    depth = _mwi_dispdepth;
+  int depth = _mwi_dispdepth;
   pob->id().to_cbuf32(obidbuf);
   std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
   std::string obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
@@ -358,11 +362,41 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
     txit = _mwi_buf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
     txit = _mwi_buf->insert(txit, "\n");
   }
-  /// should show the content
+  /// show the attributes
+  {
+    MomDisplayCtx dctxattrs(&shob);
+    std::map<MomObject*,MomValue,MomObjNameLess> mapattrs;
+    pob->unsync_each_phys_attr([&](MomObject*pobattr,MomValue valattr)
+    {
+      mapattrs.insert({pobattr,valattr});
+      return false;
+    });
+    std::vector<Glib::ustring> tagsattrs{"attributes_tag"};
+    std::vector<Glib::ustring> tagsattrobj{"attributes_tag","attrobj_tag"};
+    std::vector<Glib::ustring> tagsattrval{"attributes_tag","attrval_tag"};
+    for (auto itattr : mapattrs)
+      {
+        MomObject*pobattr = itattr.first;
+        MomValue valattr = itattr.second;
+        txit = _mwi_buf->insert_with_tags_by_name
+               (txit, "\342\210\231 " /* U+2219 BULLET OPERATOR ∙ */, tagsattrs);
+        browser_insert_objptr(txit, pobattr, &dctxattrs, tagsattrobj, 0);
+        browser_insert_space(txit, tagsattrs, 1);
+        txit = _mwi_buf->insert_with_tags_by_name
+               (txit, "\342\206\246" /* U+21A6 RIGHTWARDS ARROW FROM BAR ↦ */, tagsattrs);
+        browser_insert_space(txit, tagsattrs, 1);
+        browser_insert_value(txit, valattr, &dctxattrs, tagsattrval, 1);
+        browser_insert_newline(txit, tagsattrs, 0);
+      }
+    txit = _mwi_buf->insert(txit, "\n");
+  }
+  /// should show the components
 #warning MomMainWindow::browser_insert_object_display very incomplete
   txit = _mwi_buf->insert(txit, "\n");
   _mwi_buf->move_mark(shob._sh_endmark, txit);
 } // end MomMainWindow::browser_insert_object_display
+
+
 
 void
 MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth)
