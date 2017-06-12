@@ -66,6 +66,14 @@ public:
 };				// end class MomApplication
 
 
+// see also https://stackoverflow.com/q/39366248/841108
+class MomComboBoxObjptrText : public Gtk::ComboBoxText
+{
+  Glib::RefPtr<Gtk::EntryCompletion> _cbo_entcompl;
+public:
+  MomComboBoxObjptrText();
+  ~MomComboBoxObjptrText();
+};				// end MomComboBoxObjptrText
 
 class MomMainWindow : public Gtk::Window
 {
@@ -237,7 +245,27 @@ MomApplication::scan_gc(MomGC*gc)
 
 ////////////////
 
+MomComboBoxObjptrText::MomComboBoxObjptrText()
+  : Gtk::ComboBoxText(true /*has_entry*/),
+    _cbo_entcompl()
+{
+  /// inspired by https://stackoverflow.com/a/39426800/841108
+  _cbo_entcompl = Gtk::EntryCompletion::create();
+  _cbo_entcompl->set_text_column(0);
+  _cbo_entcompl->set_minimum_key_length (2);
+  auto boxmodel = get_model();
+  _cbo_entcompl->set_model(boxmodel);
+  auto boxentry = get_entry();
+  boxentry->set_completion(_cbo_entcompl);
+  property_active() = 0;
+#warning MomComboBoxObjptrText::MomComboBoxObjptrText is very incomplete
+} // end MomComboBoxObjptrText::MomComboBoxObjptrText
 
+MomComboBoxObjptrText::~MomComboBoxObjptrText()
+{
+} // end MomComboBoxObjptrText::~MomComboBoxObjptrText
+
+////////////////
 void
 MomMainWindow::display_full_browser(void)
 {
