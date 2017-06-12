@@ -163,7 +163,7 @@
 	<child type="tag">
             <object class='GtkTextTag'>
                 <property name="name">attributes_tag</property>
-                <property name="scale">1.07</property>
+                <property name="scale">1.03</property>
                 <property name="font">DejaVu Serif</property>
                 <property name="paragraph-background">moccasin</property>
                 <property name="pixels-above-lines">2</property>
@@ -182,6 +182,25 @@
             <object class='GtkTextTag'>
                 <property name="name">attrval_tag</property>
                 <property name="background">palegoldenrod</property>
+                <property name="scale">0.96</property>
+            </object>
+        </child>
+	<!-- components_tag for components of object -->
+	<child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">components_tag</property>
+                <property name="scale">1.03</property>
+                <property name="font">DejaVu Serif</property>
+                <property name="paragraph-background">mistyrose2</property>
+                <property name="pixels-above-lines">2</property>
+                <property name="pixels-below-lines">2</property>
+            </object>
+        </child>
+	<!-- compval_tag for component value of object -->
+	<child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">compval_tag</property>
+                <property name="background">peachpuff1</property>
                 <property name="scale">0.96</property>
             </object>
         </child>

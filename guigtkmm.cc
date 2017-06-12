@@ -372,8 +372,31 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
       return false;
     });
     std::vector<Glib::ustring> tagsattrs{"attributes_tag"};
+    std::vector<Glib::ustring> tagsattrindex{"attributes_tag","index_comment_tag"};
     std::vector<Glib::ustring> tagsattrobj{"attributes_tag","attrobj_tag"};
     std::vector<Glib::ustring> tagsattrval{"attributes_tag","attrval_tag"};
+    unsigned nbattr = mapattrs.size();
+    char atitlebuf[72];
+    memset(atitlebuf, 0, sizeof(atitlebuf));
+    if (nbattr > 0)
+      {
+        if (nbattr == 1)
+          snprintf(atitlebuf, sizeof(atitlebuf),
+                   "%s one attribute %s\n",
+                   MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
+        else
+          snprintf(atitlebuf, sizeof(atitlebuf),
+                   "%s %d attributes %s\n",
+                   MomParser::_par_comment_start1_, nbattr, MomParser::_par_comment_end1_);
+      }
+    else
+      {
+        snprintf(atitlebuf, sizeof(atitlebuf),
+                 "%s no attributes %s\n",
+                 MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
+      }
+    txit = _mwi_buf->insert_with_tags_by_name
+           (txit,atitlebuf, tagsattrindex);
     for (auto itattr : mapattrs)
       {
         MomObject*pobattr = itattr.first;
@@ -390,7 +413,49 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
       }
     txit = _mwi_buf->insert(txit, "\n");
   }
-  /// should show the components
+  ///  show the components
+  {
+    MomDisplayCtx dctxcomps(&shob);
+    std::vector<Glib::ustring> tagscomps{"components_tag"};
+    std::vector<Glib::ustring> tagscompindex{"components_tag", "index_comment_tag"};
+    std::vector<Glib::ustring> tagscompval{"components_tag", "compval_tag"};
+    char atitlebuf[72];
+    memset(atitlebuf, 0, sizeof(atitlebuf));
+    unsigned nbcomp = pob->unsync_nb_comps();
+    if (nbcomp == 0)
+      {
+        snprintf(atitlebuf, sizeof(atitlebuf),
+                 "%s no components %s\n",
+                 MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
+      }
+    else if (nbcomp == 1)
+      {
+        snprintf(atitlebuf, sizeof(atitlebuf),
+                 "%s one component %s\n",
+                 MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
+      }
+    else
+      {
+        snprintf(atitlebuf, sizeof(atitlebuf),
+                 "%s %u components %s\n",
+                 MomParser::_par_comment_start1_, nbcomp, MomParser::_par_comment_end1_);
+      }
+    txit = _mwi_buf->insert_with_tags_by_name
+           (txit,atitlebuf, tagscompindex);
+    for (unsigned ix=0; ix<nbcomp; ix++)
+      {
+        snprintf(atitlebuf, sizeof(atitlebuf),
+                 "%s #%u %s",
+                 MomParser::_par_comment_start1_, nbcomp, MomParser::_par_comment_end1_);
+        txit = _mwi_buf->insert_with_tags_by_name
+               (txit,atitlebuf, tagscompindex);
+        browser_insert_space(txit, tagscomps, 1);
+        MomValue compval = pob->unsync_unsafe_comp_at(ix);
+        browser_insert_value(txit, compval, &dctxcomps, tagscompval, 1);
+        browser_insert_newline(txit, tagscomps, 0);
+      }
+    txit = _mwi_buf->insert(txit, "\n");
+  }
 #warning MomMainWindow::browser_insert_object_display very incomplete
   txit = _mwi_buf->insert(txit, "\n");
   _mwi_buf->move_mark(shob._sh_endmark, txit);

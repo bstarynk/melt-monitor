@@ -2244,6 +2244,16 @@ public:
     if (rk>=0 && rk<(int)sz) return _ob_comps[rk];
     return def;
   }
+  // do a function for each index & component value, until that function gives true
+  void unsync_each_comp(std::function<bool(unsigned ix, MomValue valcomp)> fun)
+  {
+    unsigned nbcomp = unsync_nb_comps();
+    for (unsigned ix=0; ix<nbcomp; ix++)
+      {
+        MomValue compval = unsync_unsafe_comp_at(ix);
+        if (fun(ix, compval)) return;
+      }
+  };
   const  MomValue unsync_get(const MomObject*pobattr) const
   {
     if (!pobattr)
