@@ -86,6 +86,10 @@ public:
       _sh_endmark.clear();
     };
   };
+  struct MomDisplayCtx
+  {
+    MomShownObject* _dx_shob;
+  };
 private:
   Gtk::Box _mwi_vbox;
   Gtk::MenuBar _mwi_menubar;
@@ -120,8 +124,8 @@ public:
   };
   void display_full_browser(void);
   void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob, int depth=0);
-  void browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, const std::vector<Glib::ustring>& tags, int depth);
-  void browser_insert_value(Gtk::TextIter& it, MomValue val, const std::vector<Glib::ustring>& tags, int depth);
+  void browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth);
+  void browser_insert_value(Gtk::TextIter& it, MomValue val, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth);
   void browser_insert_space(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
   void browser_insert_newline(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
   void do_window_dump(void);
@@ -361,7 +365,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
 } // end MomMainWindow::browser_insert_object_display
 
 void
-MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, const std::vector<Glib::ustring>& tags, int depth)
+MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth)
 {
   std::vector<Glib::ustring> tagscopy = tags;
   if (!pob)
@@ -402,7 +406,7 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, const s
 } // end MomMainWindow::browser_insert_objptr
 
 void
-MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std::vector<Glib::ustring>& tags,  int depth)
+MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags,  int depth)
 {
   std::vector<Glib::ustring> tagscopy = tags;
   if (depth<0) depth=0;
@@ -446,7 +450,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
       auto obv = reinterpret_cast<const MomObject*>(vv);
       MOM_ASSERT(obv != nullptr && obv->vkind() == MomKind::TagObjectK,
                  "corrupted object in browser_insert_value");
-      browser_insert_objptr(txit, const_cast<MomObject*>(obv), tags, depth);
+      browser_insert_objptr(txit, const_cast<MomObject*>(obv), dcx, tags, depth);
     }
     break;
     //////
@@ -645,7 +649,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
                     _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
                 }
             }
-          browser_insert_objptr(txit, seqv->unsafe_at(ix),
+          browser_insert_objptr(txit, seqv->unsafe_at(ix), dcx,
                                 tagscopy, depth+1);
         };
       txit =
@@ -653,17 +657,16 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
     }
     break;
     //////
-    case MomKind::TagNodeK:  /// double sequence
+    case MomKind::TagNodeK:  /// node value
     {
       auto nodv = reinterpret_cast<const MomNode*>(vv);
-      bool istuple = (vv->vkind() == MomKind::TagTupleK);
       unsigned sz = nodv->sizew();
       std::vector<Glib::ustring> tagsindex = tags;
       tagscopy.push_back("value_node_tag");
       tagsindex.push_back("index_comment_tag");
       txit =
         _mwi_buf->insert_with_tags_by_name (txit, "*", tagscopy);
-      browser_insert_objptr(txit, nodv->conn(), tagscopy, depth);
+      browser_insert_objptr(txit, nodv->conn(), dcx, tagscopy, depth);
       browser_insert_space(txit, tagscopy, depth);
       txit =
         _mwi_buf->insert_with_tags_by_name (txit, "(", tagscopy);
@@ -692,7 +695,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
                         _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
                     }
                 }
-              browser_insert_value(txit, nodv->unsafe_at(ix),
+              browser_insert_value(txit, nodv->unsafe_at(ix), dcx,
                                    tagscopy, depth+1);
             };
         }
@@ -708,6 +711,8 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, const std
                      (int) vv->vkind());
     }
 } // end MomMainWindow::browser_insert_value
+
+
 
 void
 MomMainWindow::clear_mwi_statusbar(void)
