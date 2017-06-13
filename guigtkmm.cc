@@ -266,6 +266,33 @@ MomComboBoxObjptrText::MomComboBoxObjptrText()
 void
 MomComboBoxObjptrText::do_change_boxobjptr(void)
 {
+  auto boxentry = get_entry();
+  Glib::ustring entstr = boxentry->get_text();
+  auto nbc = entstr.size();
+  if (nbc==0)
+    {
+      auto boxmodel = get_model();
+      boxmodel.clear();
+    }
+  else if (entstr[0] < 127 && isalpha(entstr[0]))
+    {
+      bool goodname = true;
+      std::string namestr;
+      namestr.reserve(entstr.size());
+      for (auto uc : entstr)
+        {
+          if (uc>=127 || !(isalnum(uc) || uc=='_'))
+            {
+              goodname = false;
+              break;
+            }
+          else namestr.push_back((char)uc);
+        };
+      /// should use mom_each_name_prefixed
+    }
+  else if (entstr[0] == '_' && nbc >= 4 && entstr[1] < 127 && isdigit(entstr[1]))
+    {
+    }
 #warning MomComboBoxObjptrText::do_change_boxobjptr unimplemented
 } // end MomComboBoxObjptrText::do_change_boxobjptr
 
