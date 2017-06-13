@@ -73,6 +73,7 @@ class MomComboBoxObjptrText : public Gtk::ComboBoxText
 public:
   MomComboBoxObjptrText();
   ~MomComboBoxObjptrText();
+  void do_change_boxobjptr(void);
 };				// end MomComboBoxObjptrText
 
 class MomMainWindow : public Gtk::Window
@@ -257,9 +258,16 @@ MomComboBoxObjptrText::MomComboBoxObjptrText()
   _cbo_entcompl->set_model(boxmodel);
   auto boxentry = get_entry();
   boxentry->set_completion(_cbo_entcompl);
+  boxentry->signal_changed().connect(sigc::mem_fun(this,&MomComboBoxObjptrText::do_change_boxobjptr));
   property_active() = 0;
 #warning MomComboBoxObjptrText::MomComboBoxObjptrText is very incomplete
 } // end MomComboBoxObjptrText::MomComboBoxObjptrText
+
+void
+MomComboBoxObjptrText::do_change_boxobjptr(void)
+{
+#warning MomComboBoxObjptrText::do_change_boxobjptr unimplemented
+} // end MomComboBoxObjptrText::do_change_boxobjptr
 
 MomComboBoxObjptrText::~MomComboBoxObjptrText()
 {
