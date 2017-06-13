@@ -34,6 +34,8 @@ public:
   friend void mom_forget_name(const char*name);
   friend MomObject*mom_unsync_named_object_proxy(MomObject*objn);
   friend void mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy);
+  friend void mom_each_name_prefixed(const char*prefix,
+                                     std::function<bool(const std::string&,MomObject*)> fun);
   typedef std::string stringty;
 private:
   const stringty _nam_str;
@@ -116,6 +118,27 @@ mom_find_named(const char*name)
   return nullptr;
 } // end mom_find_named
 
+void
+mom_each_name_prefixed(const char*prefix,
+                       std::function<bool(const std::string&,MomObject*)> fun)
+{
+  if (!prefix) prefix="";
+  if (!mom_valid_name_radix_len(prefix,-1))
+    return;
+  size_t prefixlen = strlen(prefix);
+  std::lock_guard<std::mutex> gu(MomPaylNamed::_nam_mtx_);
+  auto it = MomPaylNamed::_nam_dict_.lower_bound(std::string{prefix});
+  while (it != MomPaylNamed::_nam_dict_.end())
+    {
+      std::string curnam = it->first;
+      MomObject* curobj = it->second;
+      if (strncmp(curnam.c_str(),prefix,prefixlen))
+        break;
+      if (fun(curnam,curobj))
+        break;
+      it++;
+    }
+} // end mom_each_name_prefixed
 
 const char*
 mom_get_unsync_name(const MomObject*obj)
