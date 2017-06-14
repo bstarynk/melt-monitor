@@ -268,6 +268,8 @@ MomComboBoxObjptrText::do_change_boxobjptr(void)
 {
   auto boxentry = get_entry();
   Glib::ustring entstr = boxentry->get_text();
+  MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::do_change_boxobjptr entstr="
+               << MomShowString(entstr));
   auto nbc = entstr.size();
   if (nbc==0)
     {
@@ -284,7 +286,11 @@ MomComboBoxObjptrText::do_change_boxobjptr(void)
             return false;
           });
           for (auto namstr: namesvec)
-            append(namstr.c_str());
+            {
+              MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::do_change_boxobjptr namstr="
+                           << MomShowString(namstr));
+              append(namstr.c_str());
+            }
         }
     }
   else if (entstr[0] < 127 && isalpha(entstr[0]))
@@ -301,10 +307,46 @@ MomComboBoxObjptrText::do_change_boxobjptr(void)
             }
           else namestr.push_back((char)uc);
         };
-      /// should use mom_each_name_prefixed
+      remove_all();
+      MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::do_change_boxobjptr entstr=" << MomShowString(entstr)
+                   << " goodname=" << (goodname?"true":"false"));
+      if (goodname)
+        {
+          std::vector<std::string> namesvec;
+          mom_each_name_prefixed(namestr.c_str(),[&](const std::string&name, MomObject*pobnamed)
+          {
+            namesvec.push_back(name);
+            return false;
+          });
+          for (auto namstr: namesvec)
+            {
+              MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::do_change_boxobjptr namstr=" << MomShowString(namstr));
+              append(namstr.c_str());
+            }
+        }
     }
-  else if (entstr[0] == '_' && nbc >= 4 && entstr[1] < 127 && isdigit(entstr[1]))
+  else if (entstr[0] == '_' && nbc >= 4
+           && entstr[1]>0 && entstr[1] < 127 && isdigit(entstr[1])
+           && entstr[2]>0 &&  entstr[2] < 127 && isalnum(entstr[2])
+           && entstr[3]>0 && entstr[3]< 127 && isalnum(entstr[3]))
     {
+      static constexpr long nb_anon_threshold = 96;
+      MomObjptrSet obset = MomObject::objectset_prefixed(entstr.c_str());
+      remove_all();
+      MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::do_change_boxobjptr entstr=" << MomShowString(entstr)
+                   << " obsetsize=" << obset.size());
+      if (obset.size() < nb_anon_threshold)
+        {
+          char idbuf[32];
+          memset (idbuf, 0, sizeof(idbuf));
+          for (const MomObject*pob : obset)
+            {
+              memset (idbuf, 0, sizeof(idbuf));
+              pob->id().to_cbuf32(idbuf);
+              MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::do_change_boxobjptr pob=" << pob << " idbuf=" << idbuf);
+              append(idbuf);
+            }
+        }
     }
 #warning MomComboBoxObjptrText::do_change_boxobjptr unimplemented
 } // end MomComboBoxObjptrText::do_change_boxobjptr
