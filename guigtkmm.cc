@@ -271,8 +271,21 @@ MomComboBoxObjptrText::do_change_boxobjptr(void)
   auto nbc = entstr.size();
   if (nbc==0)
     {
-      auto boxmodel = get_model();
-      boxmodel.clear();
+      static constexpr long nb_named_threshold = 80;
+      remove_all();
+      std::vector<std::string> namesvec;
+      auto nbnamed = mom_nb_named();
+      if (nbnamed < nb_named_threshold)
+        {
+          namesvec.reserve(nbnamed);
+          mom_each_name_prefixed("",[&](const std::string&name, MomObject*pobnamed)
+          {
+            namesvec.push_back(name);
+            return false;
+          });
+          for (auto namstr: namesvec)
+            append(namstr.c_str());
+        }
     }
   else if (entstr[0] < 127 && isalpha(entstr[0]))
     {
