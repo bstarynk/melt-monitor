@@ -3276,6 +3276,7 @@ extern "C" void mom_register_unsync_named(MomObject*obj, const char*name);
 extern "C" void mom_forget_unsync_named_object(MomObject*obj);
 extern "C" void mom_forget_name(const char*name);
 extern "C" MomObject*mom_find_named(const char*name);
+extern "C" long mom_nb_named(void);
 // iterate on every name of given prefix, till the function returns true
 extern "C" void mom_each_name_prefixed(const char*prefix,
                                        std::function<bool(const std::string&,MomObject*)> fun);

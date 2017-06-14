@@ -36,6 +36,7 @@ public:
   friend void mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy);
   friend void mom_each_name_prefixed(const char*prefix,
                                      std::function<bool(const std::string&,MomObject*)> fun);
+  friend long mom_nb_named(void);
   typedef std::string stringty;
 private:
   const stringty _nam_str;
@@ -117,6 +118,12 @@ mom_find_named(const char*name)
     return it->second;
   return nullptr;
 } // end mom_find_named
+
+long mom_nb_named(void)
+{
+  std::lock_guard<std::mutex> gu(MomPaylNamed::_nam_mtx_);
+  return MomPaylNamed::_nam_dict_.size();
+} // end mom_nb_named
 
 void
 mom_each_name_prefixed(const char*prefix,
