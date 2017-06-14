@@ -608,3 +608,76 @@ MomObject::MomBucketObj::unsync_buck_gc_sweep_destroy(MomGC*gc)
     _obu_map.erase(id);
   _obu_map.rehash(0);
 } // end MomObject::MomBucketObj::unsync_buck_gc_clear_marks
+
+bool
+MomObject::valid_prefixid(const char*prefixid)
+{
+  if (!prefixid || prefixid[0] != '_') return false;
+  if (prefixid[1]>127 || !isdigit(prefixid[1])) return false;
+  if (prefixid[2]>127 || !isalnum(prefixid[2])) return false;
+  if (strlen(prefixid)>=MomSerial63::_nbdigits_+1) return false;
+  for (const char*pc = prefixid+1; *pc; pc++)
+    if (!isalnum(*pc) || !strchr(MomSerial63::_b62digstr_,*pc)) return false;
+  return true;
+} // end MomObject::valid_prefixid
+
+MomObjptrSet
+MomObject::objectset_prefixed(const char*prefixid)
+{
+  if (!valid_prefixid(prefixid)) return MomObjptrSet{};
+  unsigned prefixlen = strlen(prefixid);
+  auto b64digits = MomSerial63::_b62digstr_;
+  auto oc1 = strchr(b64digits, prefixid[1]);
+  auto oc2 = strchr(b64digits, prefixid[2]);
+  MOM_ASSERT(oc1 != nullptr && oc2 != nullptr,
+             "objectset_prefixed bad prefixid=" << MomShowString(prefixid));
+  unsigned bn = (oc1-b64digits)*62 + (oc2-b64digits);
+  MOM_ASSERT(bn < MomSerial63::_maxbucket_,
+             "objectset_prefixed bad bn=" << bn);
+  MomBucketObj&curbuck = _ob_bucketarr_[bn];
+  MomObjptrSet setob;
+  std::lock_guard<std::mutex> _gu(curbuck._obu_mtx);
+  for (auto& it : curbuck._obu_map)
+    {
+      char idbuf[32];
+      memset (idbuf, 0, sizeof(idbuf));
+      MomIdent id = it.first;
+      MomObject* pob = it.second;
+      id.to_cbuf32(idbuf);
+      if (!strncmp(idbuf, prefixid, prefixlen))
+        setob.insert(pob);
+    }
+  return setob;
+} // end MomObject::objectset_prefixed
+
+
+void
+MomObject::do_each_object_prefixed(const char*prefixid,
+                                   std::function<bool(MomObject*)> fun)
+{
+  if (!valid_prefixid(prefixid)) return;
+  unsigned prefixlen = strlen(prefixid);
+  auto b64digits = MomSerial63::_b62digstr_;
+  auto oc1 = strchr(b64digits, prefixid[1]);
+  auto oc2 = strchr(b64digits, prefixid[2]);
+  MOM_ASSERT(oc1 != nullptr && oc2 != nullptr,
+             "objectset_prefixed bad prefixid=" << MomShowString(prefixid));
+  unsigned bn = (oc1-b64digits)*62 + (oc2-b64digits);
+  MOM_ASSERT(bn < MomSerial63::_maxbucket_,
+             "objectset_prefixed bad bn=" << bn);
+  MomBucketObj&curbuck = _ob_bucketarr_[bn];
+  MomObjptrSet setob;
+  std::lock_guard<std::mutex> _gu(curbuck._obu_mtx);
+  for (auto& it : curbuck._obu_map)
+    {
+      char idbuf[32];
+      memset (idbuf, 0, sizeof(idbuf));
+      MomIdent id = it.first;
+      MomObject* pob = it.second;
+      id.to_cbuf32(idbuf);
+      if (!strncmp(idbuf, prefixid, prefixlen))
+        {
+          if (fun(pob)) return;
+        }
+    }
+} // end MomObject::do_each_object_prefixed

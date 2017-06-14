@@ -2324,6 +2324,14 @@ public:
   {
     return dynamic_cast<PaylClass*>(_ob_payl);
   }
+  // check if a prefix is valid, at least four char starting with an
+  // underscore
+  static bool valid_prefixid(const char*prefixid);
+  // return the set of object of id prefixed by a given prefix
+  static MomObjptrSet objectset_prefixed(const char*prefixid);
+  // do a function for each object of id prefixed by a given prefix, until that function gives true
+  static void do_each_object_prefixed(const char*prefixid,
+                                      std::function<bool(MomObject*)> fun);
 }; // end class MomObject
 ////////////////
 
