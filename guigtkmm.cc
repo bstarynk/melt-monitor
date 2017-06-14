@@ -109,12 +109,15 @@ private:
   Gtk::MenuBar _mwi_menubar;
   Gtk::MenuItem _mwi_mit_app;
   Gtk::MenuItem _mwi_mit_edit;
+  Gtk::MenuItem _mwi_mit_object;
   Gtk::Menu _mwi_menu_app;
   Gtk::Menu _mwi_menu_edit;
+  Gtk::Menu _mwi_menu_object;
   Gtk::MenuItem _mwi_mit_app_quit;
   Gtk::MenuItem _mwi_mit_app_exit;
   Gtk::MenuItem _mwi_mit_app_dump;
   Gtk::MenuItem _mwi_mit_edit_copy;
+  Gtk::MenuItem _mwi_mit_object_show;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_buf;
   int _mwi_dispdepth;
   int _mwi_dispwidth;
@@ -251,6 +254,8 @@ MomComboBoxObjptrText::MomComboBoxObjptrText()
     _cbo_entcompl()
 {
   /// inspired by https://stackoverflow.com/a/39426800/841108
+  MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::MomComboBoxObjptrText from "
+               << MOM_SHOW_BACKTRACE("MomComboBoxObjptrText"));
   _cbo_entcompl = Gtk::EntryCompletion::create();
   _cbo_entcompl->set_text_column(0);
   _cbo_entcompl->set_minimum_key_length (2);
@@ -269,7 +274,9 @@ MomComboBoxObjptrText::do_change_boxobjptr(void)
   auto boxentry = get_entry();
   Glib::ustring entstr = boxentry->get_text();
   MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::do_change_boxobjptr entstr="
-               << MomShowString(entstr));
+               << MomShowString(entstr)
+               << MOM_SHOW_BACKTRACE("do_change_boxobjptr")
+              );
   auto nbc = entstr.size();
   if (nbc==0)
     {
@@ -973,12 +980,15 @@ MomMainWindow::MomMainWindow()
     _mwi_menubar(),
     _mwi_mit_app("_App",true),
     _mwi_mit_edit("_Edit",true),
+    _mwi_mit_object("_Object",true),
     _mwi_menu_app(),
     _mwi_menu_edit(),
+    _mwi_menu_object(),
     _mwi_mit_app_quit("_Quit",true),
     _mwi_mit_app_exit("e_Xit",true),
     _mwi_mit_app_dump("_Dump",true),
     _mwi_mit_edit_copy("_Copy",true),
+    _mwi_mit_object_show("_Show",true),
     _mwi_buf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
     _mwi_dispdepth(_default_display_depth_),
     _mwi_dispwidth(_default_display_width_),
@@ -996,6 +1006,7 @@ MomMainWindow::MomMainWindow()
   add(_mwi_vbox);
   _mwi_menubar.append(_mwi_mit_app);
   _mwi_menubar.append(_mwi_mit_edit);
+  _mwi_menubar.append(_mwi_mit_object);
   _mwi_mit_app.set_submenu(_mwi_menu_app);
   _mwi_mit_edit.set_submenu(_mwi_menu_edit);
   _mwi_menu_app.append(_mwi_mit_app_quit);
@@ -1005,6 +1016,8 @@ MomMainWindow::MomMainWindow()
   _mwi_mit_app_exit.signal_activate().connect(sigc::mem_fun(*MomApplication::itself(),&MomApplication::do_exit));
   _mwi_mit_app_dump.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_window_dump));
   _mwi_menu_edit.append(_mwi_mit_edit_copy);
+  _mwi_mit_object.set_submenu(_mwi_menu_object);
+  _mwi_menu_object.append(_mwi_mit_object_show);
   _mwi_vbox.set_spacing(2);
   _mwi_vbox.set_border_width(1);
   _mwi_vbox.pack_start(_mwi_menubar,Gtk::PACK_SHRINK);
