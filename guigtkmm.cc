@@ -146,6 +146,7 @@ public:
   void browser_insert_space(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
   void browser_insert_newline(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
   void do_window_dump(void);
+  void do_object_show(void);
   void scan_gc(MomGC*);
 };				// end class MomMainWindow
 
@@ -1018,6 +1019,7 @@ MomMainWindow::MomMainWindow()
   _mwi_menu_edit.append(_mwi_mit_edit_copy);
   _mwi_mit_object.set_submenu(_mwi_menu_object);
   _mwi_menu_object.append(_mwi_mit_object_show);
+  _mwi_mit_object_show.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_object_show));
   _mwi_vbox.set_spacing(2);
   _mwi_vbox.set_border_width(1);
   _mwi_vbox.pack_start(_mwi_menubar,Gtk::PACK_SHRINK);
@@ -1092,6 +1094,12 @@ MomMainWindow::do_window_dump(void)
   show_status_decisec(outs.str(), showdumpdelay);
 } // end MomMainWindow::do_window_dump
 
+void
+MomMainWindow::do_object_show(void)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show");
+#warning incomplete MomMainWindow::do_object_show
+} // end MomMainWindow::do_object_show
 
 void
 MomMainWindow::scan_gc(MomGC*gc)
