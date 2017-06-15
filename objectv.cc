@@ -613,8 +613,8 @@ bool
 MomObject::valid_prefixid(const char*prefixid)
 {
   if (!prefixid || prefixid[0] != '_') return false;
-  if (prefixid[1]>127 || !isdigit(prefixid[1])) return false;
-  if (prefixid[2]>127 || !isalnum(prefixid[2])) return false;
+  if (prefixid[1]>=127 || prefixid[1]<=0 || !isdigit(prefixid[1])) return false;
+  if (prefixid[2]>=127 || prefixid[2]<=0 || !isalnum(prefixid[2])) return false;
   if (strlen(prefixid)>=MomSerial63::_nbdigits_+1) return false;
   for (const char*pc = prefixid+1; *pc; pc++)
     if (!isalnum(*pc) || !strchr(MomSerial63::_b62digstr_,*pc)) return false;
