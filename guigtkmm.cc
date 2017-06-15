@@ -146,7 +146,7 @@ public:
   void browser_insert_space(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
   void browser_insert_newline(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
   void do_window_dump(void);
-  void do_object_show(void);
+  void do_object_show_hide(void);
   void scan_gc(MomGC*);
 };				// end class MomMainWindow
 
@@ -989,7 +989,7 @@ MomMainWindow::MomMainWindow()
     _mwi_mit_app_exit("e_Xit",true),
     _mwi_mit_app_dump("_Dump",true),
     _mwi_mit_edit_copy("_Copy",true),
-    _mwi_mit_object_show("_Show",true),
+    _mwi_mit_object_show("_Show/hide",true),
     _mwi_buf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
     _mwi_dispdepth(_default_display_depth_),
     _mwi_dispwidth(_default_display_width_),
@@ -1019,7 +1019,7 @@ MomMainWindow::MomMainWindow()
   _mwi_menu_edit.append(_mwi_mit_edit_copy);
   _mwi_mit_object.set_submenu(_mwi_menu_object);
   _mwi_menu_object.append(_mwi_mit_object_show);
-  _mwi_mit_object_show.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_object_show));
+  _mwi_mit_object_show.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_object_show_hide));
   _mwi_vbox.set_spacing(2);
   _mwi_vbox.set_border_width(1);
   _mwi_vbox.pack_start(_mwi_menubar,Gtk::PACK_SHRINK);
@@ -1095,11 +1095,39 @@ MomMainWindow::do_window_dump(void)
 } // end MomMainWindow::do_window_dump
 
 void
-MomMainWindow::do_object_show(void)
+MomMainWindow::do_object_show_hide(void)
 {
-  MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show");
-#warning incomplete MomMainWindow::do_object_show
-} // end MomMainWindow::do_object_show
+  enum { ShowOb=1, HideOb=2 };
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide");
+  Gtk::Dialog showdialog("Show/Hide object", *this, true/*modal*/);
+  Gtk::Box* showcontbox = showdialog.get_content_area();
+  Gtk::Label showlabel("show/hide:");
+  MomComboBoxObjptrText showcombox;
+  showcontbox->pack_end(showlabel,Gtk::PACK_EXPAND_PADDING,3);
+  showcontbox->pack_end(showcombox,Gtk::PACK_EXPAND_WIDGET,3);
+  Gtk::Button* cancelbut = showdialog.add_button("Cancel", Gtk::RESPONSE_CANCEL);
+  Gtk::Button* showbut=showdialog.add_button("Show", ShowOb);
+  Gtk::Button* hidebut=showdialog.add_button("Hide", HideOb);
+  showdialog.set_default_response(Gtk::RESPONSE_CANCEL);
+  showdialog.show_all_children();
+  int result = showdialog.run();
+  Glib::ustring showtext = showcombox.get_active_text();
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide result=" << result);
+  switch (result)
+    {
+    case ShowOb:
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide show showtext=" << MomShowString(showtext));
+      break;
+    case HideOb:
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide hide showtext=" << MomShowString(showtext));
+      break;
+    case Gtk::RESPONSE_CANCEL:
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide cancel");
+      break;
+    }
+#warning incomplete MomMainWindow::do_object_show_hide
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide end");
+} // end MomMainWindow::do_object_show_hide
 
 void
 MomMainWindow::scan_gc(MomGC*gc)
