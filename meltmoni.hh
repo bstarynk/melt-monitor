@@ -806,7 +806,7 @@ public:
   void to_cbuf32(char buf[]) const; // actually char buf[static 32]
   std::string to_string() const;
   static constexpr bool DO_FAIL = true;
-  static constexpr bool DONT_FAIL = true;
+  static constexpr bool DONT_FAIL = false;
   static const MomIdent make_from_cstr(const char *s, const char **pend,
                                        bool fail = false);
   static const MomIdent make_from_cstr(const char *s, bool fail = false)
