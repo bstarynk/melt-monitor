@@ -493,18 +493,18 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
     if (nowtim >= obmtim && nowtim - obmtim < one_week)
       {
         strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %d, %H:%M:%S", &obtm);
-        strcat(mtimbuf, mtimfract);
+        strcat(mtimbuf, mtimfract+1);
       }
     // modified half a year ago
     else if (nowtim >= obmtim && nowtim - obmtim < half_year)
       {
         strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d, %H:%M:%S", &obtm);
-        strcat(mtimbuf, mtimfract);
+        strcat(mtimbuf, mtimfract+1);
       }
     else   // modified before, or in the future
       {
         strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d %Y, %H:%M:%S", &obtm);
-        strcat(mtimbuf, mtimfract);
+        strcat(mtimbuf, mtimfract+1);
       }
     txit = _mwi_buf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
     txit = _mwi_buf->insert(txit, "\n");
@@ -1184,10 +1184,15 @@ MomMainWindow::browser_update_title_banner(void)
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner start");
   auto it = _mwi_buf->begin();
   Gtk::TextIter begit =  it;
-  auto titletag = MomApplication::itself()->lookup_tag("title_tag");
+  auto titletag = MomApplication::itself()->lookup_tag("page_title_tag");
   Gtk::TextIter endit = it;
   while(endit.has_tag(titletag))
     endit.forward_char();
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner"
+               << " begit/" << begit.get_offset()
+               << "L" << begit.get_line() << "C" << begit.get_line_offset()
+               << " endit/" << endit.get_offset()
+               << "L" << endit.get_line() << "C" << endit.get_line_offset());
   _mwi_buf->erase(begit,endit);
   begit =  _mwi_buf->begin();
   int nbshownob = _mwi_shownobmap.size();
