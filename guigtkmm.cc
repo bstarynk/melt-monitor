@@ -149,6 +149,7 @@ public:
   };
   void display_full_browser(void);
   void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob);
+  void browser_update_title_banner(void);
   void browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth);
   void browser_insert_value(Gtk::TextIter& it, MomValue val, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth);
   void browser_insert_space(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
@@ -1178,6 +1179,24 @@ MomMainWindow::do_object_show_hide(void)
 } // end MomMainWindow::do_object_show_hide
 
 void
+MomMainWindow::browser_update_title_banner(void)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner start");
+  auto it = _mwi_buf->begin();
+  Gtk::TextIter begit =  it;
+  auto titletag = MomApplication::itself()->lookup_tag("title_tag");
+  Gtk::TextIter endit = it;
+  while(endit.has_tag(titletag))
+    endit.forward_char();
+  _mwi_buf->erase(begit,endit);
+  begit =  _mwi_buf->begin();
+  int nbshownob = _mwi_shownobmap.size();
+  it = _mwi_buf->insert_with_tag (begit, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob),
+                                  titletag);
+  it = _mwi_buf->insert(it, "\n");
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner end nbshownob=" << nbshownob);
+} // end MomMainWindow::browser_update_title_banner
+void
 MomMainWindow::do_object_refresh(void)
 {
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_refresh start");
@@ -1194,15 +1213,16 @@ MomMainWindow::show_object(MomObject*pob)
                << " nbshown=" << _mwi_shownobmap.size());
   if (_mwi_shownobmap.empty())
     {
-#warning should update the overall banner
       Gtk::TextIter txit = _mwi_buf->end();
       browser_insert_object_display(txit, pob);
+      browser_update_title_banner();
     }
   else
     {
       MOM_WARNLOG("MomMainWindow::show_object non empty unimplemented for pob="  << pob
                   << " nbshown=" << _mwi_shownobmap.size());
     }
+  browser_update_title_banner();
   MOM_DEBUGLOG(gui, "MomMainWindow::show_object end pob=" << pob
                << " nbshown=" << _mwi_shownobmap.size());
 } // end MomMainWindow::show_object
