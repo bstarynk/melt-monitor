@@ -138,6 +138,8 @@ private:
 public:
   MomMainWindow();
   ~MomMainWindow();
+  void show_object(MomObject*pob);
+  void hide_object(MomObject*pob);
   void do_window_quit(void);
   void show_status_decisec(const std::string&msg, int delay_decisec);
   void clear_mwi_statusbar(void);
@@ -1152,9 +1154,17 @@ MomMainWindow::do_object_show_hide(void)
         {
         case ShowOb:
           MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide show showtext=" << MomShowString(showtext));
+          if (pob)
+            show_object(pob);
+          else
+            result = REPEAT;
           break;
         case HideOb:
           MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide hide showtext=" << MomShowString(showtext));
+          if (pob)
+            hide_object(pob);
+          else
+            result = REPEAT;
           break;
         case Gtk::RESPONSE_CANCEL:
           MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide cancel");
@@ -1174,6 +1184,24 @@ MomMainWindow::do_object_refresh(void)
   display_full_browser();
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_refresh end");
 } // end MomMainWindow::do_object_refresh
+
+void
+MomMainWindow::show_object(MomObject*pob)
+{
+  if (pob==nullptr || pob->vkind() != MomKind::TagObjectK)
+    MOM_FATAPRINTF("MomMainWindow::show_object invalid pob @%p", (void*)pob);
+  MOM_DEBUGLOG(gui, "MomMainWindow::show_object start pob=" << pob);
+  MOM_DEBUGLOG(gui, "MomMainWindow::show_object end pob=" << pob);
+} // end MomMainWindow::show_object
+
+void
+MomMainWindow::hide_object(MomObject*pob)
+{
+  if (pob==nullptr || pob->vkind() != MomKind::TagObjectK)
+    MOM_FATAPRINTF("MomMainWindow::hide_object invalid pob @%p", (void*)pob);
+  MOM_DEBUGLOG(gui, "MomMainWindow::hide_object start pob=" << pob);
+  MOM_DEBUGLOG(gui, "MomMainWindow::hide_object end pob=" << pob);
+} // end MomMainWindow::hide_object
 
 void
 MomMainWindow::scan_gc(MomGC*gc)
