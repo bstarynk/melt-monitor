@@ -681,3 +681,24 @@ MomObject::do_each_object_prefixed(const char*prefixid,
         }
     }
 } // end MomObject::do_each_object_prefixed
+
+
+void
+MomShowObject::output(std::ostream& os) const
+{
+  std::string name;
+  if (!_shob)
+    {
+      os << "__";
+      return;
+    }
+  {
+    std::shared_lock<std::shared_mutex> lk(_shob->get_shared_mutex());
+    name = mom_get_unsync_name(_shob);
+  }
+  if (!name.empty())
+    {
+      os << name << " |=" << _shob << "|";
+    }
+  else os << _shob;
+} // end MomShowObject::output

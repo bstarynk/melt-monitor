@@ -465,8 +465,8 @@ class MomShowString
 {
   std::string _shstr;
 public:
-  MomShowString(const std::string& str) : _shstr(str) {};
-  MomShowString(const char*cstr) : _shstr(cstr) {};
+  explicit MomShowString(const std::string& str) : _shstr(str) {};
+  explicit MomShowString(const char*cstr) : _shstr(cstr) {};
   MomShowString(const MomShowString&) = default;
   MomShowString(MomShowString&&) = default;
   ~MomShowString() = default;
@@ -477,6 +477,28 @@ inline
 std::ostream& operator << (std::ostream& out, const MomShowString shs)
 {
   shs.output(out);
+  return out;
+}
+
+class MomObject;
+class MomShowObject
+{
+  MomObject*_shob;
+public:
+  explicit MomShowObject(MomObject*pob) : _shob(pob) {};
+  ~MomShowObject()
+  {
+    _shob = nullptr;
+  };
+  MomShowObject(const MomShowObject&) = default;
+  MomShowObject(MomShowObject&&) = default;
+  void output(std::ostream& os) const;
+}; // end MomShowObject
+
+inline
+std::ostream& operator << (std::ostream& out, const MomShowObject sho)
+{
+  sho.output(out);
   return out;
 }
 
