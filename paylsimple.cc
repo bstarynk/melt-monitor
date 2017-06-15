@@ -130,7 +130,7 @@ mom_each_name_prefixed(const char*prefix,
                        std::function<bool(const std::string&,MomObject*)> fun)
 {
   if (!prefix) prefix="";
-  if (!mom_valid_name_radix_len(prefix,-1))
+  if (prefix[0] && !mom_valid_name_radix_len(prefix,-1))
     return;
   size_t prefixlen = strlen(prefix);
   std::lock_guard<std::mutex> gu(MomPaylNamed::_nam_mtx_);
