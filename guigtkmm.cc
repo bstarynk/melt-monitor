@@ -71,10 +71,13 @@ class MomComboBoxObjptrText : public Gtk::ComboBoxText
 {
   Glib::RefPtr<Gtk::EntryCompletion> _cbo_entcompl;
 public:
+  static constexpr const long _nb_named_threshold_ = 80;
   MomComboBoxObjptrText();
   ~MomComboBoxObjptrText();
   void do_change_boxobjptr(void);
+  void on_my_show(void);
 };				// end MomComboBoxObjptrText
+const long MomComboBoxObjptrText::_nb_named_threshold_;
 
 class MomMainWindow : public Gtk::Window
 {
@@ -266,8 +269,37 @@ MomComboBoxObjptrText::MomComboBoxObjptrText()
   boxentry->set_completion(_cbo_entcompl);
   boxentry->signal_changed().connect(sigc::mem_fun(this,&MomComboBoxObjptrText::do_change_boxobjptr));
   property_active() = 0;
+  signal_show().connect(sigc::mem_fun(this,&MomComboBoxObjptrText::on_my_show));
 #warning MomComboBoxObjptrText::MomComboBoxObjptrText is very incomplete
 } // end MomComboBoxObjptrText::MomComboBoxObjptrText
+
+void
+MomComboBoxObjptrText::on_my_show(void)
+{
+  MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::on_my_show "
+               << MOM_SHOW_BACKTRACE("on_my_show"));
+  remove_all();
+  std::vector<std::string> namesvec;
+  auto nbnamed = mom_nb_named();
+  MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::on_my_show nbnamed=" << nbnamed);
+  if (nbnamed < _nb_named_threshold_)
+    {
+      namesvec.reserve(nbnamed);
+      mom_each_name_prefixed("",[&](const std::string&name, MomObject*pobnamed)
+      {
+        namesvec.push_back(name);
+        return false;
+      });
+      for (auto namstr: namesvec)
+        {
+          MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::on_my_show namstr="
+                       << MomShowString(namstr));
+          append(namstr.c_str());
+        }
+    }
+  MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::on_my_show end");
+} // end MomComboBoxObjptrText::on_my_show
+
 
 void
 MomComboBoxObjptrText::do_change_boxobjptr(void)
@@ -281,11 +313,11 @@ MomComboBoxObjptrText::do_change_boxobjptr(void)
   auto nbc = entstr.size();
   if (nbc==0)
     {
-      static constexpr long nb_named_threshold = 80;
       remove_all();
       std::vector<std::string> namesvec;
       auto nbnamed = mom_nb_named();
-      if (nbnamed < nb_named_threshold)
+      MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::do_change_boxobjptr nbnamed=" << nbnamed);
+      if (nbnamed < _nb_named_threshold_)
         {
           namesvec.reserve(nbnamed);
           mom_each_name_prefixed("",[&](const std::string&name, MomObject*pobnamed)
