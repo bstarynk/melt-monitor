@@ -20,6 +20,7 @@
 
 #include "meltmoni.hh"
 
+#include <glib.h>
 #include <gtkmm.h>
 
 class MomMainWindow;
@@ -393,6 +394,8 @@ MomComboBoxObjptrText::do_change_boxobjptr(void)
 
 MomComboBoxObjptrText::~MomComboBoxObjptrText()
 {
+  MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::~MomComboBoxObjptrText"
+               << MOM_SHOW_BACKTRACE("~MomComboBoxObjptrText"));
 } // end MomComboBoxObjptrText::~MomComboBoxObjptrText
 
 ////////////////
@@ -1157,6 +1160,7 @@ MomMainWindow::do_object_show_hide(void)
       MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide cancel");
       break;
     }
+  showdialog.hide();
 #warning incomplete MomMainWindow::do_object_show_hide
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide end");
 } // end MomMainWindow::do_object_show_hide
@@ -1197,10 +1201,47 @@ MomApplication::do_dump(void)
     }
 } // end MomApplication::do_dump
 
+extern "C"
+void
+mom_gtk_error_handler (const gchar *log_domain,
+                       GLogLevelFlags log_level,
+                       const gchar *message,
+                       gpointer user_data MOM_UNUSED)
+{
+  std::string loglevstr;
+  if (log_level & G_LOG_FLAG_RECURSION) loglevstr += " RECURSION";
+  if (log_level & G_LOG_FLAG_FATAL) loglevstr += " FATAL";
+  if (log_level & G_LOG_LEVEL_ERROR) loglevstr += " ERROR";
+  if (log_level & G_LOG_LEVEL_CRITICAL) loglevstr += " CRITICAL";
+  if (log_level & G_LOG_LEVEL_WARNING) loglevstr += " WARNING";
+  if (log_level & G_LOG_LEVEL_MESSAGE) loglevstr += " MESSAGE";
+  if (log_level & G_LOG_LEVEL_INFO) loglevstr += " INFO";
+  MOM_WARNLOG("mom_gtk_error_handler level" << loglevstr
+              << " domain " << (log_domain?:"??")
+              << " message " << message
+              << MOM_SHOW_BACKTRACE("gtk_error_handler"));
+} // end mom_gtk_error_handler
+
 int
 mom_run_gtkmm_gui(int& argc, char**argv)
 {
   MOM_DEBUGLOG(gui, "mom_run_gtkmm_gui argc=" << argc);
+  g_log_set_handler ("Gtk",
+                     (GLogLevelFlags) (G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL
+                                       | G_LOG_FLAG_RECURSION),
+                     mom_gtk_error_handler, NULL);
+  g_log_set_handler ("GLib",
+                     (GLogLevelFlags) (G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL
+                                       | G_LOG_FLAG_RECURSION),
+                     mom_gtk_error_handler, NULL);
+  g_log_set_handler ("GIo",
+                     (GLogLevelFlags) (G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL
+                                       | G_LOG_FLAG_RECURSION),
+                     mom_gtk_error_handler, NULL);
+  g_log_set_handler (nullptr,
+                     (GLogLevelFlags) (G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL
+                                       | G_LOG_FLAG_RECURSION),
+                     mom_gtk_error_handler, NULL);
   auto app = MomApplication::create(argc, argv, "org.gcc-melt.monitor");
   MOM_INFORMPRINTF("running mom_run_gtkmm_gui");
   int runcode= app->run();
