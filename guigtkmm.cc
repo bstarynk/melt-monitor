@@ -1201,6 +1201,8 @@ MomMainWindow::browser_update_title_banner(void)
                                   titletag);
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner end nbshownob=" << nbshownob);
 } // end MomMainWindow::browser_update_title_banner
+
+
 void
 MomMainWindow::do_object_refresh(void)
 {
@@ -1217,11 +1219,12 @@ MomMainWindow::show_object(MomObject*pob)
   MOM_DEBUGLOG(gui, "MomMainWindow::show_object start pob=" << pob
                << " nbshown=" << _mwi_shownobmap.size());
   auto shmbegit = _mwi_shownobmap.begin();
-  auto shmendit = _mwi_shownobmap.begin();
+  auto shmendit = _mwi_shownobmap.end();
   MomObject*begpob = nullptr;
   MomObject*endpob = nullptr;
   if (shmbegit == shmendit)
     {
+      MOM_DEBUGLOG(gui, "MomMainWindow::show_object first object pob=" << pob);
       Gtk::TextIter txit = _mwi_buf->end();
       browser_insert_object_display(txit, pob);
       browser_update_title_banner();
