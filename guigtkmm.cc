@@ -292,7 +292,7 @@ MomComboBoxObjptrText::upgrade_for_string(const char*str)
       mom_each_name_prefixed("",[&](const std::string&name, MomObject*pobnamed)
       {
         MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::upgrade_for_string name=" << MomShowString(name)
-                     << "pobnamed=" << pobnamed << " #" << namesvec.size());
+                     << " pobnamed=" << pobnamed << " #" << namesvec.size());
         namesvec.push_back(name);
         return false;
       });
