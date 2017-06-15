@@ -87,14 +87,14 @@ class MomMainWindow : public Gtk::Window
 public:
   static constexpr const int _default_display_depth_ = 5;
   static constexpr const int _default_display_width_ = 72;
-  struct MomShownObject
+  struct MomBrowsedObject
   {
     MomObject*_sh_ob;
     Glib::RefPtr<Gtk::TextMark> _sh_startmark;
     Glib::RefPtr<Gtk::TextMark> _sh_endmark;
-    MomShownObject(MomObject*ob, Glib::RefPtr<Gtk::TextMark> startmk, Glib::RefPtr<Gtk::TextMark> endmk)
+    MomBrowsedObject(MomObject*ob, Glib::RefPtr<Gtk::TextMark> startmk, Glib::RefPtr<Gtk::TextMark> endmk)
       : _sh_ob(ob), _sh_startmark(startmk), _sh_endmark(endmk) {};
-    ~MomShownObject()
+    ~MomBrowsedObject()
     {
       _sh_ob=nullptr;
       _sh_startmark.clear();
@@ -103,8 +103,8 @@ public:
   };
   struct MomDisplayCtx
   {
-    MomShownObject* _dx_shob;
-    MomDisplayCtx(MomShownObject*shob) : _dx_shob(shob) {};
+    MomBrowsedObject* _dx_shob;
+    MomDisplayCtx(MomBrowsedObject*shob) : _dx_shob(shob) {};
     ~MomDisplayCtx()
     {
       _dx_shob=nullptr;
@@ -135,7 +135,7 @@ private:
   Gtk::TextView _mwi_txvbot;
   Gtk::TextView _mwi_txvcmd;
   Gtk::Statusbar _mwi_statusbar;
-  std::map<MomObject*,MomShownObject,MomObjNameLess> _mwi_shownobmap;
+  std::map<MomObject*,MomBrowsedObject,MomObjNameLess> _mwi_shownobmap;
 public:
   MomMainWindow();
   ~MomMainWindow();
@@ -437,7 +437,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
     {
       auto begmark = _mwi_buf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ true);
       auto endmark = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
-      auto pairitb = _mwi_shownobmap.emplace(pob,MomShownObject(pob,begmark,endmark));
+      auto pairitb = _mwi_shownobmap.emplace(pob,MomBrowsedObject(pob,begmark,endmark));
       itm = pairitb.first;
       found = false;
     }
@@ -445,7 +445,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << " depth=" << depth
                << " found=" << (found?"true":"false"));
-  MomShownObject& shob = itm->second;
+  MomBrowsedObject& shob = itm->second;
   /// the title bar
   MOM_ASSERT(shob._sh_ob == pob, "MomMainWindow::browser_insert_object_display corrupted shob");
   if (found)
@@ -1238,10 +1238,14 @@ MomMainWindow::browser_show_object(MomObject*pob)
       bool afterbeg = MomObjNameLess{} (begpob, pob);
       bool beforend = MomObjNameLess{} (pob, endpob);
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object begpob="
-                   << MomShowObject(begpob) << " endpob="  << MomShowObject(endpob)
-                   << " pob=" << MomShowObject(pob)
-                   << " afterbeg=" << (afterbeg?"true":"false")
-                   << " beforend=" << (beforend?"true":"false"));
+                   << MomShowObject(begpob) << ", endpob="  << MomShowObject(endpob)
+                   << ", pob=" << MomShowObject(pob)
+                   << ", afterbeg=" << (afterbeg?"true":"false")
+                   << ", beforend=" << (beforend?"true":"false"));
+      if (!afterbeg) {
+	MomBrowsedObject& firstbob = shmbegit->second;
+      }
+      else 
       MOM_WARNLOG("MomMainWindow::browser_show_object non empty unimplemented for pob="  << pob
                   << " nbshown=" << _mwi_shownobmap.size());
     }
