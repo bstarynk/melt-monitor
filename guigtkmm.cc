@@ -139,8 +139,8 @@ private:
 public:
   MomMainWindow();
   ~MomMainWindow();
-  void show_object(MomObject*pob);
-  void hide_object(MomObject*pob);
+  void browser_show_object(MomObject*pob);
+  void browser_hide_object(MomObject*pob);
   void do_window_quit(void);
   void show_status_decisec(const std::string&msg, int delay_decisec);
   void clear_mwi_statusbar(void);
@@ -443,7 +443,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
     }
   else found = true;
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
-               << pob << " depth=" << depth
+               << MomShowObject(pob) << " depth=" << depth
                << " found=" << (found?"true":"false"));
   MomShownObject& shob = itm->second;
   /// the title bar
@@ -1157,14 +1157,14 @@ MomMainWindow::do_object_show_hide(void)
         case ShowOb:
           MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide show showtext=" << MomShowString(showtext));
           if (pob)
-            show_object(pob);
+            browser_show_object(pob);
           else
             result = REPEAT;
           break;
         case HideOb:
           MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide hide showtext=" << MomShowString(showtext));
           if (pob)
-            hide_object(pob);
+            browser_hide_object(pob);
           else
             result = REPEAT;
           break;
@@ -1212,11 +1212,11 @@ MomMainWindow::do_object_refresh(void)
 } // end MomMainWindow::do_object_refresh
 
 void
-MomMainWindow::show_object(MomObject*pob)
+MomMainWindow::browser_show_object(MomObject*pob)
 {
   if (pob==nullptr || pob->vkind() != MomKind::TagObjectK)
-    MOM_FATAPRINTF("MomMainWindow::show_object invalid pob @%p", (void*)pob);
-  MOM_DEBUGLOG(gui, "MomMainWindow::show_object start pob=" << pob
+    MOM_FATAPRINTF("MomMainWindow::browser_show_object invalid pob @%p", (void*)pob);
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start pob=" << MomShowObject(pob)
                << " nbshown=" << _mwi_shownobmap.size());
   auto shmbegit = _mwi_shownobmap.begin();
   auto shmendit = _mwi_shownobmap.end();
@@ -1224,7 +1224,7 @@ MomMainWindow::show_object(MomObject*pob)
   MomObject*endpob = nullptr;
   if (shmbegit == shmendit)
     {
-      MOM_DEBUGLOG(gui, "MomMainWindow::show_object first object pob=" << pob);
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object first object pob=" << pob);
       Gtk::TextIter txit = _mwi_buf->end();
       browser_insert_object_display(txit, pob);
       browser_update_title_banner();
@@ -1237,26 +1237,27 @@ MomMainWindow::show_object(MomObject*pob)
       endpob = shmlastit->first;
       bool afterbeg = MomObjNameLess{} (begpob, pob);
       bool beforend = MomObjNameLess{} (pob, endpob);
-      MOM_DEBUGLOG(gui, "MomMainWindow::show_object begpob=" << begpob << " endpob="  << endpob
-                   << " pob=" << pob
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object begpob="
+                   << MomShowObject(begpob) << " endpob="  << MomShowObject(endpob)
+                   << " pob=" << MomShowObject(pob)
                    << " afterbeg=" << (afterbeg?"true":"false")
                    << " beforend=" << (beforend?"true":"false"));
-      MOM_WARNLOG("MomMainWindow::show_object non empty unimplemented for pob="  << pob
+      MOM_WARNLOG("MomMainWindow::browser_show_object non empty unimplemented for pob="  << pob
                   << " nbshown=" << _mwi_shownobmap.size());
     }
   browser_update_title_banner();
-  MOM_DEBUGLOG(gui, "MomMainWindow::show_object end pob=" << pob
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object end pob=" << pob
                << " nbshown=" << _mwi_shownobmap.size());
-} // end MomMainWindow::show_object
+} // end MomMainWindow::browser_show_object
 
 void
-MomMainWindow::hide_object(MomObject*pob)
+MomMainWindow::browser_hide_object(MomObject*pob)
 {
   if (pob==nullptr || pob->vkind() != MomKind::TagObjectK)
-    MOM_FATAPRINTF("MomMainWindow::hide_object invalid pob @%p", (void*)pob);
-  MOM_DEBUGLOG(gui, "MomMainWindow::hide_object start pob=" << pob);
-  MOM_DEBUGLOG(gui, "MomMainWindow::hide_object end pob=" << pob);
-} // end MomMainWindow::hide_object
+    MOM_FATAPRINTF("MomMainWindow::browser_hide_object invalid pob @%p", (void*)pob);
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object start pob=" << MomShowObject(pob));
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object end pob=" << pob);
+} // end MomMainWindow::browser_hide_object
 
 void
 MomMainWindow::scan_gc(MomGC*gc)
