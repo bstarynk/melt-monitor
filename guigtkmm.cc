@@ -1190,8 +1190,21 @@ MomMainWindow::show_object(MomObject*pob)
 {
   if (pob==nullptr || pob->vkind() != MomKind::TagObjectK)
     MOM_FATAPRINTF("MomMainWindow::show_object invalid pob @%p", (void*)pob);
-  MOM_DEBUGLOG(gui, "MomMainWindow::show_object start pob=" << pob);
-  MOM_DEBUGLOG(gui, "MomMainWindow::show_object end pob=" << pob);
+  MOM_DEBUGLOG(gui, "MomMainWindow::show_object start pob=" << pob
+               << " nbshown=" << _mwi_shownobmap.size());
+  if (_mwi_shownobmap.empty())
+    {
+#warning should update the overall banner
+      Gtk::TextIter txit = _mwi_buf->end();
+      browser_insert_object_display(txit, pob);
+    }
+  else
+    {
+      MOM_WARNLOG("MomMainWindow::show_object non empty unimplemented for pob="  << pob
+                  << " nbshown=" << _mwi_shownobmap.size());
+    }
+  MOM_DEBUGLOG(gui, "MomMainWindow::show_object end pob=" << pob
+               << " nbshown=" << _mwi_shownobmap.size());
 } // end MomMainWindow::show_object
 
 void
