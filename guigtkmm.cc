@@ -286,7 +286,8 @@ MomComboBoxObjptrText::upgrade_for_string(const char*str)
   if (slen==0)
     {
       auto nbnamed = mom_nb_named();
-      MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::upgrade_for_string nbnamed=" << nbnamed);
+      MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::upgrade_for_string nbnamed=" << nbnamed
+                   << ' ' << ((nbnamed<=_nb_named_threshold_)?"small":"huge"));
       std::vector<std::string> namesvec;
       namesvec.reserve(nbnamed);
       mom_each_name_prefixed("",[&](const std::string&name, MomObject*pobnamed)
@@ -296,6 +297,28 @@ MomComboBoxObjptrText::upgrade_for_string(const char*str)
         namesvec.push_back(name);
         return false;
       });
+      if (nbnamed<=_nb_named_threshold_)
+        {
+          // small number of named
+          remove_all();
+          for (const std::string& nam : namesvec)
+            {
+              append(nam.c_str());
+            }
+          MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::upgrade_for_string appended small " << namesvec.size());
+        }
+      else
+        {
+          MOM_WARNLOG("MomComboBoxObjptrText::upgrade_for_string UNIMPLEMENTED huge nbnamed=" << nbnamed
+                      << MOM_SHOW_BACKTRACE("upgrade_for_string huge nbnamed"));
+          // huge number of named
+        }
+    }
+  else
+    {
+      // slen>0
+      MOM_WARNLOG("MomComboBoxObjptrText::upgrade_for_string UNIMPLEMENTED str=" << MomShowString(str)
+                  << MOM_SHOW_BACKTRACE("upgrade_for_string non-empty str"));
     }
 #warning MomComboBoxObjptrText::upgrade_for_string incomplete
   MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::upgrade_for_string end");
