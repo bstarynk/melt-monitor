@@ -81,6 +81,7 @@ public:
 };				// end MomComboBoxObjptrText
 const long MomComboBoxObjptrText::_nb_named_threshold_;
 
+
 class MomMainWindow : public Gtk::Window
 {
 public:
@@ -1057,7 +1058,7 @@ MomMainWindow::MomMainWindow()
   _mwi_panedtx.add1(_mwi_scrwtop);
   _mwi_panedtx.add2(_mwi_scrwbot);
   {
-    _mwi_vbox.pack_start(_mwi_txvcmd,Gtk::PACK_EXPAND_WIDGET);
+    _mwi_vbox.pack_start(_mwi_txvcmd,Gtk::PACK_SHRINK);
     _mwi_txvcmd.set_vexpand(false);
     auto ctx = _mwi_txvcmd.get_style_context();
     ctx->add_class("commandwin_cl");
@@ -1198,7 +1199,6 @@ MomMainWindow::browser_update_title_banner(void)
   int nbshownob = _mwi_shownobmap.size();
   it = _mwi_buf->insert_with_tag (begit, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob),
                                   titletag);
-  it = _mwi_buf->insert(it, "\n");
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner end nbshownob=" << nbshownob);
 } // end MomMainWindow::browser_update_title_banner
 void
@@ -1216,7 +1216,11 @@ MomMainWindow::show_object(MomObject*pob)
     MOM_FATAPRINTF("MomMainWindow::show_object invalid pob @%p", (void*)pob);
   MOM_DEBUGLOG(gui, "MomMainWindow::show_object start pob=" << pob
                << " nbshown=" << _mwi_shownobmap.size());
-  if (_mwi_shownobmap.empty())
+  auto shmbegit = _mwi_shownobmap.begin();
+  auto shmendit = _mwi_shownobmap.begin();
+  MomObject*begpob = nullptr;
+  MomObject*endpob = nullptr;
+  if (shmbegit == shmendit)
     {
       Gtk::TextIter txit = _mwi_buf->end();
       browser_insert_object_display(txit, pob);
@@ -1224,6 +1228,16 @@ MomMainWindow::show_object(MomObject*pob)
     }
   else
     {
+      begpob = shmbegit->first;
+      auto shmlastit = shmendit;
+      shmlastit--;
+      endpob = shmlastit->first;
+      bool afterbeg = MomObjNameLess{} (begpob, pob);
+      bool beforend = MomObjNameLess{} (pob, endpob);
+      MOM_DEBUGLOG(gui, "MomMainWindow::show_object begpob=" << begpob << " endpob="  << endpob
+                   << " pob=" << pob
+                   << " afterbeg=" << (afterbeg?"true":"false")
+                   << " beforend=" << (beforend?"true":"false"));
       MOM_WARNLOG("MomMainWindow::show_object non empty unimplemented for pob="  << pob
                   << " nbshown=" << _mwi_shownobmap.size());
     }
