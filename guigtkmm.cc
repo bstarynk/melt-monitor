@@ -420,11 +420,17 @@ MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Gli
   txit = _mwi_buf->insert_with_tags_by_name (txit, nlspaces, nlspaces + (depth % 16), tags);
 } // end MomMainWindow::browser_insert_newline
 
+
+
 void
 MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
 {
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display start"
+               << " txit/" << txit.get_offset()
+               << "L" << txit.get_line() << "C" << txit.get_line_offset()
+               << " pob=" << MomShowObject(pob));
   char obidbuf[32];
   memset(obidbuf, 0, sizeof(obidbuf));
   int depth = _mwi_dispdepth;
@@ -627,6 +633,10 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
     }
   txit = _mwi_buf->insert(txit, "\n");
   _mwi_buf->move_mark(shob._sh_endmark, txit);
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end"
+               << " txit/" << txit.get_offset()
+               << "L" << txit.get_line() << "C" << txit.get_line_offset()
+               << " pob=" << MomShowObject(pob));
 } // end MomMainWindow::browser_insert_object_display
 
 
@@ -1242,12 +1252,33 @@ MomMainWindow::browser_show_object(MomObject*pob)
                    << ", pob=" << MomShowObject(pob)
                    << ", afterbeg=" << (afterbeg?"true":"false")
                    << ", beforend=" << (beforend?"true":"false"));
-      if (!afterbeg) {
-	MomBrowsedObject& firstbob = shmbegit->second;
-      }
-      else 
-      MOM_WARNLOG("MomMainWindow::browser_show_object non empty unimplemented for pob="  << pob
-                  << " nbshown=" << _mwi_shownobmap.size());
+      if (!afterbeg)
+        {
+          MomBrowsedObject& firstbob = shmbegit->second;
+          Gtk::TextIter txit = firstbob._sh_startmark->get_iter();
+          txit.backward_line();
+          browser_insert_object_display(txit, pob);
+        }
+      else if (!beforend)
+        {
+          MomBrowsedObject& lastbob = shmlastit->second;
+          Gtk::TextIter txit = lastbob._sh_endmark->get_iter();
+          browser_insert_object_display(txit, pob);
+        }
+      else
+        {
+          auto shmlowit = _mwi_shownobmap.lower_bound(pob);
+          auto shmuppit = _mwi_shownobmap.upper_bound(pob);
+          shmlowit++;
+          MomObject* lowerpob = shmlowit->first;
+          MomObject* upperpob = shmuppit->first;
+          MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object inside"
+                       << " lowerpob=" << MomShowObject(lowerpob)
+                       << ", pob=" << MomShowObject(pob)
+                       << ", upperpob=" << MomShowObject(upperpob));
+          MOM_WARNLOG("MomMainWindow::browser_show_object non empty unimplemented for pob="  << pob
+                      << " nbshown=" << _mwi_shownobmap.size());
+        }
     }
   browser_update_title_banner();
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object end pob=" << pob
