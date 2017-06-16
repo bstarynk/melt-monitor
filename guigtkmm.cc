@@ -1378,6 +1378,25 @@ MomMainWindow::browser_hide_object(MomObject*pob)
   if (pob==nullptr || pob->vkind() != MomKind::TagObjectK)
     MOM_FATAPRINTF("MomMainWindow::browser_hide_object invalid pob @%p", (void*)pob);
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object start pob=" << MomShowObject(pob));
+  auto shmit = _mwi_shownobmap.find(pob);
+  if (shmit == _mwi_shownobmap.end())
+    {
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object cannot hide undisplayed pob=" << MomShowObject(pob));
+    }
+  else
+    {
+      MomBrowsedObject& bob = shmit->second;
+      Gtk::TextIter statxit = bob._sh_startmark->get_iter();
+      Gtk::TextIter endtxit = bob._sh_endmark->get_iter();
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object pob=" << MomShowObject(pob)
+                   << " statxit=" << MomShowTextIter(statxit, MomShowTextIter::_FULL_)
+                   << ", endtxit="  << MomShowTextIter(endtxit, MomShowTextIter::_FULL_));
+      _mwi_buf->erase(statxit,endtxit);
+      _mwi_buf->delete_mark(bob._sh_startmark);
+      _mwi_buf->delete_mark(bob._sh_endmark);
+      _mwi_shownobmap.erase(shmit);
+      browser_update_title_banner();
+    }
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object end pob=" << pob);
 } // end MomMainWindow::browser_hide_object
 
