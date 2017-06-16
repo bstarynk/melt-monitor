@@ -509,7 +509,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
   txit = _mwi_buf->insert(txit, "\n");
   MOM_DEBUGLOG(gui, "browser_insert_object_display after title pob="<< MomShowObject(pob)
                << " txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_));
-  /// show the modtime
+  /// show the modtime and the space
   {
     constexpr double one_week = 86400*7.0;
     constexpr double half_year = 86400/2*365.0;
@@ -546,6 +546,27 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
                  << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                  << ", mtimbuf=" << MomShowString(mtimbuf));
     txit = _mwi_buf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
+    txit = _mwi_buf->insert(txit, " ");
+    auto spa = pob->space();
+    switch (spa)
+      {
+      case MomSpace::TransientSp:
+        txit = _mwi_buf->insert_with_tag (txit, "\302\244" /*U+00A4 CURRENCY SIGN ¤ */,
+                                          "object_space_tag");
+        break;
+      case MomSpace::PredefSp:
+        txit = _mwi_buf->insert_with_tag (txit, "\342\200\274" /*U+203C DOUBLE EXCLAMATION MARK ‼*/,
+                                          "object_space_tag");
+        break;
+      case MomSpace::GlobalSp:
+        txit = _mwi_buf->insert_with_tag (txit, "\342\200\242" /*U+2022 BULLET •*/,
+                                          "object_space_tag");
+        break;
+      case MomSpace::UserSp:
+        txit = _mwi_buf->insert_with_tag (txit, "\342\200\243" /*U+2023 TRIANGULAR BULLET ‣*/,
+                                          "object_space_tag");
+        break;
+      }
     txit = _mwi_buf->insert(txit, "\n");
   }
   /// show the attributes

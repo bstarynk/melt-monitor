@@ -72,6 +72,15 @@
                 <property name="scale">O.9</property>
             </object>
         </child>
+      <!-- object_space_tag for space -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">object_space_tag</property>
+                <property name="foreground">magenta</property>
+                <property name="font">DejaVu Serif, Condensed Italics</property>
+                <property name="scale">O.9</property>
+            </object>
+        </child>
       <!-- objocc_named_tag for occurence of named object -->
         <child type="tag">
             <object class='GtkTextTag'>
