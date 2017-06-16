@@ -1316,11 +1316,25 @@ MomMainWindow::browser_show_object(MomObject*pob)
         }
       else
         {
+          MomObject* lowerpob = nullptr;
+          MomObject* upperpob = nullptr;
+          MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle pob="
+                       << MomShowObject(pob));
           auto shmlowit = _mwi_shownobmap.lower_bound(pob);
+          if (shmlowit == _mwi_shownobmap.end())
+            MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmlowit at end");
+          else
+            {
+              shmlowit++;
+              MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmlowit /" << MomShowObject(shmlowit->first));
+            }
           auto shmuppit = _mwi_shownobmap.upper_bound(pob);
-          shmlowit++;
-          MomObject* lowerpob = shmlowit->first;
-          MomObject* upperpob = shmuppit->first;
+          if (shmuppit == _mwi_shownobmap.end())
+            MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmuppit at end");
+          else
+            MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmuppit /" << MomShowObject(shmuppit->first));
+          lowerpob = (shmlowit!=_mwi_shownobmap.end())?(shmlowit->first):nullptr;
+          upperpob = (shmuppit!=_mwi_shownobmap.end())?(shmuppit->first):nullptr;
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object inside"
                        << " lowerpob=" << MomShowObject(lowerpob)
                        << ", pob=" << MomShowObject(pob)
