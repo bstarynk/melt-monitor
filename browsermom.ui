@@ -168,6 +168,29 @@
                 <property name="background">lightcyan2</property>
             </object>
         </child>
+	<!-- open_tag for opening paren, etc.. -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+              <property name="name">open_tag</property>
+              <property name="font">Bold</property>
+            </object>
+        </child>
+	<!-- close_tag for closing paren, etc.. -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+              <property name="name">close_tag</property>
+              <property name="font">Bold</property>
+            </object>
+        </child>
+	<!-- blink_tag to blink matching parenthesis -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+              <property name="name">blink_tag</property>
+              <property name="font">Bold</property>
+                <property name="background">darkslategrey</property>
+                <property name="foreground">lightpink</property>
+            </object>
+        </child>
 	<!-- attributes_tag for attributes of object -->
 	<child type="tag">
             <object class='GtkTextTag'>

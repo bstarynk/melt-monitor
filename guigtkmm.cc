@@ -35,6 +35,7 @@ class MomApplication : public Gtk::Application
   friend class MomMainWindow;
   void scan_own_gc(MomGC*);
 public:
+  static constexpr const int _max_depth_ = 16;
   Glib::RefPtr<Gtk::TextTagTable> browser_tagtable(void)
   {
     return _app_browse_tagtable;
@@ -66,6 +67,8 @@ public:
   void scan_gc(MomGC*);
 };				// end class MomApplication
 
+
+const int MomApplication::_max_depth_;
 
 class MomShowTextIter
 {
@@ -245,6 +248,12 @@ MomApplication::on_activate(void)
     _app_browse_tagtable = Glib::RefPtr<Gtk::TextTagTable>::cast_dynamic(plaintagtable);
     if (!_app_browse_tagtable)
       MOM_FATAPRINTF("failed to use UI file %s, %s is not a TextTagTable", browserui_path, browsertagtable_id);
+    for (int d = 0; d<=_max_depth_; d++)
+      {
+        _app_browse_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("open%1_tag", d)));
+        _app_browse_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("close%1_tag", d)));
+      }
+#warning should implement blink of matching open/close tags
   }
   auto mainwin = new MomMainWindow();
   add_window(*mainwin);
@@ -438,7 +447,8 @@ MomMainWindow::browser_insert_space(Gtk::TextIter& txit, const std::vector<Glib:
 void
 MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Glib::ustring>& tags, int depth)
 {
-  if (depth<0) depth=0;
+  if (depth<0)
+    depth=0;
   constexpr const char nlspaces[]
     = "\n                                                                ";
   txit = _mwi_buf->insert_with_tags_by_name (txit, nlspaces, nlspaces + (depth % 16), tags);
@@ -952,7 +962,6 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
              (txit, "\"", tags);
     }
     break;
-#warning MomMainWindow::browser_insert_value should probably care of parenthesis and be able to match them
     case MomKind::TagSetK:
     case MomKind::TagTupleK:
     {
@@ -961,9 +970,12 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       unsigned sz = seqv->sizew();
       std::vector<Glib::ustring> tagsindex = tags;
       tagscopy.push_back("value_sequence_tag");
+      std::vector<Glib::ustring> tagspairing = tagscopy;
       tagsindex.push_back("index_comment_tag");
+      tagspairing.push_back("open_tag");
+      tagspairing.push_back(Glib::ustring::compose("open%1_tag", depth));
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, (istuple?"[":"{"), tagscopy);
+        _mwi_buf->insert_with_tags_by_name (txit, (istuple?"[":"{"), tagspairing);
       for (unsigned ix=0; ix<sz; ix++)
         {
           if (ix>0)
@@ -982,8 +994,12 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
           browser_insert_objptr(txit, seqv->unsafe_at(ix), dcx,
                                 tagscopy, depth+1);
         };
+      tagspairing.pop_back();
+      tagspairing.pop_back();
+      tagspairing.push_back("close_tag");
+      tagspairing.push_back(Glib::ustring::compose("close%1_tag", depth));
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, (istuple?"]":"}"), tagscopy);
+        _mwi_buf->insert_with_tags_by_name (txit, (istuple?"]":"}"), tagspairing);
     }
     break;
     //////
@@ -993,13 +1009,16 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       unsigned sz = nodv->sizew();
       std::vector<Glib::ustring> tagsindex = tags;
       tagscopy.push_back("value_node_tag");
+      std::vector<Glib::ustring> tagspairing = tagscopy;
       tagsindex.push_back("index_comment_tag");
       txit =
         _mwi_buf->insert_with_tags_by_name (txit, "*", tagscopy);
       browser_insert_objptr(txit, nodv->conn(), dcx, tagscopy, depth);
       browser_insert_space(txit, tagscopy, depth);
+      tagspairing.push_back("open_tag");
+      tagspairing.push_back(Glib::ustring::compose("open%1_tag", depth));
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, "(", tagscopy);
+        _mwi_buf->insert_with_tags_by_name (txit, "(", tagspairing);
       if (depth >= _mwi_dispdepth)
         {
           txit =
@@ -1029,8 +1048,12 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
                                    tagscopy, depth+1);
             };
         }
+      tagspairing.pop_back();
+      tagspairing.pop_back();
+      tagspairing.push_back("close_tag");
+      tagspairing.push_back(Glib::ustring::compose("close%1_tag", depth));
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, ")", tagscopy);
+        _mwi_buf->insert_with_tags_by_name (txit, ")", tagspairing);
     }
     break;
     //////
@@ -1041,6 +1064,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
                      (int) vv->vkind());
     }
 } // end MomMainWindow::browser_insert_value
+
 
 
 
