@@ -1286,6 +1286,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
                    << ", beforend=" << (beforend?"true":"false"));
       if (!afterbeg)
         {
+          auto objtittag = MomApplication::itself()->lookup_tag("object_title_tag");
           Gtk::TextIter txit = _mwi_buf->begin();
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin, begin txit="
                        << MomShowTextIter(txit, MomShowTextIter::_FULL_)
@@ -1294,7 +1295,11 @@ MomMainWindow::browser_show_object(MomObject*pob)
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin, forwardlin txit="
                        << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                        << ", pob=" << MomShowObject(pob));
-          txit.forward_char();
+          while (txit.has_tag(objtittag))
+            {
+              if (!txit.forward_char())
+                break;
+            }
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
                        << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                        << ", pob=" << MomShowObject(pob));
