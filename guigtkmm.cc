@@ -465,8 +465,8 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
   bool found = false;
   if (itm == _mwi_shownobmap.end())
     {
-      auto begmark = _mwi_buf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ true);
-      auto endmark = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
+      auto begmark = _mwi_buf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
+      auto endmark = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ true);
       auto pairitb = _mwi_shownobmap.emplace(pob,MomBrowsedObject(pob,begmark,endmark));
       itm = pairitb.first;
       found = false;
@@ -1343,17 +1343,24 @@ MomMainWindow::browser_show_object(MomObject*pob)
                        << " lowerpob=" << MomShowObject(lowerpob)
                        << ", pob=" << MomShowObject(pob)
                        << ", upperpob=" << MomShowObject(upperpob));
-          if (lowerpob && upperpob && MomObjNameLess{} (lowerpob, pob) && MomObjNameLess{} (pob, upperpob)
-              && shmlowit != _mwi_shownobmap.end())
+          if (lowerpob && upperpob
+              && MomObjNameLess{} (lowerpob, pob) && MomObjNameLess{} (pob, upperpob)
+              && shmlowit != _mwi_shownobmap.end()
+              && shmuppit != _mwi_shownobmap.end())
             {
               MomBrowsedObject& lowerbob = shmlowit->second;
-              Gtk::TextIter txit = lowerbob._sh_endmark->get_iter();
+              Gtk::TextIter lowendtxit = lowerbob._sh_endmark->get_iter();
+              MomBrowsedObject& upperbob = shmuppit->second;
+              Gtk::TextIter uppstatxit = upperbob._sh_startmark->get_iter();
               MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle after lowerpob="
-                           << MomShowObject(lowerpob) << " txit="
-                           << MomShowTextIter(txit, MomShowTextIter::_FULL_)
+                           << MomShowObject(lowerpob)
+                           << " lowendtxit="
+                           << MomShowTextIter(lowendtxit, MomShowTextIter::_FULL_)
+                           << " uppstatxit="
+                           << MomShowTextIter(uppstatxit, MomShowTextIter::_FULL_)
                            << ", pob=" << MomShowObject(pob)
                            << " before upperpob=" << MomShowObject(upperpob));
-              browser_insert_object_display(txit, pob);
+              browser_insert_object_display(lowendtxit, pob);
             }
           else
             MOM_WARNLOG("MomMainWindow::browser_show_object non empty unimplemented for pob="  << pob
