@@ -1273,6 +1273,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
         {
           Gtk::TextIter txit = _mwi_buf->begin();
           txit.forward_line();
+          txit.forward_char();
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
                        << MomShowTextIter(txit)
                        << ", pob=" << MomShowObject(pob));

@@ -129,9 +129,9 @@
             <object class='GtkTextTag'>
                 <property name="name">index_comment_tag</property>
                 <property name="background">bisque</property>
-                <property name="foreground">honeydew3</property>
+                <property name="foreground">darksalmon</property>
                 <property name="font">Verdana Italic</property>
-                <property name="scale">0.6</property>
+                <property name="scale">0.7</property>
             </object>
         </child>
       <!-- value_string_tag for string value -->
