@@ -1359,6 +1359,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           auto id4 = MomIdent::make_random();
           auto id5 = MomIdent::make_random();
           auto id6 = MomIdent::make_random();
+          auto id7 = MomIdent::make_random();
+          auto id8 = MomIdent::make_random();
           MOM_INFORMLOG("test-id __cplusplus=" << __cplusplus
                         << " sizeof(MomObject)=" << sizeof(MomObject)
                         << " sizeof(MomAnyVal)=" << sizeof(MomAnyVal)
@@ -1383,11 +1385,17 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           MOM_INFORMLOG("test-id:" << std::endl
                         << " .. id6= " << id6 << " =(" << id6.hi().serial() << "," << id6.lo().serial()
                         << ")/h" << id6.hash() << ",b#" << id6.bucketnum());
+          MOM_INFORMLOG("test-id:" << std::endl
+                        << " .. id7= " << id7 << " =(" << id7.hi().serial() << "," << id7.lo().serial()
+                        << ")/h" << id7.hash() << ",b#" << id7.bucketnum());
+          MOM_INFORMLOG("test-id:" << std::endl
+                        << " .. id8= " << id8 << " =(" << id8.hi().serial() << "," << id8.lo().serial()
+                        << ")/h" << id8.hash() << ",b#" << id8.bucketnum());
           MOM_INFORMLOG("test-id all "  << std::endl
                         << "... " << id1 << " " << id2 << " " << id3 << std::endl
                         << "... " << id4 << " " << id5 << " " << id6);
           std::cout << std::endl
-                    << "/// for _mom_predef.h id1 id2 id3 id4" << std::endl;
+                    << "/// for _mom_predef.h id1 id2 id3 id4 id5" << std::endl;
           std::cout << "MOM_HAS_PREDEF("<< id1 << "," << id1.hi().serial()
                     << "," << id1.lo().serial() << "," << id1.hash() << ")" << std::endl;
           std::cout << "MOM_HAS_PREDEF("<< id2 << "," << id2.hi().serial()
@@ -1396,6 +1404,10 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                     << "," << id3.lo().serial() << "," << id3.hash() << ")" << std::endl;
           std::cout << "MOM_HAS_PREDEF("<< id4 << "," << id4.hi().serial()
                     << "," << id4.lo().serial() << "," << id4.hash() << ")" << std::endl;
+          std::cout << "MOM_HAS_PREDEF("<< id5 << "," << id5.hi().serial()
+                    << "," << id5.lo().serial() << "," << id5.hash() << ")" << std::endl;
+          std::cout << "MOM_HAS_PREDEF("<< id6 << "," << id6.hi().serial()
+                    << "," << id6.lo().serial() << "," << id6.hash() << ")" << std::endl;
           std::cout << std::endl;
         }
         break;
