@@ -452,7 +452,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display start "
-               << MomShowTextIter(txit)
+               << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                << " pob=" << MomShowObject(pob));
   char obidbuf[32];
   memset(obidbuf, 0, sizeof(obidbuf));
@@ -536,6 +536,9 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
         strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d %Y, %H:%M:%S", &obtm);
         strcat(mtimbuf, mtimfract+1);
       }
+    MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display mtimeit "
+                 << MomShowTextIter(txit, MomShowTextIter::_FULL_)
+                 << ", mtimbuf=" << MomShowString(mtimbuf));
     txit = _mwi_buf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
     txit = _mwi_buf->insert(txit, "\n");
   }
@@ -657,7 +660,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
   txit = _mwi_buf->insert(txit, "\n");
   _mwi_buf->move_mark(shob._sh_endmark, txit);
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end "
-               << MomShowTextIter(txit)
+               << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                << " pob=" << MomShowObject(pob));
 } // end MomMainWindow::browser_insert_object_display
 
@@ -1280,7 +1283,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
           txit.forward_line();
           txit.forward_char();
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
-                       << MomShowTextIter(txit)
+                       << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                        << ", pob=" << MomShowObject(pob));
           browser_insert_object_display(txit, pob);
         }
@@ -1289,7 +1292,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
           MomBrowsedObject& lastbob = shmlastit->second;
           Gtk::TextIter txit = lastbob._sh_endmark->get_iter();
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object after end txit="
-                       << MomShowTextIter(txit)
+                       << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                        << ", pob=" << MomShowObject(pob));
           browser_insert_object_display(txit, pob);
         }
