@@ -1343,8 +1343,21 @@ MomMainWindow::browser_show_object(MomObject*pob)
                        << " lowerpob=" << MomShowObject(lowerpob)
                        << ", pob=" << MomShowObject(pob)
                        << ", upperpob=" << MomShowObject(upperpob));
-          MOM_WARNLOG("MomMainWindow::browser_show_object non empty unimplemented for pob="  << pob
-                      << " nbshown=" << _mwi_shownobmap.size());
+          if (lowerpob && upperpob && MomObjNameLess{} (lowerpob, pob) && MomObjNameLess{} (pob, upperpob)
+              && shmlowit != _mwi_shownobmap.end())
+            {
+              MomBrowsedObject& lowerbob = shmlowit->second;
+              Gtk::TextIter txit = lowerbob._sh_endmark->get_iter();
+              MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle after lowerpob="
+                           << MomShowObject(lowerpob) << " txit="
+                           << MomShowTextIter(txit, MomShowTextIter::_FULL_)
+                           << ", pob=" << MomShowObject(pob)
+                           << " before upperpob=" << MomShowObject(upperpob));
+              browser_insert_object_display(txit, pob);
+            }
+          else
+            MOM_WARNLOG("MomMainWindow::browser_show_object non empty unimplemented for pob="  << pob
+                        << " nbshown=" << _mwi_shownobmap.size());
         }
     }
   browser_update_title_banner();
