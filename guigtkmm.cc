@@ -536,7 +536,9 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
         strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d %Y, %H:%M:%S", &obtm);
         strcat(mtimbuf, mtimfract+1);
       }
-    MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display mtimeit "
+    MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display "
+                 << " pob=" << MomShowObject(pob)
+                 << ", mtim. txit="
                  << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                  << ", mtimbuf=" << MomShowString(mtimbuf));
     txit = _mwi_buf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
@@ -1376,6 +1378,7 @@ MomShowTextIter::output(std::ostream&outs) const
           auto tagnamprop = tagref->property_name();
           outs << ":" << tagnamprop.get_value();
         }
+      outs << "!";
     }
 } // end MomShowTextIter::output
 
