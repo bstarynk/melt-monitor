@@ -67,6 +67,25 @@ public:
 };				// end class MomApplication
 
 
+class MomShowTextIter
+{
+  Gtk::TextIter _shtxit;
+public:
+  explicit MomShowTextIter(Gtk::TextIter txit) : _shtxit(txit) {};
+  ~MomShowTextIter() {};
+  MomShowTextIter(const MomShowTextIter&) = default;
+  MomShowTextIter(MomShowTextIter&&) = default;
+  void output(std::ostream& os) const;
+};
+
+
+inline
+std::ostream& operator << (std::ostream& out, const MomShowTextIter shtxit)
+{
+  shtxit.output(out);
+  return out;
+}
+
 // see also https://stackoverflow.com/q/39366248/841108
 class MomComboBoxObjptrText : public Gtk::ComboBoxText
 {
@@ -427,9 +446,8 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
 {
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
-  MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display start"
-               << " txit/" << txit.get_offset()
-               << "L" << txit.get_line() << "C" << txit.get_line_offset()
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display start "
+               << MomShowTextIter(txit)
                << " pob=" << MomShowObject(pob));
   char obidbuf[32];
   memset(obidbuf, 0, sizeof(obidbuf));
@@ -633,9 +651,8 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
     }
   txit = _mwi_buf->insert(txit, "\n");
   _mwi_buf->move_mark(shob._sh_endmark, txit);
-  MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end"
-               << " txit/" << txit.get_offset()
-               << "L" << txit.get_line() << "C" << txit.get_line_offset()
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end "
+               << MomShowTextIter(txit)
                << " pob=" << MomShowObject(pob));
 } // end MomMainWindow::browser_insert_object_display
 
@@ -1199,11 +1216,9 @@ MomMainWindow::browser_update_title_banner(void)
   Gtk::TextIter endit = it;
   while(endit.has_tag(titletag))
     endit.forward_char();
-  MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner"
-               << " begit/" << begit.get_offset()
-               << "L" << begit.get_line() << "C" << begit.get_line_offset()
-               << " endit/" << endit.get_offset()
-               << "L" << endit.get_line() << "C" << endit.get_line_offset());
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner "
+               << "begit=" << MomShowTextIter(begit)
+               << ", endit=" << MomShowTextIter(endit));
   _mwi_buf->erase(begit,endit);
   begit =  _mwi_buf->begin();
   int nbshownob = _mwi_shownobmap.size();
@@ -1234,8 +1249,10 @@ MomMainWindow::browser_show_object(MomObject*pob)
   MomObject*endpob = nullptr;
   if (shmbegit == shmendit)
     {
-      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object first object pob=" << pob);
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object first object pob=" << MomShowObject(pob));
       Gtk::TextIter txit = _mwi_buf->end();
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object empty txit="
+                   << MomShowTextIter(txit));
       browser_insert_object_display(txit, pob);
       browser_update_title_banner();
     }
@@ -1254,15 +1271,20 @@ MomMainWindow::browser_show_object(MomObject*pob)
                    << ", beforend=" << (beforend?"true":"false"));
       if (!afterbeg)
         {
-          MomBrowsedObject& firstbob = shmbegit->second;
-          Gtk::TextIter txit = firstbob._sh_startmark->get_iter();
-          txit.backward_line();
+          Gtk::TextIter txit = _mwi_buf->begin();
+          txit.forward_line();
+          MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
+                       << MomShowTextIter(txit)
+                       << ", pob=" << MomShowObject(pob));
           browser_insert_object_display(txit, pob);
         }
       else if (!beforend)
         {
           MomBrowsedObject& lastbob = shmlastit->second;
           Gtk::TextIter txit = lastbob._sh_endmark->get_iter();
+          MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object after end txit="
+                       << MomShowTextIter(txit)
+                       << ", pob=" << MomShowObject(pob));
           browser_insert_object_display(txit, pob);
         }
       else
@@ -1329,6 +1351,14 @@ MomApplication::do_dump(void)
       mom_dump_in_directory(mom_dump_dir);
     }
 } // end MomApplication::do_dump
+
+
+void
+MomShowTextIter::output(std::ostream&outs) const
+{
+  outs << "txit/" << _shtxit.get_offset()
+       << "L" << _shtxit.get_line() << "C" << _shtxit.get_line_offset();
+} // end MomShowTextIter::output
 
 extern "C"
 void
