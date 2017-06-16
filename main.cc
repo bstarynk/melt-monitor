@@ -1395,7 +1395,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                         << "... " << id1 << " " << id2 << " " << id3 << std::endl
                         << "... " << id4 << " " << id5 << " " << id6);
           std::cout << std::endl
-                    << "/// for _mom_predef.h id1 id2 id3 id4 id5" << std::endl;
+                    << "/// for _mom_predef.h id1 id2 id3 id4 id5 id6 id7" << std::endl;
           std::cout << "MOM_HAS_PREDEF("<< id1 << "," << id1.hi().serial()
                     << "," << id1.lo().serial() << "," << id1.hash() << ")" << std::endl;
           std::cout << "MOM_HAS_PREDEF("<< id2 << "," << id2.hi().serial()
@@ -1408,6 +1408,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                     << "," << id5.lo().serial() << "," << id5.hash() << ")" << std::endl;
           std::cout << "MOM_HAS_PREDEF("<< id6 << "," << id6.hi().serial()
                     << "," << id6.lo().serial() << "," << id6.hash() << ")" << std::endl;
+          std::cout << "MOM_HAS_PREDEF("<< id7 << "," << id7.hi().serial()
+                    << "," << id7.lo().serial() << "," << id7.hash() << ")" << std::endl;
           std::cout << std::endl;
         }
         break;

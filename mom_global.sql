@@ -1,4 +1,4 @@
--- dump 2017 Jun 07 from mom_global dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jun 16 from mom_global dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -50,6 +50,12 @@ END TRANSACTION; ---- for t_names
 
 ------- TABLE t_objects @@@@@@
 BEGIN TRANSACTION; --- for t_objects
+INSERT INTO t_objects VALUES('_0vgCFjXblkx_4zCMhMAWjVK',1497636292.47,'
+
+','','','');
+INSERT INTO t_objects VALUES('_1JSykdLcLdl_8rWxtDBaPGN',1497636292.47,'
+
+','','','');
 INSERT INTO t_objects VALUES('_1jJjA6LcXiX_1V4ZcXlje09',1493382726.98,'
 ///$name
 @MAGIC!
@@ -70,21 +76,57 @@ INSERT INTO t_objects VALUES('_3bMUJDWlMMQ_2j2bm7EeIbv',1495430034.89,'
 @MAGIC!
 
 ','named','put','@NAMEDPROXY: __');
+INSERT INTO t_objects VALUES('_45cnnX4v29t_9gZkfMOZj2Z',1497636412.76,'
+
+','','','');
+INSERT INTO t_objects VALUES('_4T8am97muLl_5969SR22Ecq',1497636412.76,'
+
+','','','');
+INSERT INTO t_objects VALUES('_4cCZc3Izgsr_7LsCkWW7flp',1497636292.47,'
+
+','','','');
 INSERT INTO t_objects VALUES('_4w339hT5dXd_1tUZFvU4fWx',1495430034.89,'
 ///$proxy
 @MAGIC!
 
 ','named','proxy','@NAMEDPROXY: __');
+INSERT INTO t_objects VALUES('_6TmLNh9vtVY_0pwkHRtJ44k',1497636292.47,'
+
+','','','');
+INSERT INTO t_objects VALUES('_6ZpMq408eTN_8t3ZHpgCk3R',1497636292.47,'
+
+','','','');
 INSERT INTO t_objects VALUES('_6ss8POQNnku_8e8woNsmvN9',1496020871.11,'
 ///$outputter
 @MAGIC!
 
 ','named','outputter','@NAMEDPROXY: __');
+INSERT INTO t_objects VALUES('_7D8xcWnEiys_8oqOVSkCxkA',1497636412.76,'
+
+','','','');
 INSERT INTO t_objects VALUES('_7QeFDN33m7B_3dQv2OqqbH6',1493382726.98,'
 ///$get
 @MAGIC!
 
 ','named','get','@NAMEDPROXY: __');
+INSERT INTO t_objects VALUES('_7T9OwSFlgov_0wVJaK1eZbn',1497636292.47,'
+
+','','','');
+INSERT INTO t_objects VALUES('_7hbSpcNUdHi_4QezAVr6Bgj',1497636292.47,'
+
+','','','');
+INSERT INTO t_objects VALUES('_7ld89d4lLTB_3596gc6hLFI',1497636292.47,'
+
+','','','');
+INSERT INTO t_objects VALUES('_8f7GaaT5WJK_01z8k1JztS6',1497636292.47,'
+
+','','','');
+INSERT INTO t_objects VALUES('_8vdOBDVvgy8_5Hq3NM5whLJ',1497636292.47,'
+
+','','','');
+INSERT INTO t_objects VALUES('_9Cr5XlTL8lI_7ALESzYlXD7',1497636292.47,'
+
+','','','');
 
 END TRANSACTION; ---- for t_objects
 
