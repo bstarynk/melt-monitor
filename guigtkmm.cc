@@ -70,14 +70,19 @@ public:
 class MomShowTextIter
 {
   Gtk::TextIter _shtxit;
+  bool _showfull;
 public:
-  explicit MomShowTextIter(Gtk::TextIter txit) : _shtxit(txit) {};
+  static constexpr const bool _FULL_= true;
+  static constexpr const bool _PLAIN_= true;
+  explicit MomShowTextIter(Gtk::TextIter txit, bool full = false) : _shtxit(txit), _showfull(full) {};
   ~MomShowTextIter() {};
   MomShowTextIter(const MomShowTextIter&) = default;
   MomShowTextIter(MomShowTextIter&&) = default;
   void output(std::ostream& os) const;
 };
 
+const bool  MomShowTextIter::_FULL_;
+const bool  MomShowTextIter::_PLAIN_;
 
 inline
 std::ostream& operator << (std::ostream& out, const MomShowTextIter shtxit)
@@ -1359,6 +1364,16 @@ MomShowTextIter::output(std::ostream&outs) const
 {
   outs << "txit/" << _shtxit.get_offset()
        << "L" << _shtxit.get_line() << "C" << _shtxit.get_line_offset();
+  if (_showfull)
+    {
+      auto tagsvec = _shtxit.get_tags();
+      for (auto tagref : tagsvec)
+        {
+          if (!tagref) continue;
+          auto tagnamprop = tagref->property_name();
+          outs << ":" << tagnamprop.get_value();
+        }
+    }
 } // end MomShowTextIter::output
 
 extern "C"
