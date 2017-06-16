@@ -1326,7 +1326,8 @@ MomMainWindow::browser_show_object(MomObject*pob)
           else
             {
               shmlowit++;
-              MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmlowit /" << MomShowObject(shmlowit->first));
+              if (shmlowit == _mwi_shownobmap.end())
+                MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmlowit now at end");
             }
           auto shmuppit = _mwi_shownobmap.upper_bound(pob);
           if (shmuppit == _mwi_shownobmap.end())
