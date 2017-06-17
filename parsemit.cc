@@ -1093,38 +1093,35 @@ MomSimpleParser::simple_named_object(const std::string&nam)
 MomValue
 MomSimpleParser::simple_chunk_embedded_value(const MomValue v)
 {
+  ///  make an *embed(v) node
+  MomValue res = MomNode::make_from_values(MOMP_embed, v);
   MOM_DEBUGLOG(parse, "simple_chunk_embedded_value v=" << v
-               << " @" << location_str());
-  /// should make an *embed(v) node
-#warning MomSimpleParser::simple_chunk_embedded_value incomplete
-  MOM_WARNLOG("simple_chunk_embedded_value incomplete v=" << v
-              << " @" << location_str());
+               << " @" << location_str()
+               << "; res=" << res);
+  return res;
 } // end MomSimpleParser::simple_chunk_embedded_value
 
 MomValue
 MomSimpleParser::simple_chunk_dollarobj(MomObject*pob)
 {
+  MomValue res;
+  MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK, "simple_chunk_dollarobj bad pob");
+  // make a *dollar(pob) node
+  res = MomNode::make_from_values(MOMP_dollar, pob);
   MOM_DEBUGLOG(parse, "simple_chunk_dollarobj pob=" << MomShowObject(pob)
-               << " @" << location_str());
-  /// should make a *dollar(pob) node
-#warning MomSimpleParser::simple_chunk_dollarobj incomplete
-  MOM_WARNLOG("simple_chunk_dollarobj incomplete pob=" << MomShowObject(pob)
-              << " @" << location_str());
+               << " @" << location_str()
+               << "; res=" << res);
+  return res;
 } // end MomSimpleParser::simple_chunk_dollarobj
 
 MomValue
 MomSimpleParser::simple_chunk_value(const std::vector<MomValue>&vec)
 {
+  MomValue res = MomNode::make_from_vector(MOMP_chunk, vec);
   MOM_DEBUGLOG(parse, "simple_chunk_value vec/" << vec.size()
                << " @" << location_str()
-               << std::endl
-              );
-  /// should make a *chunk(...vec-elements...) node
-#warning MomSimpleParser::simple_chunk_value incomplete
-  MOM_WARNLOG("simple_chunk_value incomplete vec/" << vec.size()
-              << " @" << location_str()
-              << std::endl
-             );
+               << "; res=" << res);
+  return res;
 } // end MomSimpleParser::simple_chunk_value
 
 
