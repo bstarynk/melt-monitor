@@ -2600,7 +2600,7 @@ private:
 public:
   static constexpr std::uint64_t _par_word_limit_ = 1<<28;
   static constexpr double _par_plain_time_limit_ = 0.3;
-  static constexpr double _par_debug_time_limit_ = 0.5;
+  static constexpr double _par_debug_time_limit_ = 15.5;
   static constexpr const char _par_comment_start1_[] = "\342\214\251" /*U+2329 LEFT-POINTING ANGLE BRACKET 〈 */;
   static constexpr const char _par_comment_end1_[] = "\342\214\252" /*U+232A RIGHT-POINTING ANGLE BRACKET 〉 */;
   class Mom_parse_failure : public Mom_runtime_failure
@@ -2696,9 +2696,9 @@ public:
   {
     return _parsilent;
   };
-  bool eol() const
+  bool eol(int off=0) const
   {
-    return _parcol >= (int)_parlinstr.size();
+    return _parcol+off >= (int)_parlinstr.size() || _parcol+off<0;
   };
   bool eof() const
   {
@@ -2951,9 +2951,9 @@ MomParser::next_line()
     _parlincount++;
   if (_pardebug)
     MOM_DEBUGLOG(parse, "Mom_Parser::next_line _parlinoffset=" << _parlinoffset
-		 << " _parlinstr=" << MomShowString(_parlinstr)
-		 << " _parlincount=" << _parlincount
-		 << " @" << location_str());
+                 << " _parlinstr=" << MomShowString(_parlinstr)
+                 << " _parlincount=" << _parlincount
+                 << " @" << location_str());
 } // end MomParser::next_line
 
 

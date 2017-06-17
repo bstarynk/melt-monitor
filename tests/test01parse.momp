@@ -10,11 +10,12 @@ c
 "xyz"
 (#1 2 3#)
 (:1.2 3.14:)
+
 /// a raw multi-line string
-`END| here
+`ENDRAW|here
  is an raw
 multi|line
-string with a tab	! inside it.|END` 123
+string with a tab	! inside it.|ENDRAW` 123
 ///
 set
 node

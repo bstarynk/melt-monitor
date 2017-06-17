@@ -1441,7 +1441,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             .set_name(std::string{"--parse-val!"}+std::to_string(nbparsval))
             .set_make_from_id(true)
             .set_debug(MOM_IS_DEBUGGING(parse))
-            .disable_exhaustion(true);
+            .disable_exhaustion();
             pars.skip_spaces();
             MOM_INFORMLOG("parse-val '" << optarg << "'" << std::endl
                           << "peekbyte(0)=" << pars.peekbyte(0) << ' '
@@ -1482,7 +1482,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             .set_name(pstr)
             .set_make_from_id(true)
             .set_debug(MOM_IS_DEBUGGING(parse))
-            .disable_exhaustion(true);
+            .disable_exhaustion();
             pars.skip_spaces();
             MOM_DEBUGLOG(parse, "start of parse-file @"
                          << pars.location_str());

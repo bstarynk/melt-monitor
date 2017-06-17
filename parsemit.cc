@@ -146,6 +146,21 @@ MomParser::parse_string(bool *pgotstr)
             }
           str.push_back(pc);
           consume(1);
+          pc = peekbyte(0);
+          if (eol() || pc == '\n')
+            {
+              nblines++;
+              str.append("\n");
+              MOM_DEBUGLOG(parse, "parse_string lasteol raw string nblines=" << nblines
+                           << " loopcnt=" << loopcnt
+                           << " str=" << MomShowString(str)
+                           << " pc=" << pc
+                           << std::endl
+                           << " @" << location_str());
+              if (!_parinp) goto failure;
+              next_line();
+              continue;
+            }
         };
       MOM_DEBUGLOG(parse, "parse_string raw string ended str=" << MomShowString(str)
                    << std::endl
