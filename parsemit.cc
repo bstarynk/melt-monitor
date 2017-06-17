@@ -330,7 +330,8 @@ again:
             }
           curob = parse_objptr(&gotcurobj);
           if ((!_parnobuild && !curob) || !gotcurobj)
-            MOM_PARSE_FAILURE(this, "missing element object in set");
+            MOM_PARSE_FAILURE(this,
+			      "missing element object in set; peekchars=" << MomShowString(peekchars()) << "; _parlinstr=" << MomShowString(_parlinstr));
           if (!_parnobuild)
             set.insert(curob);
           cnt++;
