@@ -312,16 +312,19 @@ again:
     /// however, a string may be continued with &+& (it is a literal string catenation operator)
     /// eg "abc" &+& "def"  is the same as "abcdef"
     {
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "start of string");
       bool gotstr = false;
       bool again = false;
       std::string fullstr;
       do
         {
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " fullstr="
+                             << MomShowString(fullstr) << " @" << location_str());
           again = false;
           std::string str = parse_string(&gotstr);
           if (!gotstr)
             MOM_PARSE_FAILURE(this, "failed to parse string");
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " string "
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " got string "
                              << MomShowString(str));
           skip_spaces();
           fullstr += str;
@@ -329,6 +332,8 @@ again:
             again = true;
         }
       while (again);
+      if (pgotval)
+        *pgotval = true;
       return _parnobuild?nullptr:MomValue(MomString::make_from_string(fullstr));
     }
   // multi-line raw strings like `ab0|foobar\here|ab0`
@@ -338,12 +343,15 @@ again:
       auto str = parse_string(&gotstr);
       if (!gotstr)
         MOM_PARSE_FAILURE(this, "failed to parse raw string");
+      if (pgotval)
+        *pgotval = true;
       return _parnobuild?nullptr:MomValue(MomString::make_from_string(str));
     }
   else if (pc=='(' && nc=='#')	// (# integer sequence #)
     {
       int cnt = 0;
       std::vector<intptr_t> v;
+      MOM_DEBUGLOG(parse, "parse_value intseq start @" << location_str());
       for (;;)
         {
           skip_spaces();
@@ -358,15 +366,16 @@ again:
               consume(2);
               break;
             }
-          else if ((pc<127 && isdigit(pc)) || (nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
+          else if ((pc >0 && pc<127 && isdigit(pc)) || (nc > 0 && nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
             {
               const char*curp = peekchars();
               char*endp = nullptr;
               long long ll = strtoll(curp, &endp, 0);
+              cnt++;
+              MOM_DEBUGLOG(parse, "parse_value intseq#" << cnt << "=" << ll << " @" << location_str());
               consume(endp-curp);
               if (!_parnobuild)
                 v.push_back(ll);
-              cnt++;
             }
           else
             MOM_PARSE_FAILURE(this, "invalid integer sequence");
@@ -384,6 +393,7 @@ again:
     {
       int cnt =0;
       std::vector<double> v;
+      MOM_DEBUGLOG(parse, "parse_value doubleseq start @" << location_str());
       for (;;)
         {
           skip_spaces();
@@ -403,10 +413,11 @@ again:
               const char*curp = peekchars();
               char*endp = nullptr;
               double x = strtod(curp, &endp);
+              cnt++;
+              MOM_DEBUGLOG(parse, "parse_value dblseq#" << cnt << "=" << x << " @" << location_str());
               consume(endp-curp);
               if (!_parnobuild)
                 v.push_back(x);
-              cnt++;
             }
           else
             MOM_PARSE_FAILURE(this, "invalid double sequence");
