@@ -1461,8 +1461,14 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           {
             std::ifstream insf{pstr};
             MomSimpleParser pars(insf);
-            pars.set_name(pstr).set_make_from_id(true).disable_exhaustion();
+            pars
+            .set_name(pstr)
+            .set_make_from_id(true)
+            .set_debug(MOM_IS_DEBUGGING(parse))
+            .disable_exhaustion(true);
             pars.skip_spaces();
+            MOM_DEBUGLOG(parse, "start of parse-file @"
+                         << pars.location_str());
             MOM_INFORMLOG("parse-file '" << pstr << "'" << std::endl
                           << "peekbyte(0)=" << pars.peekbyte(0) << ' '
                           << "peekbyte(1)=" << pars.peekbyte(1) << ' '
@@ -1481,7 +1487,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                   break;
               }
             if (pars.eof())
-              MOM_INFORMLOG("parse-file eof at " << pars.location_str());
+              MOM_INFORMLOG("parse-file eof at " << pars.location_str() << std::endl);
           });
           break;
           default:
