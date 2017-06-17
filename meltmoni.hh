@@ -2949,6 +2949,11 @@ MomParser::next_line()
   _parcol = 0;
   if (_parinp)
     _parlincount++;
+  if (_pardebug)
+    MOM_DEBUGLOG(parse, "Mom_Parser::next_line _parlinoffset=" << _parlinoffset
+		 << " _parlinstr=" << MomShowString(_parlinstr)
+		 << " _parlincount=" << _parlincount
+		 << " @" << location_str());
 } // end MomParser::next_line
 
 
