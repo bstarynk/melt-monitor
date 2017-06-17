@@ -100,16 +100,16 @@ MomParser::parse_string(bool *pgotstr)
       int borderlen = strlen(border);
       std::string str;
       int nblines = 0;
-      consume(borderpos-1);
+      consume(borderlen+2);
       long loopcnt = 0;
       for (;;)
         {
-	  if (loopcnt%32 == 0)
-	    MOM_DEBUGLOG(parse, "raw string nblines=" << nblines
-			 << " loopcnt=" << loopcnt
-			 << " peekchars=" << MomShowString(peekchars())
-			 << " @" << location_str());
-	  loopcnt++;
+          if (loopcnt%32 == 0)
+            MOM_DEBUGLOG(parse, "raw string nblines=" << nblines
+                         << " loopcnt=" << loopcnt
+                         << " peekchars=" << MomShowString(peekchars())
+                         << " @" << location_str());
+          loopcnt++;
           if (eol())
             {
               if (!_parinp) goto failure;
@@ -122,17 +122,19 @@ MomParser::parse_string(bool *pgotstr)
           pc = peekbyte(0);
           if (pc == '|')
             {
-	      nc = peekbyte(1);
-	      MOM_DEBUGLOG(parse, "raw string |  peekchars="
-			   << MomShowString(peekchars())
-			   << " @" << location_str()
-			   << " border=" << MomShowString(border)
-			   << ", borderlen=" << borderlen);
+              nc = peekbyte(1);
+              MOM_DEBUGLOG(parse, "raw string |  peekchars="
+                           << MomShowString(peekchars())
+                           << " @" << location_str()
+                           << " border=" << MomShowString(border)
+                           << ", borderlen=" << borderlen);
               if (nc == border[0] && !strncmp(peekchars(1), border, borderlen)
-		  && peekbyte(borderlen+2)=='`')
+                  && peekbyte(borderlen+1)=='`')
                 {
                   consume(borderlen+2);
-                  MOM_DEBUGLOG(parse, "raw string ended @" << location_str());
+                  MOM_DEBUGLOG(parse, "raw string ended peekchars="
+                               << MomShowString(peekchars())
+                               << " @" << location_str());
                   break;
                 }
             }
