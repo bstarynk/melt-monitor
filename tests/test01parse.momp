@@ -6,3 +6,6 @@ c
 { set d e f }
 [ tuple h i j ]
 * node (a 1 b)
+set
+node
+tuple
