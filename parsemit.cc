@@ -1107,6 +1107,7 @@ void
 MomValue::output(std::ostream& out) const
 {
   MomEmitter em(out);
+  em.with_name(true);
   em.emit_value(*this);
 } // end MomValue::output
 
