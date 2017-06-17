@@ -9,9 +9,14 @@ c
 "xyz"
 (#1 2 3#)
 (:1.2 3.14:)
+/// a raw multi-line string
 `END| here
- is an embbeded |END`
+ is an raw
+multi-line
+	string|END`
+///
 set
 node
 tuple
-*node(a *b(c "az") d e [i j] {k l})
+*node(a *b(c "az")
+      d e [i j] {k l})

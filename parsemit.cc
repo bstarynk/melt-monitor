@@ -351,6 +351,7 @@ again:
     {
       int cnt = 0;
       std::vector<intptr_t> v;
+      consume(2);
       MOM_DEBUGLOG(parse, "parse_value intseq start @" << location_str());
       for (;;)
         {
@@ -393,6 +394,7 @@ again:
     {
       int cnt =0;
       std::vector<double> v;
+      consume(2);
       MOM_DEBUGLOG(parse, "parse_value doubleseq start @" << location_str());
       for (;;)
         {
