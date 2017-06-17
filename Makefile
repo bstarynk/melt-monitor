@@ -35,8 +35,7 @@ PACKAGES= sqlite_modern_cpp gtkmm-3.0 glib-2.0
 # sqlite_modern_cpp from github.com/aminroosta/sqlite_modern_cpp.git
 PKGCONFIG= pkg-config
 PREPROFLAGS= -I. -I/usr/local/include $(shell $(PKGCONFIG) --cflags $(PACKAGES))
-OPTIMPICFLAGS= -fPIC
-OPTIMFLAGS= -Og -g3 $(OPTIMPICFLAGS)
+OPTIMFLAGS= -Og -g3
 SQLITE3=sqlite3
 
 
