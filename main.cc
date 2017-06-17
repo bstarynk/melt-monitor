@@ -1434,7 +1434,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           ([=](void)
           {
             std::istringstream ins{pstr};
-            MomParser pars(ins);
+            MomSimpleParser pars(ins);
             pars.set_name(std::string{"--parse-val"}).set_make_from_id(true);
             pars.skip_spaces();
             MOM_INFORMLOG("parse-val '" << optarg << "'" << std::endl
@@ -1460,8 +1460,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           ([=](void)
           {
             std::ifstream insf{pstr};
-            MomParser pars(insf);
-            pars.set_name(pstr).set_make_from_id(true);
+            MomSimpleParser pars(insf);
+            pars.set_name(pstr).set_make_from_id(true).disable_exhaustion();
             pars.skip_spaces();
             MOM_INFORMLOG("parse-file '" << pstr << "'" << std::endl
                           << "peekbyte(0)=" << pars.peekbyte(0) << ' '
@@ -1472,6 +1472,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             for (;;)
               {
                 pars.skip_spaces();
+                MOM_DEBUGLOG(parse, "parse-file @" << pars.location_str());
                 bool gotval = false;
                 auto val = pars.parse_value(&gotval);
                 pars.skip_spaces();
