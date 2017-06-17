@@ -1610,6 +1610,7 @@ main (int argc_main, char **argv_main)
   MomObject::initialize_predefined();
   if (load_state_mom && load_state_mom[0] && load_state_mom[0] != '-')
     mom_load_from_directory(load_state_mom);
+  MOM_INFORMLOG("running timestamp " << monimelt_timestamp << " lastgitcommit " << monimelt_lastgitcommit << " pid=" << (int)getpid());
   if (!todo_after_load_mom.empty())
     {
       MOM_INFORMLOG("todo after load: " << todo_after_load_mom.size() << " entries.");

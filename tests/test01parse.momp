@@ -13,7 +13,7 @@ c
 `END| here
  is an raw
 multi|line
-string with a tab	! inside it.|END`
+string with a tab	! inside it.|END` 123
 ///
 set
 node
