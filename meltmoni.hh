@@ -2060,7 +2060,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   static void gc_todo_clear_mark_bucket(MomGC*gc,unsigned buckix);
   static void gc_todo_sweep_bucket(MomGC*gc,unsigned buckix);
 public:
-  std::shared_mutex& get_shared_mutex(const MomPayload* = nullptr)
+  std::shared_mutex& get_shared_mutex(const MomPayload* = nullptr) const
   {
     return _ob_shmtx;
   };
@@ -2974,6 +2974,7 @@ class MomEmitter 		// in file parsemit.cc
   std::ostream::pos_type _emlastnewline;
   int _emlinewidth;
   bool _emnotransient;
+  bool _emwithname;
 public:
   static constexpr int _default_line_width_ = 96;
   static constexpr int _min_line_width_ = 48;
@@ -2982,7 +2983,8 @@ public:
     : _emout(out),
       _emlastnewline(out.tellp()),
       _emlinewidth(_default_line_width_),
-      _emnotransient(false)
+      _emnotransient(false),
+      _emwithname(false)
   {
   }
   MomEmitter& set_line_width(int lw)
@@ -2992,6 +2994,11 @@ public:
     _emlinewidth = lw;
     return *this;
   };
+  MomEmitter& with_name(bool withname=true)
+  {
+    _emwithname = withname;
+    return *this;
+  }
   MomEmitter& show_transient(bool show=true)
   {
     _emnotransient = !show;

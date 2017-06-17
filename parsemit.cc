@@ -187,6 +187,13 @@ again:
   if (eol())
     {
       skip_spaces();
+      if (eof())
+        {
+          if (pgotval)
+            *pgotval = false;
+          MOM_DEBUGLOG(parse, "parse_value got EOF @" << location_str());
+          return nullptr;
+        }
       if (eol() && !_parinp) goto failure;
       goto again;
     }
@@ -452,8 +459,9 @@ again:
       if (_parfun)
         _parfun(PtokNode,inicol,inilincnt);
       auto resv =  _parnobuild?nullptr:MomValue(MomNode::make_from_vector(connob,sonvec));
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "node/" << cnt
-                         << (_parnobuild?"!":" ") << resv);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << ", node/" << cnt
+                         << (_parnobuild?"!":" ") << resv
+                         << " @" << location_str());
       return resv;
     }
   else if (pc=="°"[0] && nc=="°"[1])
@@ -758,6 +766,13 @@ again:
   if (eol())
     {
       skip_spaces();
+      if (eof())
+        {
+          if (pgotob)
+            *pgotob = false;
+          MOM_DEBUGLOG(parse, "parse_objptr got EOF @" << location_str());
+          return nullptr;
+        }
       if (eol() && !_parinp) goto failure;
       goto again;
     }
@@ -814,7 +829,7 @@ again:
       MomObject* ob = fetch_named_object(namstr);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
                          << " namstr=" << MomShowString(namstr)
-                         << " ob=" << ob);
+                         << " NAMEDOB=" << MomShowObject(ob));
       if (ob || _parnobuild)
         {
           consume(endnamp-begnamp);
@@ -1064,10 +1079,25 @@ MomEmitter::emit_string(const std::string&str, int depth, bool asraw)
 
 
 void
-MomEmitter::emit_objptr(const MomObject*pob, int depth MOM_UNUSED)
+MomEmitter::emit_objptr(const MomObject*pob, int depth)
 {
   if (!pob || skippable_object(pob))
     out() << "__";
+  else if (_emwithname)
+    {
+      std::string obnamstr;
+      {
+        std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
+        obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
+      }
+      if (!obnamstr.empty())
+        {
+          out() << obnamstr << " |=" << pob->id() << "|";
+          emit_space(depth);
+        }
+      else
+        out() << pob->id();
+    }
   else
     out() << pob->id();
 } // end MomEmitter::emit_objptr
