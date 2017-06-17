@@ -1235,6 +1235,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   int opt = -1;
   char *commentstr = nullptr;
   int myargindex = 0;
+  int nbparsval = 0;
   while ((opt = getopt_long (argc, argv, "hVGd:sD:L:J:",
                              mom_long_options, &myargindex)) >= 0)
     {
@@ -1430,12 +1431,17 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           if (optarg == nullptr)
             MOM_FATAPRINTF("missing value for --parse-val");
           pstr = std::string{optarg};
+          nbparsval++;
           todo_after_load_mom.push_back
           ([=](void)
           {
             std::istringstream ins{pstr};
             MomSimpleParser pars(ins);
-            pars.set_name(std::string{"--parse-val"}).set_make_from_id(true);
+            pars
+            .set_name(std::string{"--parse-val!"}+std::to_string(nbparsval))
+            .set_make_from_id(true)
+            .set_debug(MOM_IS_DEBUGGING(parse))
+            .disable_exhaustion(true);
             pars.skip_spaces();
             MOM_INFORMLOG("parse-val '" << optarg << "'" << std::endl
                           << "peekbyte(0)=" << pars.peekbyte(0) << ' '
@@ -1444,9 +1450,20 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                           << "peekbyte(3)=" << pars.peekbyte(3) << ' '
                           << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
             bool gotval = false;
+            pars.skip_spaces();
+            std::string locstr = pars.location_str();
             auto val = pars.parse_value(&gotval);
             pars.skip_spaces();
-            MOM_INFORMLOG("parse-val " << (gotval?"with":"without") << " value=" << val << std::endl << "...@ " << pars.location_str());
+            MOM_INFORMLOG("parse-val " << (gotval?"with":"without") << " value=" << val << std::endl
+                          << "...@ " << pars.location_str()
+                          << std::endl << "/// raw val @" << locstr
+                          << std::endl
+                          << MomDoShow([&](std::ostream&os)
+            {
+              MomEmitter rawem(os);
+              rawem.emit_value(val);
+            })
+                << std::endl);
           });
         }
         break;
@@ -1475,16 +1492,28 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                           << "peekbyte(2)=" << pars.peekbyte(2) << ' '
                           << "peekbyte(3)=" << pars.peekbyte(3) << ' '
                           << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
+            int parsecnt = 0;
             for (;;)
               {
                 pars.skip_spaces();
                 MOM_DEBUGLOG(parse, "parse-file @" << pars.location_str());
                 bool gotval = false;
+                std::string locstr = pars.location_str();
                 auto val = pars.parse_value(&gotval);
-                pars.skip_spaces();
-                MOM_INFORMLOG("parse-file " << (gotval?"with":"without") << " value=" << val << std::endl << "...@ " << pars.location_str());
                 if (!gotval || pars.eof())
                   break;
+                parsecnt++;
+                pars.skip_spaces();
+                MOM_INFORMLOG("parse-file " << (gotval?"with":"without") << " value=" << val
+                              << std::endl << "...@ " << pars.location_str()
+                              << std::endl << "/// raw val#" << parsecnt << " @" << locstr
+                              << std::endl
+                              << MomDoShow([&](std::ostream&os)
+                {
+                  MomEmitter rawem(os);
+                  rawem.emit_value(val);
+                })
+                    << std::endl);
               }
             if (pars.eof())
               MOM_INFORMLOG("parse-file eof at " << pars.location_str() << std::endl);
