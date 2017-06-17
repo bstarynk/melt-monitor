@@ -1,0 +1,8 @@
+#!./monimelt --parse-file
+/// file tests/test01parse.momp
+a
+b
+c
+{ set d e f }
+[ tuple h i j ]
+* node (a 1 b)
