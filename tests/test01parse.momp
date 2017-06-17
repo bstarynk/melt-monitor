@@ -6,6 +6,7 @@ c
 { set d e f }
 [ tuple h i j ]
 * node (a 1 b)
+{u v}
 "xyz"
 (#1 2 3#)
 (:1.2 3.14:)
