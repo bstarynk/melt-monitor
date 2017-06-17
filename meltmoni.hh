@@ -2585,7 +2585,7 @@ private:
   long _parlinoffset; // offset of current line
   std::uint64_t _parbeginwords; // allocation word count at start of parsing
   double _parbegintime;		 // elapsed real time at start of parsing
-  int _parcol; // current column
+  int _parcol; // current column, first is 0
   bool _pardebug;	// if set, activate MOM_DEBUGLOG(parse, ...)
   bool _parsilent; // if set, failure is silent without backtrace
   bool _parnobuild; // if set, no values are built
@@ -2698,7 +2698,7 @@ public:
   };
   bool eol() const
   {
-    return _parcol+1 >= (int)_parlinstr.size();
+    return _parcol >= (int)_parlinstr.size();
   };
   bool eof() const
   {
@@ -2708,13 +2708,13 @@ public:
   int peekbyte(unsigned off=0) const
   {
     if (_parcol<0) return EOF;
-    if (_parcol+off > _parlinstr.size()) return EOF;
+    if (_parcol+off >= _parlinstr.size()) return EOF;
     return _parlinstr[_parcol+off];
   }
   const char* peekchars(unsigned off=0) const
   {
     if (_parcol<0) return nullptr;
-    if (_parcol+off > _parlinstr.size()) return nullptr;
+    if (_parcol+off >= _parlinstr.size()) return nullptr;
     return _parlinstr.c_str()+_parcol+off;
   }
   bool gotcstr (const char*str, unsigned off=0) const
