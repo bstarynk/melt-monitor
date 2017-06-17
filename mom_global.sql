@@ -1,4 +1,4 @@
--- dump 2017 Jun 16 from mom_global dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jun 17 from mom_global dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -39,22 +39,20 @@ END TRANSACTION; ---- for t_globdata
 
 ------- TABLE t_names @@@@@@
 BEGIN TRANSACTION; --- for t_names
+INSERT INTO t_names VALUES('_4cCZc3Izgsr_7LsCkWW7flp','doublesq');
 INSERT INTO t_names VALUES('_7QeFDN33m7B_3dQv2OqqbH6','get');
+INSERT INTO t_names VALUES('_0vgCFjXblkx_4zCMhMAWjVK','int');
+INSERT INTO t_names VALUES('_45cnnX4v29t_9gZkfMOZj2Z','intsq');
 INSERT INTO t_names VALUES('_1jJjA6LcXiX_1V4ZcXlje09','name');
+INSERT INTO t_names VALUES('_1JSykdLcLdl_8rWxtDBaPGN','none');
+INSERT INTO t_names VALUES('_7T9OwSFlgov_0wVJaK1eZbn','object');
 INSERT INTO t_names VALUES('_6ss8POQNnku_8e8woNsmvN9','outputter');
 INSERT INTO t_names VALUES('_4w339hT5dXd_1tUZFvU4fWx','proxy');
 INSERT INTO t_names VALUES('_3bMUJDWlMMQ_2j2bm7EeIbv','put');
 INSERT INTO t_names VALUES('_2mYaTh9kH4I_7ENiXcymRmy','set');
 INSERT INTO t_names VALUES('_3SFtXTTy3kj_89fO24X2HFo','size');
---- °°°°°(((
-INSERT INTO t_names VALUES('_0vgCFjXblkx_4zCMhMAWjVK','int');
-INSERT INTO t_names VALUES('_1JSykdLcLdl_8rWxtDBaPGN','none');
-INSERT INTO t_names VALUES('_45cnnX4v29t_9gZkfMOZj2Z','intsq');
-INSERT INTO t_names VALUES('_4cCZc3Izgsr_7LsCkWW7flp','doublesq');
 INSERT INTO t_names VALUES('_4T8am97muLl_5969SR22Ecq','string');
 INSERT INTO t_names VALUES('_6TmLNh9vtVY_0pwkHRtJ44k','tuple');
-INSERT INTO t_names VALUES('_7T9OwSFlgov_0wVJaK1eZbn','object');
---- °°°°°)))
 END TRANSACTION; ---- for t_names
 
 ------- TABLE t_objects @@@@@@
@@ -63,7 +61,6 @@ INSERT INTO t_objects VALUES('_0vgCFjXblkx_4zCMhMAWjVK',1497636292.47,'
 ///°°°$int
 @MAGIC!
 ','named','int','@NAMEDPROXY: __');
-
 INSERT INTO t_objects VALUES('_1JSykdLcLdl_8rWxtDBaPGN',1497636292.47,'
 ///°°°$none
 @MAGIC!
@@ -88,34 +85,27 @@ INSERT INTO t_objects VALUES('_3bMUJDWlMMQ_2j2bm7EeIbv',1495430034.89,'
 @MAGIC!
 
 ','named','put','@NAMEDPROXY: __');
-
 INSERT INTO t_objects VALUES('_45cnnX4v29t_9gZkfMOZj2Z',1497636412.76,'
 ///°°°$intsq
 @MAGIC!
 ','named','intsq','@NAMEDPROXY: __');
-
 INSERT INTO t_objects VALUES('_4T8am97muLl_5969SR22Ecq',1497636412.76,'
 ///°°°$string
 @MAGIC!
 ','named','string','');
-
 INSERT INTO t_objects VALUES('_4cCZc3Izgsr_7LsCkWW7flp',1497636292.47,'
 ///°°°$doubleqsq
 @MAGIC!
 ','named','doublesq','@NAMEDPROXY: __');
-
-
 INSERT INTO t_objects VALUES('_4w339hT5dXd_1tUZFvU4fWx',1495430034.89,'
 ///$proxy
 @MAGIC!
 
 ','named','proxy','@NAMEDPROXY: __');
-
 INSERT INTO t_objects VALUES('_6TmLNh9vtVY_0pwkHRtJ44k',1497636292.47,'
 ///°°°$tuple
 @MAGIC!
 ','named','tuple','');
-
 INSERT INTO t_objects VALUES('_6ZpMq408eTN_8t3ZHpgCk3R',1497636292.47,'
 
 ','','','');
@@ -124,23 +114,19 @@ INSERT INTO t_objects VALUES('_6ss8POQNnku_8e8woNsmvN9',1496020871.11,'
 @MAGIC!
 
 ','named','outputter','@NAMEDPROXY: __');
-
 INSERT INTO t_objects VALUES('_7D8xcWnEiys_8oqOVSkCxkA',1497636412.76,'
 ///°°°$node
 @MAGIC!
 ','named','node','');
-
 INSERT INTO t_objects VALUES('_7QeFDN33m7B_3dQv2OqqbH6',1493382726.98,'
 ///$get
 @MAGIC!
 
 ','named','get','@NAMEDPROXY: __');
-
 INSERT INTO t_objects VALUES('_7T9OwSFlgov_0wVJaK1eZbn',1497636292.47,'
 ///°°°$object
 @MAGIC!
 ','named','object','');
-
 INSERT INTO t_objects VALUES('_7hbSpcNUdHi_4QezAVr6Bgj',1497636292.47,'
 
 ','','','');

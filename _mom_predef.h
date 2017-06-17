@@ -57,36 +57,34 @@ MOM_HAS_PREDEF(_9Cr5XlTL8lI_7ALESzYlXD7,8074019743773521146,6372836626459792797,
 
 #undef MOM_HAS_PREDEF
 
+#undef MOMP_doublesq
 #undef MOMP_get
+#undef MOMP_int
+#undef MOMP_intsq
 #undef MOMP_name
+#undef MOMP_node
+#undef MOMP_none
+#undef MOMP_object
 #undef MOMP_outputter
 #undef MOMP_proxy
 #undef MOMP_put
 #undef MOMP_set
 #undef MOMP_size
-
-// int none intsq doublesq string -set- tuple node object
-#undef MOMP_int
-#undef MOMP_none
-#undef MOMP_intsq
-#undef MOMP_doublesq
 #undef MOMP_string
 #undef MOMP_tuple
-#undef MOMP_node
-#undef MOMP_object
 
-#define MOMP_doublesq    MOM_PREDEF(_4cCZc3Izgsr_7LsCkWW7flp) /*°°°°*/
+#define MOMP_doublesq    MOM_PREDEF(_4cCZc3Izgsr_7LsCkWW7flp)
 #define MOMP_get         MOM_PREDEF(_7QeFDN33m7B_3dQv2OqqbH6)
-#define MOMP_int         MOM_PREDEF(_0vgCFjXblkx_4zCMhMAWjVK) /*°°°°*/
-#define MOMP_intsq       MOM_PREDEF(_45cnnX4v29t_9gZkfMOZj2Z) /*°°°°*/
+#define MOMP_int         MOM_PREDEF(_0vgCFjXblkx_4zCMhMAWjVK)
+#define MOMP_intsq       MOM_PREDEF(_45cnnX4v29t_9gZkfMOZj2Z)
 #define MOMP_name        MOM_PREDEF(_1jJjA6LcXiX_1V4ZcXlje09)
-#define MOMP_node        MOM_PREDEF(_7D8xcWnEiys_8oqOVSkCxkA) /*°°°°*/
-#define MOMP_none        MOM_PREDEF(_1JSykdLcLdl_8rWxtDBaPGN) /*°°°°*/
+#define MOMP_node        MOM_PREDEF(_7D8xcWnEiys_8oqOVSkCxkA)
+#define MOMP_none        MOM_PREDEF(_1JSykdLcLdl_8rWxtDBaPGN)
+#define MOMP_object      MOM_PREDEF(_7T9OwSFlgov_0wVJaK1eZbn)
 #define MOMP_outputter   MOM_PREDEF(_6ss8POQNnku_8e8woNsmvN9)
 #define MOMP_proxy       MOM_PREDEF(_4w339hT5dXd_1tUZFvU4fWx)
 #define MOMP_put         MOM_PREDEF(_3bMUJDWlMMQ_2j2bm7EeIbv)
 #define MOMP_set         MOM_PREDEF(_2mYaTh9kH4I_7ENiXcymRmy)
 #define MOMP_size        MOM_PREDEF(_3SFtXTTy3kj_89fO24X2HFo)
-#define MOMP_string      MOM_PREDEF(_4T8am97muLl_5969SR22Ecq) /*°°°°*/
-#define MOMP_tuple       MOM_PREDEF(_6TmLNh9vtVY_0pwkHRtJ44k) /*°°°°*/
-#define MOMP_object      MOM_PREDEF(_7T9OwSFlgov_0wVJaK1eZbn) /*°°°°*/
+#define MOMP_string      MOM_PREDEF(_4T8am97muLl_5969SR22Ecq)
+#define MOMP_tuple       MOM_PREDEF(_6TmLNh9vtVY_0pwkHRtJ44k)
