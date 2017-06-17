@@ -42,7 +42,7 @@ static const char*load_state_mom = ".";
 thread_local MomRandom MomRandom::_rand_thr_;
 
 typedef std::function<void(void)> todo_t;
-static std::vector<todo_t> todo_after_load_mom;
+static std::deque<todo_t> todo_after_load_mom;
 
 
 unsigned mom_debugflags;
@@ -1455,6 +1455,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           if (optarg == nullptr)
             MOM_FATAPRINTF("missing filepath for --parse-file");
           pstr = std::string{optarg};
+          MOM_INFORMLOG("should parse file " << MomShowString(pstr));
           todo_after_load_mom.push_back
           ([=](void)
           {
@@ -1462,7 +1463,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             MomParser pars(insf);
             pars.set_name(pstr).set_make_from_id(true);
             pars.skip_spaces();
-            MOM_INFORMLOG("parse-file '" << optarg << "'" << std::endl
+            MOM_INFORMLOG("parse-file '" << pstr << "'" << std::endl
                           << "peekbyte(0)=" << pars.peekbyte(0) << ' '
                           << "peekbyte(1)=" << pars.peekbyte(1) << ' '
                           << "peekbyte(2)=" << pars.peekbyte(2) << ' '
@@ -1573,6 +1574,19 @@ main (int argc_main, char **argv_main)
   MomObject::initialize_predefined();
   if (load_state_mom && load_state_mom[0] && load_state_mom[0] != '-')
     mom_load_from_directory(load_state_mom);
+  if (!todo_after_load_mom.empty())
+    {
+      MOM_INFORMLOG("todo after load: " << todo_after_load_mom.size() << " entries.");
+      long todocnt = 0;
+      while (!todo_after_load_mom.empty())
+        {
+          auto todofun = todo_after_load_mom.front();
+          todo_after_load_mom.pop_front();
+          todocnt++;
+          todofun();
+        }
+      MOM_INFORMLOG("todo after load done " << todocnt << " todos.");
+    }
   if (mom_with_gui)
     {
       int res = mom_run_gtkmm_gui(argc, argv);
