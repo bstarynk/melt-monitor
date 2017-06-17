@@ -54,10 +54,17 @@ INSERT INTO t_names VALUES('_2mYaTh9kH4I_7ENiXcymRmy','set');
 INSERT INTO t_names VALUES('_3SFtXTTy3kj_89fO24X2HFo','size');
 INSERT INTO t_names VALUES('_4T8am97muLl_5969SR22Ecq','string');
 INSERT INTO t_names VALUES('_6TmLNh9vtVY_0pwkHRtJ44k','tuple');
+--- °°°°
+INSERT INTO t_names VALUES('_7hbSpcNUdHi_4QezAVr6Bgj','chunk');
+INSERT INTO t_names VALUES('_8f7GaaT5WJK_01z8k1JztS6', 'dollar');
+INSERT INTO t_names VALUES('_33imugvOze0_0wdPqjmME0U','embed');
 END TRANSACTION; ---- for t_names
 
 ------- TABLE t_objects @@@@@@
 BEGIN TRANSACTION; --- for t_objects
+INSERT INTO t_objects VALUES('_0LK4TzFd6u1_0JFUsrQ4odG',1497705092.87,'
+
+','','','');
 INSERT INTO t_objects VALUES('_0vgCFjXblkx_4zCMhMAWjVK',1497636292.47,'
 ///$int
 @MAGIC!
@@ -78,6 +85,9 @@ INSERT INTO t_objects VALUES('_2mYaTh9kH4I_7ENiXcymRmy',1493382726.98,'
 @MAGIC!
 
 ','named','set','@NAMEDPROXY: __');
+INSERT INTO t_objects VALUES('_33imugvOze0_0wdPqjmME0U',1497705092.87,'
+///°°°$embed
+','named','embed','');
 INSERT INTO t_objects VALUES('_3SFtXTTy3kj_89fO24X2HFo',1495430034.89,'
 ///$size
 @MAGIC!
@@ -121,6 +131,9 @@ INSERT INTO t_objects VALUES('_6ss8POQNnku_8e8woNsmvN9',1496020871.11,'
 @MAGIC!
 
 ','named','outputter','@NAMEDPROXY: __');
+INSERT INTO t_objects VALUES('_785pDebNo9y_1ugTc398Np4',1497705092.87,'
+
+','','','');
 INSERT INTO t_objects VALUES('_7D8xcWnEiys_8oqOVSkCxkA',1497636412.76,'
 ///$node
 @MAGIC!
@@ -137,14 +150,17 @@ INSERT INTO t_objects VALUES('_7T9OwSFlgov_0wVJaK1eZbn',1497636292.47,'
 
 ','named','object','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_7hbSpcNUdHi_4QezAVr6Bgj',1497636292.47,'
-
-','','','');
+///°°°$chunk
+','named','chunk','');
 INSERT INTO t_objects VALUES('_7ld89d4lLTB_3596gc6hLFI',1497636292.47,'
 
 ','','','');
-INSERT INTO t_objects VALUES('_8f7GaaT5WJK_01z8k1JztS6',1497636292.47,'
+INSERT INTO t_objects VALUES('_8ZPtpM4JscH_1ViGLydV6mU',1497705092.87,'
 
 ','','','');
+INSERT INTO t_objects VALUES('_8f7GaaT5WJK_01z8k1JztS6',1497636292.47,'
+///°°°$dollar
+','named','dollar','');
 INSERT INTO t_objects VALUES('_8vdOBDVvgy8_5Hq3NM5whLJ',1497636292.47,'
 
 ','','','');
