@@ -211,7 +211,7 @@ again:
       skip_spaces();
       goto again;
     }
-  else if (pc=='/' && nc == '/')
+  else if ((pc=='/' && nc == '/') || (pc=='#' && nc == '!'))
     {
       next_line();
       if (_parfun)
