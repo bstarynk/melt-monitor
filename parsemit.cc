@@ -709,7 +709,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       auto embv = parse_value(&gotval);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
                          << " chunkelem got embedded value" <<(_parnobuild?"!":" ") << embv);
-      auto v = _parnobuild?nullptr:chunk_value(embv);
+      auto v = _parnobuild?nullptr:chunk_embedded_value(embv);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
                          << " chunkelem embedding value" <<(_parnobuild?"!":" ") << v);
       if (!_parnobuild)
@@ -1079,3 +1079,91 @@ MomValue::output(std::ostream& out) const
   MomEmitter em(out);
   em.emit_value(*this);
 } // end MomValue::output
+
+
+MomObject*
+MomSimpleParser::simple_named_object(const std::string&nam)
+{
+  auto pob = mom_find_named(nam.c_str());
+  if (!pob)
+    MOM_PARSE_FAILURE(this, "name " << MomShowString(nam) << " not found");
+  return pob;
+} // end MomSimpleParser::simple_named_object
+
+MomValue
+MomSimpleParser::simple_chunk_embedded_value(const MomValue v)
+{
+  MOM_DEBUGLOG(parse, "simple_chunk_embedded_value v=" << v
+               << " @" << location_str());
+  /// should make a *chunk_embed(v) node
+#warning MomSimpleParser::simple_chunk_embedded_value incomplete
+  MOM_WARNLOG("simple_chunk_embedded_value incomplete v=" << v
+              << " @" << location_str());
+} // end MomSimpleParser::simple_chunk_embedded_value
+
+MomValue
+MomSimpleParser::simple_chunk_dollarobj(MomObject*pob)
+{
+  MOM_DEBUGLOG(parse, "simple_chunk_dollarobj pob=" << MomShowObject(pob)
+               << " @" << location_str());
+  /// should make a *chunk_dollarobj(pob) node
+#warning MomSimpleParser::simple_chunk_dollarobj incomplete
+  MOM_WARNLOG("simple_chunk_dollarobj incomplete pob=" << MomShowObject(pob)
+              << " @" << location_str());
+} // end MomSimpleParser::simple_chunk_dollarobj
+
+MomValue
+MomSimpleParser::simple_chunk_value(const std::vector<MomValue>&vec)
+{
+  MOM_DEBUGLOG(parse, "simple_chunk_value vec/" << vec.size()
+               << " @" << location_str()
+               << std::endl
+              );
+  /// should make a *chunk_value(...vec-elements...) node
+#warning MomSimpleParser::simple_chunk_value incomplete
+  MOM_WARNLOG("simple_chunk_value incomplete vec/" << vec.size()
+              << " @" << location_str()
+              << std::endl
+             );
+} // end MomSimpleParser::simple_chunk_value
+
+
+MomObject*
+MomSimpleParser::fetch_named_object(const std::string&nam)
+{
+  MomObject* pob = nullptr;
+  if (_spar_namedfetchfun) pob = _spar_namedfetchfun(this,nam);
+  if (!pob) pob = simple_named_object(nam);
+  return pob;
+} // end MomSimpleParser::fetch_named_object
+
+MomValue
+MomSimpleParser::chunk_embedded_value(const MomValue val)
+{
+  MomValue res = nullptr;
+  if (_spar_chunkvalfun)
+    res = _spar_chunkvalfun(this,val);
+  if (!res)
+    res = simple_chunk_embedded_value(val);
+  return res;
+} // end MomSimpleParser::chunk_embedded_value
+
+MomValue
+MomSimpleParser::chunk_dollarobj(MomObject*pob)
+{
+  MomValue res = nullptr;
+  if (_spar_chunkdollarobjfun)
+    res = _spar_chunkdollarobjfun(this,pob);
+  if (!res)
+    res = simple_chunk_dollarobj(pob);
+  return res;
+} // end MomSimpleParser::chunk_dollarobj
+
+MomValue
+MomSimpleParser::chunk_value(const std::vector<MomValue>&vec)
+{
+  MomValue res=nullptr;
+  if (_spar_chunknodefun) res = _spar_chunknodefun(this,vec);
+  if (!res) res = simple_chunk_value(vec);
+  return res;
+} // end MomSimpleParser::chunk_value
