@@ -44,6 +44,7 @@ INSERT INTO t_names VALUES('_7QeFDN33m7B_3dQv2OqqbH6','get');
 INSERT INTO t_names VALUES('_0vgCFjXblkx_4zCMhMAWjVK','int');
 INSERT INTO t_names VALUES('_45cnnX4v29t_9gZkfMOZj2Z','intsq');
 INSERT INTO t_names VALUES('_1jJjA6LcXiX_1V4ZcXlje09','name');
+INSERT INTO t_names VALUES('_7D8xcWnEiys_8oqOVSkCxkA','node');
 INSERT INTO t_names VALUES('_1JSykdLcLdl_8rWxtDBaPGN','none');
 INSERT INTO t_names VALUES('_7T9OwSFlgov_0wVJaK1eZbn','object');
 INSERT INTO t_names VALUES('_6ss8POQNnku_8e8woNsmvN9','outputter');
@@ -58,12 +59,14 @@ END TRANSACTION; ---- for t_names
 ------- TABLE t_objects @@@@@@
 BEGIN TRANSACTION; --- for t_objects
 INSERT INTO t_objects VALUES('_0vgCFjXblkx_4zCMhMAWjVK',1497636292.47,'
-///°°°$int
+///$int
 @MAGIC!
+
 ','named','int','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_1JSykdLcLdl_8rWxtDBaPGN',1497636292.47,'
-///°°°$none
+///$none
 @MAGIC!
+
 ','named','none','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_1jJjA6LcXiX_1V4ZcXlje09',1493382726.98,'
 ///$name
@@ -86,16 +89,19 @@ INSERT INTO t_objects VALUES('_3bMUJDWlMMQ_2j2bm7EeIbv',1495430034.89,'
 
 ','named','put','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_45cnnX4v29t_9gZkfMOZj2Z',1497636412.76,'
-///°°°$intsq
+///$intsq
 @MAGIC!
+
 ','named','intsq','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_4T8am97muLl_5969SR22Ecq',1497636412.76,'
-///°°°$string
+///$string
 @MAGIC!
-','named','string','');
+
+','named','string','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_4cCZc3Izgsr_7LsCkWW7flp',1497636292.47,'
-///°°°$doubleqsq
+///$doublesq
 @MAGIC!
+
 ','named','doublesq','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_4w339hT5dXd_1tUZFvU4fWx',1495430034.89,'
 ///$proxy
@@ -103,9 +109,10 @@ INSERT INTO t_objects VALUES('_4w339hT5dXd_1tUZFvU4fWx',1495430034.89,'
 
 ','named','proxy','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_6TmLNh9vtVY_0pwkHRtJ44k',1497636292.47,'
-///°°°$tuple
+///$tuple
 @MAGIC!
-','named','tuple','');
+
+','named','tuple','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_6ZpMq408eTN_8t3ZHpgCk3R',1497636292.47,'
 
 ','','','');
@@ -115,18 +122,20 @@ INSERT INTO t_objects VALUES('_6ss8POQNnku_8e8woNsmvN9',1496020871.11,'
 
 ','named','outputter','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_7D8xcWnEiys_8oqOVSkCxkA',1497636412.76,'
-///°°°$node
+///$node
 @MAGIC!
-','named','node','');
+
+','named','node','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_7QeFDN33m7B_3dQv2OqqbH6',1493382726.98,'
 ///$get
 @MAGIC!
 
 ','named','get','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_7T9OwSFlgov_0wVJaK1eZbn',1497636292.47,'
-///°°°$object
+///$object
 @MAGIC!
-','named','object','');
+
+','named','object','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_7hbSpcNUdHi_4QezAVr6Bgj',1497636292.47,'
 
 ','','','');
