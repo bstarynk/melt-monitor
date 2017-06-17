@@ -1156,8 +1156,8 @@ usage_mom (const char *argv0)
           " \t#Set comment of next predefined\n");
   printf ("\t --test-id" " \t#generate a few random ids\n");
   printf ("\t --parse-id id" " \t#parse an id\n");
-  printf ("\t --parse-val <val>" " \t#parse some value\n");
-  printf ("\t --parse-file <file-path>" " \t#parse several values from file\n");
+  printf ("\t --parse-val <val>" " \t#parse some value after load\n");
+  printf ("\t --parse-file <file-path>" " \t#parse several values from file after load\n");
   printf ("\t --run-cmd <command>" " \t#run that command\n");
 }
 
@@ -1238,6 +1238,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   while ((opt = getopt_long (argc, argv, "hVGd:sD:L:J:",
                              mom_long_options, &myargindex)) >= 0)
     {
+      std::string pstr;
       switch (opt)
         {
         case 'h':              /* --help */
@@ -1335,7 +1336,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                 MOM_WARNPRINTF("cannot access %s for --chdir-after-load (%m)",
                                optarg);
               std::string dirstr {optarg};
-              todo_after_load_mom.push_back([=](void)
+              todo_after_load_mom.push_back
+              ([=](void)
               {
                 if (chdir(dirstr.c_str()))
                   MOM_FATAPRINTF("failed to --chdir-after-load %s (%m)", dirstr.c_str());
@@ -1427,56 +1429,64 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
         {
           if (optarg == nullptr)
             MOM_FATAPRINTF("missing value for --parse-val");
-          std::string pstr{optarg};
-          std::istringstream ins{pstr};
-          MomParser pars(ins);
-          pars.set_name(std::string{"--parse-val"}).set_make_from_id(true);
-          pars.skip_spaces();
-          MOM_INFORMLOG("parse-val '" << optarg << "'" << std::endl
-                        << "peekbyte(0)=" << pars.peekbyte(0) << ' '
-                        << "peekbyte(1)=" << pars.peekbyte(1) << ' '
-                        << "peekbyte(2)=" << pars.peekbyte(2) << ' '
-                        << "peekbyte(3)=" << pars.peekbyte(3) << ' '
-                        << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
-          bool gotval = false;
-          auto val = pars.parse_value(&gotval);
-          pars.skip_spaces();
-          MOM_INFORMLOG("parse-val " << (gotval?"with":"without") << " value=" << val << std::endl << "...@ " << pars.location_str());
+          pstr = std::string{optarg};
+          todo_after_load_mom.push_back
+          ([=](void)
+          {
+            std::istringstream ins{pstr};
+            MomParser pars(ins);
+            pars.set_name(std::string{"--parse-val"}).set_make_from_id(true);
+            pars.skip_spaces();
+            MOM_INFORMLOG("parse-val '" << optarg << "'" << std::endl
+                          << "peekbyte(0)=" << pars.peekbyte(0) << ' '
+                          << "peekbyte(1)=" << pars.peekbyte(1) << ' '
+                          << "peekbyte(2)=" << pars.peekbyte(2) << ' '
+                          << "peekbyte(3)=" << pars.peekbyte(3) << ' '
+                          << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
+            bool gotval = false;
+            auto val = pars.parse_value(&gotval);
+            pars.skip_spaces();
+            MOM_INFORMLOG("parse-val " << (gotval?"with":"without") << " value=" << val << std::endl << "...@ " << pars.location_str());
+          });
         }
         break;
         case xtraopt_parsefile:
         {
           if (optarg == nullptr)
             MOM_FATAPRINTF("missing filepath for --parse-file");
-          std::string pstr{optarg};
-          std::ifstream insf{pstr};
-          MomParser pars(insf);
-          pars.set_name(pstr).set_make_from_id(true);
-          pars.skip_spaces();
-          MOM_INFORMLOG("parse-file '" << optarg << "'" << std::endl
-                        << "peekbyte(0)=" << pars.peekbyte(0) << ' '
-                        << "peekbyte(1)=" << pars.peekbyte(1) << ' '
-                        << "peekbyte(2)=" << pars.peekbyte(2) << ' '
-                        << "peekbyte(3)=" << pars.peekbyte(3) << ' '
-                        << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
-          for (;;)
-            {
-              pars.skip_spaces();
-              bool gotval = false;
-              auto val = pars.parse_value(&gotval);
-              pars.skip_spaces();
-              MOM_INFORMLOG("parse-file " << (gotval?"with":"without") << " value=" << val << std::endl << "...@ " << pars.location_str());
-              if (!gotval || pars.eof())
-                break;
-            }
-          if (pars.eof())
-            MOM_INFORMLOG("parse-file eof at " << pars.location_str());
-        }
-        break;
-        default:
-          MOM_FATAPRINTF ("bad option (%c) at %d", isalpha (opt) ? opt : '?',
-                          optind);
-          return;
+          pstr = std::string{optarg};
+          todo_after_load_mom.push_back
+          ([=](void)
+          {
+            std::ifstream insf{pstr};
+            MomParser pars(insf);
+            pars.set_name(pstr).set_make_from_id(true);
+            pars.skip_spaces();
+            MOM_INFORMLOG("parse-file '" << optarg << "'" << std::endl
+                          << "peekbyte(0)=" << pars.peekbyte(0) << ' '
+                          << "peekbyte(1)=" << pars.peekbyte(1) << ' '
+                          << "peekbyte(2)=" << pars.peekbyte(2) << ' '
+                          << "peekbyte(3)=" << pars.peekbyte(3) << ' '
+                          << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
+            for (;;)
+              {
+                pars.skip_spaces();
+                bool gotval = false;
+                auto val = pars.parse_value(&gotval);
+                pars.skip_spaces();
+                MOM_INFORMLOG("parse-file " << (gotval?"with":"without") << " value=" << val << std::endl << "...@ " << pars.location_str());
+                if (!gotval || pars.eof())
+                  break;
+              }
+            if (pars.eof())
+              MOM_INFORMLOG("parse-file eof at " << pars.location_str());
+          });
+          break;
+          default:
+            MOM_FATAPRINTF ("bad option (%c) at %d", isalpha (opt) ? opt : '?',
+                            optind);
+            return;
+          }
         }
     }
   *pargc -= optind;
