@@ -1095,7 +1095,7 @@ MomSimpleParser::simple_chunk_embedded_value(const MomValue v)
 {
   MOM_DEBUGLOG(parse, "simple_chunk_embedded_value v=" << v
                << " @" << location_str());
-  /// should make a *chunk_embed(v) node
+  /// should make an *embed(v) node
 #warning MomSimpleParser::simple_chunk_embedded_value incomplete
   MOM_WARNLOG("simple_chunk_embedded_value incomplete v=" << v
               << " @" << location_str());
@@ -1106,7 +1106,7 @@ MomSimpleParser::simple_chunk_dollarobj(MomObject*pob)
 {
   MOM_DEBUGLOG(parse, "simple_chunk_dollarobj pob=" << MomShowObject(pob)
                << " @" << location_str());
-  /// should make a *chunk_dollarobj(pob) node
+  /// should make a *dollar(pob) node
 #warning MomSimpleParser::simple_chunk_dollarobj incomplete
   MOM_WARNLOG("simple_chunk_dollarobj incomplete pob=" << MomShowObject(pob)
               << " @" << location_str());
@@ -1119,7 +1119,7 @@ MomSimpleParser::simple_chunk_value(const std::vector<MomValue>&vec)
                << " @" << location_str()
                << std::endl
               );
-  /// should make a *chunk_value(...vec-elements...) node
+  /// should make a *chunk(...vec-elements...) node
 #warning MomSimpleParser::simple_chunk_value incomplete
   MOM_WARNLOG("simple_chunk_value incomplete vec/" << vec.size()
               << " @" << location_str()
