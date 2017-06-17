@@ -2698,7 +2698,7 @@ public:
   };
   bool eol() const
   {
-    return _parcol >= (int)_parlinstr.size();
+    return _parcol+1 >= (int)_parlinstr.size();
   };
   bool eof() const
   {
