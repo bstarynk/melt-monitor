@@ -12,8 +12,8 @@ c
 /// a raw multi-line string
 `END| here
  is an raw
-multi-line
-	string|END`
+multi|line
+string with a tab	! inside it.|END`
 ///
 set
 node

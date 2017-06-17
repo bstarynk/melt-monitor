@@ -114,11 +114,11 @@ MomParser::parse_string(bool *pgotstr)
           if (eol())
             {
               nblines++;
-	      str.append("\n");
+              str.append("\n");
               MOM_DEBUGLOG(parse, "parse_string eol raw string nblines=" << nblines
-			   << " loopcnt=" << loopcnt
-			   << " str=" << MomShowString(str)
-			   << std::endl
+                           << " loopcnt=" << loopcnt
+                           << " str=" << MomShowString(str)
+                           << std::endl
                            << " @" << location_str());
               if (!_parinp) goto failure;
               next_line();
@@ -147,18 +147,18 @@ MomParser::parse_string(bool *pgotstr)
           consume(1);
         };
       MOM_DEBUGLOG(parse, "parse_string raw string ended str=" << MomShowString(str)
-		   << std::endl
-		   << " @" << location_str()
-		   << std::endl);
+                   << std::endl
+                   << " @" << location_str()
+                   << std::endl);
       if (pgotstr)
         *pgotstr = true;
       if (_parfun)
         _parfun(PtokString,inicol,inilincnt);
       MOM_THISPARSDBGLOG("parse_string ended L"<< inilincnt << ",C" << inicol << " final rawstring "
                          << MomShowString(str)
-			 << std::endl
-			 << " @" << location_str()
-			 << std::endl);
+                         << std::endl
+                         << " @" << location_str()
+                         << std::endl);
       return _parnobuild?nullptr:str;
     }
 failure:
