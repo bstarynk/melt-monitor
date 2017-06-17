@@ -104,26 +104,31 @@ MomParser::parse_string(bool *pgotstr)
       long loopcnt = 0;
       for (;;)
         {
-          if (loopcnt%32 == 0)
-            MOM_DEBUGLOG(parse, "raw string nblines=" << nblines
+          if (loopcnt%16 == 0)
+            MOM_DEBUGLOG(parse, "parse_string raw string nblines=" << nblines
                          << " loopcnt=" << loopcnt
                          << " peekchars=" << MomShowString(peekchars())
+                         << " str=" << MomShowString(str)
                          << " @" << location_str());
           loopcnt++;
           if (eol())
             {
+              nblines++;
+	      str.append("\n");
+              MOM_DEBUGLOG(parse, "parse_string eol raw string nblines=" << nblines
+			   << " loopcnt=" << loopcnt
+			   << " str=" << MomShowString(str)
+			   << std::endl
+                           << " @" << location_str());
               if (!_parinp) goto failure;
               next_line();
-              nblines++;
-              MOM_DEBUGLOG(parse, "raw string nblines=" << nblines
-                           << " @" << location_str());
               continue;
             }
           pc = peekbyte(0);
           if (pc == '|')
             {
               nc = peekbyte(1);
-              MOM_DEBUGLOG(parse, "raw string |  peekchars="
+              MOM_DEBUGLOG(parse, "parse_string eol raw string |  peekchars="
                            << MomShowString(peekchars())
                            << " @" << location_str()
                            << " border=" << MomShowString(border)
@@ -132,7 +137,7 @@ MomParser::parse_string(bool *pgotstr)
                   && peekbyte(borderlen+1)=='`')
                 {
                   consume(borderlen+2);
-                  MOM_DEBUGLOG(parse, "raw string ended peekchars="
+                  MOM_DEBUGLOG(parse, "parse_string raw string ending peekchars="
                                << MomShowString(peekchars())
                                << " @" << location_str());
                   break;
@@ -140,13 +145,20 @@ MomParser::parse_string(bool *pgotstr)
             }
           str.push_back(pc);
           consume(1);
-        }
+        };
+      MOM_DEBUGLOG(parse, "parse_string raw string ended str=" << MomShowString(str)
+		   << std::endl
+		   << " @" << location_str()
+		   << std::endl);
       if (pgotstr)
         *pgotstr = true;
       if (_parfun)
         _parfun(PtokString,inicol,inilincnt);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " rawstring "
-                         << MomShowString(str));
+      MOM_THISPARSDBGLOG("parse_string ended L"<< inilincnt << ",C" << inicol << " final rawstring "
+                         << MomShowString(str)
+			 << std::endl
+			 << " @" << location_str()
+			 << std::endl);
       return _parnobuild?nullptr:str;
     }
 failure:
