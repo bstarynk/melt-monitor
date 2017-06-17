@@ -104,14 +104,16 @@ MomParser::parse_string(bool *pgotstr)
       long loopcnt = 0;
       for (;;)
         {
-          if (loopcnt%16 == 0)
+          loopcnt++;
+          pc = peekbyte(0);
+          bool lastofline = eol(1);
+          if (loopcnt%16 == 0 || lastofline)
             MOM_DEBUGLOG(parse, "parse_string raw string nblines=" << nblines
                          << " loopcnt=" << loopcnt
                          << " peekchars=" << MomShowString(peekchars())
                          << " str=" << MomShowString(str)
+                         << " lastofline=" << (lastofline?"true":"false")
                          << " @" << location_str());
-          loopcnt++;
-          pc = peekbyte(0);
           if (eol() || pc == '\n')
             {
               nblines++;
@@ -147,7 +149,7 @@ MomParser::parse_string(bool *pgotstr)
           str.push_back(pc);
           consume(1);
           pc = peekbyte(0);
-          if (eol() || pc == '\n')
+          if (lastofline)
             {
               nblines++;
               str.append("\n");
