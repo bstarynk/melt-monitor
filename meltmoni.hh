@@ -2788,7 +2788,8 @@ public:
           }
         else if (isspace(peekbyte()))
           _parcol++;
-        else if (peekbyte(0) == '/' && peekbyte(1) == '/')
+        else if ((peekbyte(0) == '/' && peekbyte(1) == '/')
+                 || (peekbyte(0) == '#' && peekbyte(1) == '!'))
           {
             next_line();
             continue;
@@ -2838,7 +2839,7 @@ public:
     return nullptr;
   };
   /// from some embedded value in a code chunk with $% gives a non-nil value
-  virtual MomValue chunk_value(const MomValue)
+  virtual MomValue chunk_embedded_value(const MomValue)
   {
     return nullptr;
   };
@@ -2853,6 +2854,70 @@ public:
     return nullptr;
   }
 };				// end class MomParser
+
+class MomSimpleParser : public MomParser
+{
+  std::function<MomObject*(MomSimpleParser*, const std::string&)> _spar_namedfetchfun;
+  std::function<MomValue(MomSimpleParser*, const MomIdent)> _spar_chunkidfun;
+  std::function<MomValue(MomSimpleParser*, const MomValue)> _spar_chunkvalfun;
+  std::function<MomValue(MomSimpleParser*, MomObject*)> _spar_chunkdollarobjfun;
+  std::function<MomValue(MomSimpleParser*, const std::vector<MomValue>&)> _spar_chunknodefun;
+public:
+  MomSimpleParser(std::istream&inp, unsigned lincount=0)
+    : MomParser(inp,lincount),
+      _spar_namedfetchfun(),
+      _spar_chunkidfun(),
+      _spar_chunkvalfun(),
+      _spar_chunkdollarobjfun(),
+      _spar_chunknodefun()
+  {};
+  virtual ~MomSimpleParser() {};
+  MomSimpleParser&
+  set_named_fetch_fun(std::function<MomObject*(MomSimpleParser*,
+                      const std::string&)> fun=nullptr)
+  {
+    _spar_namedfetchfun = fun;
+    return *this;
+  };
+  MomSimpleParser&
+  set_chunk_id_fun(std::function<MomValue(MomSimpleParser*,
+                                          const MomIdent)> fun=nullptr)
+  {
+    _spar_chunkidfun = fun;
+    return *this;
+  };
+  MomSimpleParser&
+  set_chunk_val_fun(std::function<MomValue(MomSimpleParser*,
+                    const MomValue)> fun=nullptr)
+  {
+    _spar_chunkvalfun = fun;
+    return *this;
+  }
+  MomSimpleParser&
+  set_chunk_dollarobj_fun(std::function<MomValue(MomSimpleParser*,
+                          MomObject*)> fun=nullptr)
+  {
+    _spar_chunkdollarobjfun = fun;
+    return *this;
+  }
+  MomSimpleParser&
+  set_chunk_node_fun(std::function<MomValue(MomSimpleParser*,
+                     const std::vector<MomValue>&)> fun=nullptr)
+  {
+    _spar_chunknodefun = fun;
+    return *this;
+  }
+  MomObject*simple_named_object(const std::string&);
+  MomValue simple_chunk_embedded_value(const MomValue);
+  MomValue simple_chunk_dollarobj(MomObject*);
+  MomValue simple_chunk_value(const std::vector<MomValue>&);
+  /// given some name, fetch the corresponding named object
+  virtual MomObject* fetch_named_object(const std::string&);
+  virtual MomValue chunk_embedded_value(const MomValue);
+  virtual MomValue chunk_dollarobj(MomObject*);
+  virtual MomValue chunk_value(const std::vector<MomValue>&);
+};				// end class MomSimpleParser
+
 
 #define MOM_PARSE_FAILURE_AT(Par,Fil,Lin,Log) do {		\
     std::ostringstream _olog_##Lin;				\
