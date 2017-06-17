@@ -94,27 +94,36 @@ MomParser::parse_string(bool *pgotstr)
                      border, &borderpos) >= 1 && borderpos>0 && border[0]>0)   // raw strings
     {
       /* the raw string may take many lines, it is ending with the |BORDER` */
+      MOM_DEBUGLOG(parse, "raw string starting " << location_str()
+                   << " border=" << MomShowString(border)
+                   << " borderpos=" << borderpos);
       std::string str;
-      consume(borderpos);
+      int nblines = 0;
+      consume(borderpos-1);
       for (;;)
         {
           if (eol())
             {
               if (!_parinp) goto failure;
               next_line();
+              nblines++;
+              MOM_DEBUGLOG(parse, "raw string nblines=" << nblines
+                           << " @" << location_str());
               continue;
             }
           pc = peekbyte(0);
           if (pc == '|')
             {
               nc = peekbyte(1);
-              if (nc == border[0] && haskeyword(border, 1) && peekbyte(2+borderpos)=='`')
+              if (nc == border[0] && haskeyword(border, 1) && peekbyte(1+borderpos)=='`')
                 {
-                  consume(2+borderpos);
+                  consume(1+borderpos);
+                  MOM_DEBUGLOG(parse, "raw string ended @" << location_str());
                   break;
                 }
             }
           str.push_back(pc);
+          consume(1);
         }
       if (pgotstr)
         *pgotstr = true;
