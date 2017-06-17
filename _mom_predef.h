@@ -82,11 +82,11 @@ MOM_HAS_PREDEF(_9Cr5XlTL8lI_7ALESzYlXD7,8074019743773521146,6372836626459792797,
 #undef MOMP_string
 #undef MOMP_tuple
 
-#define MOMP_chunk       MOM_PREDEF(_7hbSpcNUdHi_4QezAVr6Bgj) /*°°*/
+#define MOMP_chunk       MOM_PREDEF(_7hbSpcNUdHi_4QezAVr6Bgj)
 #define MOMP_doublesq    MOM_PREDEF(_4cCZc3Izgsr_7LsCkWW7flp)
-#define MOMP_dollar      MOM_PREDEF(_8f7GaaT5WJK_01z8k1JztS6) /*°°*/
+#define MOMP_dollar      MOM_PREDEF(_8f7GaaT5WJK_01z8k1JztS6)
 #define MOMP_get         MOM_PREDEF(_7QeFDN33m7B_3dQv2OqqbH6)
-#define MOMP_embed       MOM_PREDEF(_33imugvOze0_0wdPqjmME0U) /*°°*/
+#define MOMP_embed       MOM_PREDEF(_33imugvOze0_0wdPqjmME0U)
 #define MOMP_int         MOM_PREDEF(_0vgCFjXblkx_4zCMhMAWjVK)
 #define MOMP_intsq       MOM_PREDEF(_45cnnX4v29t_9gZkfMOZj2Z)
 #define MOMP_name        MOM_PREDEF(_1jJjA6LcXiX_1V4ZcXlje09)

@@ -39,7 +39,10 @@ END TRANSACTION; ---- for t_globdata
 
 ------- TABLE t_names @@@@@@
 BEGIN TRANSACTION; --- for t_names
+INSERT INTO t_names VALUES('_7hbSpcNUdHi_4QezAVr6Bgj','chunk');
+INSERT INTO t_names VALUES('_8f7GaaT5WJK_01z8k1JztS6','dollar');
 INSERT INTO t_names VALUES('_4cCZc3Izgsr_7LsCkWW7flp','doublesq');
+INSERT INTO t_names VALUES('_33imugvOze0_0wdPqjmME0U','embed');
 INSERT INTO t_names VALUES('_7QeFDN33m7B_3dQv2OqqbH6','get');
 INSERT INTO t_names VALUES('_0vgCFjXblkx_4zCMhMAWjVK','int');
 INSERT INTO t_names VALUES('_45cnnX4v29t_9gZkfMOZj2Z','intsq');
@@ -54,10 +57,6 @@ INSERT INTO t_names VALUES('_2mYaTh9kH4I_7ENiXcymRmy','set');
 INSERT INTO t_names VALUES('_3SFtXTTy3kj_89fO24X2HFo','size');
 INSERT INTO t_names VALUES('_4T8am97muLl_5969SR22Ecq','string');
 INSERT INTO t_names VALUES('_6TmLNh9vtVY_0pwkHRtJ44k','tuple');
---- °°°°
-INSERT INTO t_names VALUES('_7hbSpcNUdHi_4QezAVr6Bgj','chunk');
-INSERT INTO t_names VALUES('_8f7GaaT5WJK_01z8k1JztS6', 'dollar');
-INSERT INTO t_names VALUES('_33imugvOze0_0wdPqjmME0U','embed');
 END TRANSACTION; ---- for t_names
 
 ------- TABLE t_objects @@@@@@
@@ -86,8 +85,9 @@ INSERT INTO t_objects VALUES('_2mYaTh9kH4I_7ENiXcymRmy',1493382726.98,'
 
 ','named','set','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_33imugvOze0_0wdPqjmME0U',1497705092.87,'
-///°°°$embed
-','named','embed','');
+///$embed
+
+','named','embed','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_3SFtXTTy3kj_89fO24X2HFo',1495430034.89,'
 ///$size
 @MAGIC!
@@ -150,8 +150,9 @@ INSERT INTO t_objects VALUES('_7T9OwSFlgov_0wVJaK1eZbn',1497636292.47,'
 
 ','named','object','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_7hbSpcNUdHi_4QezAVr6Bgj',1497636292.47,'
-///°°°$chunk
-','named','chunk','');
+///$chunk
+
+','named','chunk','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_7ld89d4lLTB_3596gc6hLFI',1497636292.47,'
 
 ','','','');
@@ -159,8 +160,9 @@ INSERT INTO t_objects VALUES('_8ZPtpM4JscH_1ViGLydV6mU',1497705092.87,'
 
 ','','','');
 INSERT INTO t_objects VALUES('_8f7GaaT5WJK_01z8k1JztS6',1497636292.47,'
-///°°°$dollar
-','named','dollar','');
+///$dollar
+
+','named','dollar','@NAMEDPROXY: __');
 INSERT INTO t_objects VALUES('_8vdOBDVvgy8_5Hq3NM5whLJ',1497636292.47,'
 
 ','','','');
