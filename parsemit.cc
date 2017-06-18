@@ -125,7 +125,6 @@ MomParser::parse_string(bool *pgotstr)
                            << std::endl
                            << " @" << location_str());
               if (!_parinp) goto failure;
-              next_line();
               continue;
             }
           if (pc == '|')
@@ -139,11 +138,21 @@ MomParser::parse_string(bool *pgotstr)
               if (nc == border[0] && !strncmp(peekchars(1), border, borderlen)
                   && peekbyte(borderlen+1)=='`')
                 {
+                  MOM_DEBUGLOG(parsestring,
+                               "parse_string pipe got ending peekchars="
+                               << MomShowString(peekchars())
+                               << " @" << location_str());
                   consume(borderlen+2);
                   MOM_DEBUGLOG(parse, "parse_string raw string pipe ending peekchars="
                                << MomShowString(peekchars())
                                << " @" << location_str());
                   break;
+                }
+              else
+                {
+                  MOM_DEBUGLOG(parsestring, "parse_string pipe nonending peekchars="
+                               << MomShowString(peekchars())
+                               << " @" << location_str());
                 }
             }
           str.push_back(pc);

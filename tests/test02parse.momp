@@ -1,11 +1,13 @@
 #!./monimelt --parse-file
 /// file tests/test02parse.momp
 /// just testing raw multi-line strings
-/// pass at commit a7980f20abc31f454be5668c3
-`END0|zero|END0`
-//!`ENDONE|one
-//!string|ENDONE`
+/// END0 pass at commit a7980f20abc31f454be5668c3
+//!`END0|zero|END0`
+//
+`ENDONE|one
+string|ENDONE`
 //!`ENDTWO|two
-//!str|ing|ENDTWO`
+//!str|ing
+//!|ENDTWO`
 //!`THREE|three||THREE`
 //!// eof
