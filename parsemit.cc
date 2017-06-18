@@ -107,7 +107,7 @@ MomParser::parse_string(bool *pgotstr)
           loopcnt++;
           pc = peekbyte(0);
           bool lastofline = eol(1);
-          if (loopcnt%16 == 0 || lastofline)
+          if (loopcnt%16 == 0 || lastofline || MOM_IS_DEBUGGING(parsestring))
             MOM_DEBUGLOG(parse, "parse_string raw string nblines=" << nblines
                          << " loopcnt=" << loopcnt
                          << " peekchars=" << MomShowString(peekchars())
