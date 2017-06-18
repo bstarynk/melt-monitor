@@ -2563,6 +2563,7 @@ struct MomPayload
 
 class MomParser			// in file parsemit.cc
 {
+#warning MomParser should process unicode and convert UTF8 to unicode when reading a line
 public:
   enum TokenKind
   {

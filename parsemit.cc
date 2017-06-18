@@ -99,6 +99,7 @@ MomParser::parse_string(bool *pgotstr)
                    << " borderpos=" << borderpos);
       int borderlen = strlen(border);
       std::string str;
+      str.reserve(48);
       int nblines = 0;
       consume(borderlen+2);
       long loopcnt = 0;
@@ -107,6 +108,26 @@ MomParser::parse_string(bool *pgotstr)
           loopcnt++;
           pc = peekbyte(0);
           bool lastofline = eol(1);
+          char s[4];
+          memset(s, 0, sizeof(s));
+          s[0] = pc;
+          MOM_DEBUGLOG(parsestring, "parse_string raw string pc=" << (int)pc << "==" << MomShowString(s)
+                       << " peekchars=" << MomShowString(peekchars())
+                       << " loopcnt=" << loopcnt
+                       << " lastofline=" << (lastofline?"true":"false"));
+          if (pc > 0 && pc != '|' && !lastofline)
+            {
+              str.push_back((char)pc);
+              MOM_DEBUGLOG(parsestring, "parse_string raw string plainchar nblines=" << nblines
+                           << " loopcnt=" << loopcnt
+                           << " peekchars=" << MomShowString(peekchars())
+                           << " pc=" << (int)pc << "==" << MomShowString(s)
+                           << " str=" << MomShowString(str)
+                           << " lastofline=" << (lastofline?"true":"false")
+                           << " @" << location_str());
+              consume(1);
+              continue;
+            }
           if (loopcnt%16 == 0 || lastofline || MOM_IS_DEBUGGING(parsestring))
             MOM_DEBUGLOG(parse, "parse_string raw string nblines=" << nblines
                          << " loopcnt=" << loopcnt
@@ -154,6 +175,18 @@ MomParser::parse_string(bool *pgotstr)
                                << MomShowString(peekchars())
                                << " @" << location_str());
                 }
+            }
+          else
+            {
+              char s[4];
+              memset(s, 0, sizeof(s));
+              s[0] = pc;
+              MOM_DEBUGLOG(parsestring,
+                           "parse_string nonpipe pc=" << (int)pc
+                           << "==" << MomShowString(s)
+                           << "  peekchars="
+                           << MomShowString(peekchars())
+                           << " @" << location_str());
             }
           str.push_back(pc);
           consume(1);
