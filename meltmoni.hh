@@ -275,6 +275,7 @@ extern "C" void mom_failure_backtrace_at(const char*fil, int lin, const std::str
   Dbg(dump)					\
   Dbg(load)					\
   Dbg(parse)					\
+  Dbg(parsestring)	       			\
   Dbg(garbcoll)					\
   Dbg(misc)					\
   Dbg(gencod)					\
@@ -2941,6 +2942,7 @@ void
 MomParser::next_line()
 {
   _parlinoffset = _parinp.tellg();
+  _parlinstr.clear();
   std::getline(_parinp, _parlinstr);
   if (MOM_UNLIKELY(!g_utf8_validate(_parlinstr.c_str(), _parlinstr.size(),
                                     nullptr)))
