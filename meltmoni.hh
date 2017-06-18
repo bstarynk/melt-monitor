@@ -2588,6 +2588,7 @@ private:
   std::uint64_t _parbeginwords; // allocation word count at start of parsing
   double _parbegintime;		 // elapsed real time at start of parsing
   int _parcol; // current column, first is 0
+#warning we should have a _parcolindex (in bytes) and a _parcolpos (in unicode chars)
   bool _pardebug;	// if set, activate MOM_DEBUGLOG(parse, ...)
   bool _parsilent; // if set, failure is silent without backtrace
   bool _parnobuild; // if set, no values are built
@@ -2713,6 +2714,7 @@ public:
     if (_parcol+off >= _parlinstr.size()) return EOF;
     return _parlinstr[_parcol+off];
   }
+#warning we need a peekunicode(unsigned delta=0)
   const char* peekchars(unsigned off=0) const
   {
     if (_parcol<0) return nullptr;
