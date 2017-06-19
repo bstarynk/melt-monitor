@@ -988,8 +988,7 @@ again:
     pc = pair.first;
     nc = pair.second;
   }
-#warning was gotspacing, so should improve
-  if (pc<127 && isspace(pc))
+  if ((pc<127 && isspace(pc)) || has_spacing())
     {
       skip_spaces();
       goto again;
