@@ -2743,6 +2743,27 @@ public:
     if (pc+slen>=end) return false;
     if (!strncmp(pc, str, slen)) return true;
   };
+  bool has_cstring(const char*str, unsigned delta=0) const
+  {
+    const char*pc = curbytes();
+    const char*inipc = pc;
+    const char*end = eolptr();
+    if (!str) return false;
+    unsigned slen = strlen(str);
+    if (!pc || !end) return false;
+    int nbc=0;
+    while (delta>0)
+      {
+        if (pc>=end) return false;
+        pc = g_utf8_next_char(pc);
+        delta--;
+        nbc++;
+      };
+    if (pc>=end) return false;
+    if (pc+slen>=end) return false;
+    if (!strncmp(pc, str, slen))
+      return true;
+  }
   bool got_cstring(const char*str, unsigned delta=0)
   {
     const char*pc = curbytes();
@@ -2770,6 +2791,14 @@ public:
       }
     return false;
   };
+  bool has_spacing() const
+  {
+    auto pc = peek_utf8(0);
+    if (pc<127 && isspace(pc)) return true;
+    else if (pc=='|') return true;
+    else if (has_cstring(_par_comment_start1_)) return true;
+    return false;
+  }
   /*previous&current*/ std::pair<gunichar,gunichar>
   peek_pair_utf8(unsigned delta=0) const
   {
