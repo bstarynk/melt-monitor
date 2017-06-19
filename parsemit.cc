@@ -72,6 +72,77 @@ MomParser::set_loader_for_object(MomLoader*ld, MomObject*pob, const char*tit)
 } // end MomParser::set_loader_for_object
 
 
+
+MomParser&
+MomParser::skip_spaces()
+{
+  for (;;)
+    {
+      if (eol())
+        {
+          if (!_parinp) return *this;
+          next_line();
+          continue;
+        }
+      auto pair = peek_pair_utf8(1);
+      int pc = pair.first;
+      int nc = pair.second;
+      if (isspace(pc))
+        consume_utf8(1);
+      else if ((pc == '/' && nc == '/')
+               || (pc == '#' && nc == '!'))
+        {
+          next_line();
+          continue;
+        }
+      else if (pc == '|')
+        {
+          const char* rest = curbytes()+1;
+          const char* endcomm = strchr(rest, '|');
+          if (!endcomm)
+            unterminated_small_comment("|");
+          else consume_bytes(endcomm-rest + 1);
+          continue;
+        }
+      else if (starts_with(_par_comment_start1_))
+        {
+          consume_utf8(1);
+          const char* rest = curbytes()+strlen(_par_comment_start1_);
+          const char*endcomm = strstr(rest, _par_comment_end1_);
+          if (!endcomm)
+            unterminated_small_comment(_par_comment_end1_);
+          else consume_bytes(endcomm-rest + strlen(_par_comment_end1_));
+          continue;
+        }
+      else break;
+    }
+  return *this;
+} // end MomParser::skip_spaces
+
+MomParser&
+MomParser::next_line()
+{
+  _parlinoffset = _parinp.tellg();
+  _parlinstr.clear();
+  std::getline(_parinp, _parlinstr);
+  if (MOM_UNLIKELY(!g_utf8_validate(_parlinstr.c_str(), _parlinstr.size(),
+                                    nullptr)))
+    MOM_PARSE_FAILURE(this,"invalid UTF8 line#" << _parlincount
+                      << ":" << _parlinstr);
+  _parcolidx = 0;
+  _parcolpos = 0;
+  if (_parinp)
+    _parlincount++;
+  if (_pardebug)
+    MOM_DEBUGLOG(parse, "Mom_Parser::next_line _parlinoffset=" << _parlinoffset
+                 << " _parlinstr=" << MomShowString(_parlinstr)
+                 << " _parlincount=" << _parlincount
+                 << " @" << location_str());
+  return *this;
+} // end MomParser::next_line
+
+
+
 std::string
 MomParser::parse_string(bool *pgotstr)
 {
@@ -1328,3 +1399,4 @@ MomSimpleParser::chunk_value(const std::vector<MomValue>&vec)
   if (!res) res = simple_chunk_value(vec);
   return res;
 } // end MomSimpleParser::chunk_value
+
