@@ -1443,12 +1443,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             .set_debug(MOM_IS_DEBUGGING(parse))
             .disable_exhaustion();
             pars.skip_spaces();
-            MOM_INFORMLOG("parse-val '" << optarg << "'" << std::endl
-                          << "peekbyte(0)=" << pars.peekbyte(0) << ' '
-                          << "peekbyte(1)=" << pars.peekbyte(1) << ' '
-                          << "peekbyte(2)=" << pars.peekbyte(2) << ' '
-                          << "peekbyte(3)=" << pars.peekbyte(3) << ' '
-                          << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
+            MOM_INFORMLOG("parse-val " << MomShowString(optarg) << std::endl);
             bool gotval = false;
             pars.skip_spaces();
             std::string locstr = pars.location_str();
@@ -1487,11 +1482,11 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             MOM_DEBUGLOG(parse, "start of parse-file @"
                          << pars.location_str());
             MOM_INFORMLOG("parse-file '" << pstr << "'" << std::endl
-                          << "peekbyte(0)=" << pars.peekbyte(0) << ' '
-                          << "peekbyte(1)=" << pars.peekbyte(1) << ' '
-                          << "peekbyte(2)=" << pars.peekbyte(2) << ' '
-                          << "peekbyte(3)=" << pars.peekbyte(3) << ' '
-                          << "peekbyte(4)=" << pars.peekbyte(4) << std::endl);
+                          << "peek_utf8(0)=" << pars.peek_utf8(0) << ' '
+                          << "peek_utf8(1)=" << pars.peek_utf8(1) << ' '
+                          << "peek_utf8(2)=" << pars.peek_utf8(2) << ' '
+                          << "peek_utf8(3)=" << pars.peek_utf8(3) << ' '
+                          << "peek_utf8(4)=" << pars.peek_utf8(4) << std::endl);
             int parsecnt = 0;
             for (;;)
               {

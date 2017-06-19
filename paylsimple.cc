@@ -265,7 +265,7 @@ MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const c
   fillpars.skip_spaces();
   if (fillpars.eof())
     return;
-  if (fillpars.hasdelim("@NAMEDPROXY:"))
+  if (fillpars.got_cstring("@NAMEDPROXY:"))
     {
       bool gotproxy = false;
       fillpars.skip_spaces();
@@ -453,7 +453,7 @@ MomPaylSet::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const cha
   fillpars.set_loader_for_object(ld, own, "Set fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
-  if (fillpars.hasdelim("@SET:"))
+  if (fillpars.got_cstring("@SET:"))
     {
       MomObject* pob = nullptr;
       bool gotpob = false;
@@ -463,7 +463,7 @@ MomPaylSet::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const cha
             py->_pset_set.insert(pob);
         }
     };
-  if (fillpars.hasdelim("@SETPROXY:"))
+  if (fillpars.got_cstring("@SETPROXY:"))
     {
       bool gotpob = false;
       MomObject* pob =fillpars.parse_objptr(&gotpob);
@@ -720,7 +720,7 @@ MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
   fillpars.set_loader_for_object(ld, own, "Strobuf fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
-  if (fillpars.hasdelim("@STROBUFSTR:"))
+  if (fillpars.got_cstring("@STROBUFSTR:"))
     {
       bool gotstr = false;
       std::string linstr;
@@ -730,14 +730,14 @@ MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
           linstr.erase();
         }
     }
-  if (fillpars.hasdelim("@STROBUFSTARTER:"))
+  if (fillpars.got_cstring("@STROBUFSTARTER:"))
     {
       bool gotpob = false;
       MomObject* pob =fillpars.parse_objptr(&gotpob);
       if (pob)
         py->_pstrobuf_starter = pob;
     }
-  if (fillpars.hasdelim("@STROBUFPROXY:"))
+  if (fillpars.got_cstring("@STROBUFPROXY:"))
     {
       bool gotpob = false;
       MomObject* pob =fillpars.parse_objptr(&gotpob);
@@ -1028,7 +1028,7 @@ MomPaylGenfile::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
 #warning incomplete MomPaylGenfile::Loadfill
   if (fillpars.eof())
     return;
-  if (fillpars.hasdelim("@GENFILEPROXY:"))
+  if (fillpars.got_cstring("@GENFILEPROXY:"))
     {
       bool gotproxy = false;
       fillpars.skip_spaces();
@@ -1460,12 +1460,12 @@ MomPaylEnvstack::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char con
   fillpars.skip_spaces();
   intptr_t sz = 0;
   bool gotsz = false;
-  if (fillpars.hasdelim("@ENVSTACK:") && ((sz=fillpars.parse_int(&gotsz)),gotsz))
+  if (fillpars.got_cstring("@ENVSTACK:") && ((sz=fillpars.parse_int(&gotsz)),gotsz))
     {
       py->_penvstack_envs.reserve(sz+1);
     }
   int envcnt = 0;
-  while (fillpars.skip_spaces(), fillpars.hasdelim("@ENVAL:"))
+  while (fillpars.skip_spaces(), fillpars.got_cstring("@ENVAL:"))
     {
       bool gotval = false;
       MomValue v = fillpars.parse_value(&gotval);
@@ -1474,7 +1474,7 @@ MomPaylEnvstack::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char con
                           << " of envstack object " << own);
       py->push_env();
       py->last_env_set_value(v);
-      while (fillpars.skip_spaces(), fillpars.hasdelim("@*:"))
+      while (fillpars.skip_spaces(), fillpars.got_cstring("@*:"))
         {
           bool gotobj = false;
           bool gotval = false;
@@ -1486,7 +1486,7 @@ MomPaylEnvstack::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char con
           py->last_env_bind(pob,val);
         }
     }
-  if (fillpars.skip_spaces(), fillpars.hasdelim("@ENVPROXY"))
+  if (fillpars.skip_spaces(), fillpars.got_cstring("@ENVPROXY"))
     {
       bool gotobj = false;
       MomObject* proxob = fillpars.parse_objptr(&gotobj);
@@ -1795,14 +1795,14 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
   initpars.skip_spaces();
   std::string modustr;
   std::string basestr;
-  if (initpars.hasdelim("@CODEMODULE:"))
+  if (initpars.got_cstring("@CODEMODULE:"))
     {
       bool gotmodule = false;
       modustr = initpars.parse_string(&gotmodule);
       if (!gotmodule)
         MOM_PARSE_FAILURE(&initpars, "missing module name for init of code object " << own);
     }
-  if (initpars.hasdelim("@CODEBASE:"))
+  if (initpars.got_cstring("@CODEBASE:"))
     {
       bool gotbase = false;
       basestr = initpars.parse_string(&gotbase);
@@ -1811,13 +1811,13 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
     }
   else
     MOM_PARSE_FAILURE(&initpars, "missing @CODEBASE: for init of code object " << own);
-  if (initpars.hasdelim("@CODEGETMAGIC!"))
+  if (initpars.got_cstring("@CODEGETMAGIC!"))
     with_getmagic = true;
-  if (initpars.hasdelim("@CODEFETCH!"))
+  if (initpars.got_cstring("@CODEFETCH!"))
     with_fetch = true;
-  if (initpars.hasdelim("@CODEUPDATE!"))
+  if (initpars.got_cstring("@CODEUPDATE!"))
     with_update = true;
-  if (initpars.hasdelim("@CODESTEP!"))
+  if (initpars.got_cstring("@CODESTEP!"))
     with_step = true;
   auto modh = load_module(modustr);
   if (!modh)
@@ -1840,7 +1840,7 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
   fillpars.set_loader_for_object(ld, own, "Code fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
-  if (fillpars.hasdelim("@CODEPROXY"))
+  if (fillpars.got_cstring("@CODEPROXY"))
     {
       bool gotobj = false;
       MomObject* proxob = fillpars.parse_objptr(&gotobj);
@@ -1848,14 +1848,14 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
         MOM_PARSE_FAILURE(&fillpars, "missing proxy of code object " << own);
       py->_pcode_proxy = proxob;
     }
-  if (fillpars.hasdelim("@CODEDATA"))
+  if (fillpars.got_cstring("@CODEDATA"))
     {
       bool gotsize = false;
       auto sz = fillpars.parse_int(&gotsize);
       if (!gotsize)
         MOM_PARSE_FAILURE(&fillpars, "missing size after @CODEDATA of code object " << own);
       py->_pcode_datavec.reserve(sz+1);
-      if (!fillpars.hasdelim("("))
+      if (!fillpars.got_cstring("("))
         MOM_PARSE_FAILURE(&fillpars, "missing leftparen after @CODEDATA of code object " << own);
       for (int ix=0; ix<sz; ix++)
         {
@@ -1865,7 +1865,7 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
             MOM_PARSE_FAILURE(&fillpars, "missing value#" << ix << " for data of code object " << own);
           py->_pcode_datavec.push_back(v);
         }
-      if (!fillpars.hasdelim(")"))
+      if (!fillpars.got_cstring(")"))
         MOM_PARSE_FAILURE(&fillpars, "missing rightparen after @CODEDATA of code object " << own);
     }
 } // end MomPaylCode::Loadfill

@@ -594,8 +594,8 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
       if (contpars.eof()) break;
       MOM_DEBUGLOG(load,"load_object_content pob=" << pob
                    << "contpars::"<< contpars.location_str()
-                   << " " << MomShowString(contpars.peekchars()));
-      if (contpars.hasdelim("@:"))
+                   << " " << MomShowString(contpars.curbytes()));
+      if (contpars.got_cstring("@:"))
         {
           bool gotattr = false;
           MomObject*pobattr = contpars.parse_objptr(&gotattr);
@@ -612,7 +612,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           });
           nbattr++;
         }
-      else if (contpars.hasdelim("&:"))
+      else if (contpars.got_cstring("&:"))
         {
           bool gotcomp = false;
           MomValue valcomp = contpars.parse_value(&gotcomp);
@@ -625,7 +625,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           });
           nbcomp++;
         }
-      else if (contpars.hasdelim("@MAGIC!"))
+      else if (contpars.got_cstring("@MAGIC!"))
         pob->set_magic(true);
     }
   MOM_DEBUGLOG(load,"load_object_content end pob=" << pob << " thix=" << thix

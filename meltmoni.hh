@@ -2587,8 +2587,8 @@ private:
   long _parlinoffset; // offset of current line
   std::uint64_t _parbeginwords; // allocation word count at start of parsing
   double _parbegintime;		 // elapsed real time at start of parsing
-  int _parcol; // current column, first is 0
-#warning we should have a _parcolindex (in bytes) and a _parcolpos (in unicode chars)
+  int _parcolidx; // current column index in bytes; first is 0
+  int _parcolpos; // current column position in UTF8 characters; first is 0
   bool _pardebug;	// if set, activate MOM_DEBUGLOG(parse, ...)
   bool _parsilent; // if set, failure is silent without backtrace
   bool _parnobuild; // if set, no values are built
@@ -2596,7 +2596,6 @@ private:
   bool _parhaschunk;   // if set, accept code chunks
   bool _parnocheckx;   // don't check exhaustion
   std::string _parname;		// name of parser in messages
-  std::function<void(TokenKind tok,int startcol, unsigned startlineno)>_parfun; // function called (e.g. for colorization)
   std::function<MomValue(MomParser*,const MomNode*, bool *pok)> _parvaleval;
   std::function<MomObject*(MomParser*,const MomNode*, bool *pok)> _parobjeval;
   void unterminated_small_comment(const char*missing);
@@ -2622,10 +2621,10 @@ public:
     : _parinp(inp),  _parlinstr{}, _parlincount(lincount),
       _parbeginwords(MomAnyVal::allocation_word_count()),
       _parbegintime(mom_elapsed_real_time ()),
-      _parcol{0},
+      _parcolidx{0}, _parcolpos{0},
       _pardebug{false}, _parsilent{false}, _parmakefromid{false},
       _parhaschunk{false},
-      _parname(), _parfun(),
+      _parname(),
       _parvaleval(), _parobjeval()
   {
   }
@@ -2668,11 +2667,6 @@ public:
     _parmakefromid=mf;
     return *this;
   };
-  MomParser& set_parser_fun(std::function<void(TokenKind tok,int startcol, unsigned startlineno)>fun)
-  {
-    _parfun = fun;
-    return *this;
-  };
   std::string name() const
   {
     return _parname;
@@ -2685,7 +2679,7 @@ public:
   {
     char lbuf[48];
     memset(lbuf, 0, sizeof(lbuf));
-    snprintf(lbuf, sizeof(lbuf), ":L%u,C%d", _parlincount, _parcol);
+    snprintf(lbuf, sizeof(lbuf), ":L%u,C%d", _parlincount, _parcolpos);
     return _parname + lbuf;
   };
   ~MomParser()
@@ -2699,129 +2693,138 @@ public:
   {
     return _parsilent;
   };
-  bool eol(int off=0) const
+  bool eol(void) const
   {
-    return _parcol+off >= (int)_parlinstr.size() || _parcol+off<0;
+    return _parcolidx >= (int)_parlinstr.size() || _parcolidx < 0;
   };
   bool eof() const
   {
     return eol() && !_parinp;
   };
+  const char*curbytes(void) const
+  {
+    if (eol()) return nullptr;
+    return _parlinstr.c_str()+ _parcolidx;
+  }
+  const char*eolptr(void) const
+  {
+    if (eol()) return nullptr;
+    return _parlinstr.c_str() + _parlinstr.size();
+  }
   static constexpr unsigned _maxpeek_ = 16;
-  int peekbyte(unsigned off=0) const
+  gunichar peek_utf8(unsigned delta=0) const
   {
-    if (_parcol<0) return EOF;
-    if (_parcol+off >= _parlinstr.size()) return EOF;
-    return _parlinstr[_parcol+off];
-  }
-#warning we need a peekunicode(unsigned delta=0)
-  const char* peekchars(unsigned off=0) const
-  {
-    if (_parcol<0) return nullptr;
-    if (_parcol+off >= _parlinstr.size()) return nullptr;
-    return _parlinstr.c_str()+_parcol+off;
-  }
-  bool gotcstr (const char*str, unsigned off=0) const
-  {
-    return !strncmp(str, peekchars(off), strlen(str));
-  }
-  bool gotspacing (unsigned off=0) const
-  {
-    auto pc = peekbyte(off);
-    if (pc<127 && isspace(pc)) return true;
-    else if (pc=='|') return true;
-    else if (gotcstr(_par_comment_start1_,off)) return true;
-    return false;
-  }
-  bool haskeyword(const char*str, unsigned off=0)
-  {
-    unsigned slen=strlen(str);
-    int nc=0;
-    if (!strncmp(str, peekchars(off), slen)
-        && ((nc=peekbyte(off+slen))<127 && !(nc=='_' || isalnum(nc))))
+    const char*pc = curbytes();
+    const char*end = eolptr();
+    if (!pc || !end) return 0;
+    while (delta>0)
       {
-        consume(off+slen);
+        if (pc>=end) return 0;
+        pc = g_utf8_next_char(pc);
+        delta--;
+      };
+    if (pc>=end) return 0;
+    return g_utf8_get_char_validated(pc, end - pc);
+  };
+  bool starts_with(const char*str, unsigned delta=0) const
+  {
+    const char*pc = curbytes();
+    const char*end = eolptr();
+    if (!str) return false;
+    unsigned slen = strlen(str);
+    if (!pc || !end) return false;
+    while (delta>0)
+      {
+        if (pc>=end) return false;
+        pc = g_utf8_next_char(pc);
+        delta--;
+      };
+    if (pc>=end) return false;
+    if (pc+slen>=end) return false;
+    if (!strncmp(pc, str, slen)) return true;
+  };
+  bool got_cstring(const char*str, unsigned delta=0)
+  {
+    const char*pc = curbytes();
+    const char*inipc = pc;
+    const char*end = eolptr();
+    if (!str) return false;
+    unsigned slen = strlen(str);
+    if (!pc || !end) return false;
+    int nbc=0;
+    while (delta>0)
+      {
+        if (pc>=end) return false;
+        pc = g_utf8_next_char(pc);
+        delta--;
+        nbc++;
+      };
+    if (pc>=end) return false;
+    if (pc+slen>=end) return false;
+    if (!strncmp(pc, str, slen))
+      {
+        pc+=slen;
+        _parcolidx += (pc -inipc);
+        _parcolpos += nbc;
         return true;
       }
     return false;
-  }
-  bool hasdelim(const char*str, unsigned off=0)
+  };
+  /*previous&current*/ std::pair<gunichar,gunichar>
+  peek_pair_utf8(unsigned delta=0) const
   {
-    unsigned slen=strlen(str);
-    int nc=0;
-    if (!strncmp(str, peekchars(off), slen)
-        && ((nc=peekbyte(off+slen))<127 && !(nc=='_' || ispunct(nc))))
+    std::pair<gunichar,gunichar> res = {0,0};
+    const char*pc = curbytes();
+    const char*end = eolptr();
+    if (!pc || !end) return res;
+    gunichar prev = 0, cur = 0;
+    while (delta>0)
       {
-        consume(off+slen);
-        return true;
-      }
-    return false;
-  }
-  void consume(unsigned nbytes)
+        if (pc>=end) return res;
+        prev = cur;
+        pc = g_utf8_next_char(pc);
+        cur = g_utf8_get_char_validated(pc, end - pc);
+        delta--;
+      };
+    return {prev,cur};
+  };
+  void consume_utf8(unsigned delta)
   {
-    auto linsiz = _parlinstr.size();
-    if (_parcol + nbytes < linsiz)
+    const char*pc = curbytes();
+    const char*inip = pc;
+    const char*end = eolptr();
+    if (!pc || !end) return;
+    int nbc=0;
+    while (delta>0)
       {
-        _parcol+=nbytes;
-      }
-    else
-      {
-        next_line();
-      }
+        if (pc>=end)
+          break;
+        pc = g_utf8_next_char(pc);
+        delta--;
+        nbc++;
+      };
+    _parcolidx += (pc - inip);
+    _parcolpos += nbc;
   }
-  void restore_state(long offset, int linecount, int col)
+  void consume_bytes(unsigned byteoffset);
+  void restore_state(long offset, int linecount, int colidx, int colpos)
   {
     if ((long)_parinp.tellg() != (long)(_parlinoffset+_parlinstr.size()+1))
       {
         _parlinstr.clear();
         _parinp.seekg(offset);
         std::getline(_parinp, _parlinstr);
-        _parcol = 0;
+        _parcolidx = 0;
+        _parcolpos = 0;
         _parlincount = linecount;
       }
-    _parcol = col;
+    _parcolidx = colidx;
+    _parcolpos = colpos;
   };
-  MomParser& skip_spaces()
-  {
-    for (;;)
-      {
-        if (eol())
-          {
-            if (!_parinp) return *this;
-            next_line();
-          }
-        else if (isspace(peekbyte()))
-          _parcol++;
-        else if ((peekbyte(0) == '/' && peekbyte(1) == '/')
-                 || (peekbyte(0) == '#' && peekbyte(1) == '!'))
-          {
-            next_line();
-            continue;
-          }
-        else if (peekbyte(0) == '|')
-          {
-            const char* rest = peekchars(1);
-            const char* endcomm = strchr(rest, '|');
-            if (!endcomm)
-              unterminated_small_comment("|");
-            else _parcol += endcomm-rest + 1;
-            continue;
-          }
-        else if (peekbyte(0) == _par_comment_start1_[0] && gotcstr(_par_comment_start1_))
-          {
-            const char* rest = peekchars(strlen(_par_comment_start1_));
-            const char*endcomm = strstr(rest, _par_comment_end1_);
-            if (!endcomm)
-              unterminated_small_comment(_par_comment_end1_);
-            else _parcol += endcomm-rest + strlen(_par_comment_end1_);
-            continue;
-          }
-        else break;
-      }
-    return *this;
-  }
-  inline void next_line(void);
+  MomParser& skip_spaces(void);
+  MomParser& next_line(void);
   std::string parse_string(bool *pgotstr);
+#warning want parse_id in MomParser
   intptr_t parse_int(bool *pgotint);
   MomValue parse_value(bool* pgotval);
   MomValue parse_chunk(bool* pgotchunk); // parse a code chunk, including the ending )$
@@ -2941,25 +2944,6 @@ public:
   MOM_PARSE_FAILURE_AT_BIS((Par),__FILE__,__LINE__,Log)
 
 
-void
-MomParser::next_line()
-{
-  _parlinoffset = _parinp.tellg();
-  _parlinstr.clear();
-  std::getline(_parinp, _parlinstr);
-  if (MOM_UNLIKELY(!g_utf8_validate(_parlinstr.c_str(), _parlinstr.size(),
-                                    nullptr)))
-    MOM_PARSE_FAILURE(this,"invalid UTF8 line#" << _parlincount
-                      << ":" << _parlinstr);
-  _parcol = 0;
-  if (_parinp)
-    _parlincount++;
-  if (_pardebug)
-    MOM_DEBUGLOG(parse, "Mom_Parser::next_line _parlinoffset=" << _parlinoffset
-                 << " _parlinstr=" << MomShowString(_parlinstr)
-                 << " _parlincount=" << _parlincount
-                 << " @" << location_str());
-} // end MomParser::next_line
 
 
 MomParser&

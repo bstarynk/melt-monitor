@@ -29,6 +29,26 @@ constexpr const char MomParser::_par_comment_end1_[];
 #define MOM_PARSERDEBUGLOG(Pa,Log) do { if ((Pa)->_pardebug) MOM_DEBUGLOG(parse,Log); } while(0)
 #define MOM_THISPARSDBGLOG(Log) MOM_PARSERDEBUGLOG(this,Log)
 
+
+void
+MomParser::consume_bytes(unsigned byteoffset)
+{
+  const char*pc = curbytes();
+  const char*inip = pc;
+  const char*end = eolptr();
+  if (!pc || !end) return;
+  pc += byteoffset;
+  if (pc > end)
+    pc = end;
+  int nbc = 0;
+  for (const char*ps = inip; ps < pc && *ps; ps = g_utf8_next_char(ps))
+    nbc++;
+  if (*pc && !g_utf8_validate(pc, end-pc, NULL))
+    MOM_PARSE_FAILURE(this, "consume_bytes with wrong byteoffset=" << byteoffset << " @" << location_str());
+  _parcolidx += (pc - inip);
+  _parcolpos += nbc;
+} // end MomParser::consume_bytes
+
 MomParser&
 MomParser::set_loader_for_object(MomLoader*ld, MomObject*pob, const char*tit)
 {
@@ -58,7 +78,8 @@ MomParser::parse_string(bool *pgotstr)
   skip_spaces();
   check_exhaustion();
   auto inioff = _parlinoffset;
-  auto inicol = _parcol;
+  auto inicolidx = _parcolidx;
+  auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   int pc = 0;
   int nc = 0;
@@ -68,29 +89,30 @@ MomParser::parse_string(bool *pgotstr)
   constexpr unsigned bordersize = sizeof(border);
   int borderpos = 0;
   memset (border, 0, bordersize);
-  pc = peekbyte(0);
-  nc = peekbyte(1);
+  {
+    auto pair = peek_pair_utf8(1);
+    pc = pair.first;
+    nc = pair.second;
+  }
   if (pc=='"')   // JSON encoded UTF8 string, on the same line
     {
-      consume(1);
-      std::string restinline{peekchars()};
+      consume_utf8(1);
+      std::string restinline{curbytes()};
       std::istringstream ins{restinline};
       auto str = mom_input_quoted_utf8_string(ins);
-      consume(ins.tellg());
-      pc = peekbyte(0);
+      consume_bytes(ins.tellg());
+      pc = peek_utf8(0);
       if (pc != '"')
         MOM_PARSE_FAILURE(this, "expecting doublequote ending string, but got " << (char)pc);
-      consume(1);
+      consume_utf8(1);
       if (pgotstr)
         *pgotstr = true;
-      if (_parfun)
-        _parfun(PtokString,inicol,inilincnt);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " string "
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " string "
                          << MomShowString(str));
       return _parnobuild?nullptr:str;
     }
   else if (pc=='`' && (memset(border, 0, sizeof(border)), (borderpos=0), (nc=='_' || isalnum(nc)))
-           && sscanf(peekchars(0), "`" MOM_BORDER_FORMAT "|%n",
+           && sscanf(curbytes(), "`" MOM_BORDER_FORMAT "|%n",
                      border, &borderpos) >= 1 && borderpos>0 && border[0]>0)   // raw strings
     {
       /* the raw string may take many lines, it is ending with the |BORDER` */
@@ -101,18 +123,18 @@ MomParser::parse_string(bool *pgotstr)
       std::string str;
       str.reserve(48);
       int nblines = 0;
-      consume(borderlen+2);
+      consume_bytes(borderlen+2);
       long loopcnt = 0;
       for (;;)
         {
           loopcnt++;
-          pc = peekbyte(0);
-          bool lastofline = eol(1);
+          pc = peek_utf8(0);
+          bool lastofline = (pc == 0) || (peek_utf8(1)==0);
           char s[4];
           memset(s, 0, sizeof(s));
           s[0] = pc;
           MOM_DEBUGLOG(parsestring, "parse_string raw string pc=" << (int)pc << "==" << MomShowString(s)
-                       << " peekchars=" << MomShowString(peekchars())
+                       << " curbytes=" << MomShowString(curbytes())
                        << " loopcnt=" << loopcnt
                        << " lastofline=" << (lastofline?"true":"false"));
           if (pc > 0 && pc != '|' && !lastofline)
@@ -120,18 +142,18 @@ MomParser::parse_string(bool *pgotstr)
               str.push_back((char)pc);
               MOM_DEBUGLOG(parsestring, "parse_string raw string plainchar nblines=" << nblines
                            << " loopcnt=" << loopcnt
-                           << " peekchars=" << MomShowString(peekchars())
+                           << " curbytes=" << MomShowString(curbytes())
                            << " pc=" << (int)pc << "==" << MomShowString(s)
                            << " str=" << MomShowString(str)
                            << " lastofline=" << (lastofline?"true":"false")
                            << " @" << location_str());
-              consume(1);
+              consume_utf8(1);
               continue;
             }
           if (loopcnt%16 == 0 || lastofline || MOM_IS_DEBUGGING(parsestring))
             MOM_DEBUGLOG(parse, "parse_string raw string nblines=" << nblines
                          << " loopcnt=" << loopcnt
-                         << " peekchars=" << MomShowString(peekchars())
+                         << " curbytes=" << MomShowString(curbytes())
                          << " str=" << MomShowString(str)
                          << " lastofline=" << (lastofline?"true":"false")
                          << " @" << location_str());
@@ -150,29 +172,30 @@ MomParser::parse_string(bool *pgotstr)
             }
           if (pc == '|')
             {
-              nc = peekbyte(1);
-              MOM_DEBUGLOG(parse, "parse_string pipe raw string peekchars="
-                           << MomShowString(peekchars())
+              nc = peek_utf8(1);
+              MOM_DEBUGLOG(parse, "parse_string pipe raw string curbytes="
+                           << MomShowString(curbytes())
                            << " @" << location_str()
                            << " border=" << MomShowString(border)
                            << ", borderlen=" << borderlen);
-              if (nc == border[0] && !strncmp(peekchars(1), border, borderlen)
-                  && peekbyte(borderlen+1)=='`')
+              const char*ps = curbytes();
+              if (nc == border[0] && ps && !strncmp(ps+1, border, borderlen)
+                  && ps[borderlen+1]=='`')
                 {
                   MOM_DEBUGLOG(parsestring,
-                               "parse_string pipe got ending peekchars="
-                               << MomShowString(peekchars())
+                               "parse_string pipe got ending curbytes="
+                               << MomShowString(curbytes())
                                << " @" << location_str());
-                  consume(borderlen+2);
-                  MOM_DEBUGLOG(parse, "parse_string raw string pipe ending peekchars="
-                               << MomShowString(peekchars())
+                  consume_bytes(borderlen+2);
+                  MOM_DEBUGLOG(parse, "parse_string raw string pipe ending curbytes="
+                               << MomShowString(curbytes())
                                << " @" << location_str());
                   break;
                 }
               else
                 {
-                  MOM_DEBUGLOG(parsestring, "parse_string pipe nonending peekchars="
-                               << MomShowString(peekchars())
+                  MOM_DEBUGLOG(parsestring, "parse_string pipe nonending curbytes="
+                               << MomShowString(curbytes())
                                << " @" << location_str());
                 }
             }
@@ -184,13 +207,13 @@ MomParser::parse_string(bool *pgotstr)
               MOM_DEBUGLOG(parsestring,
                            "parse_string nonpipe pc=" << (int)pc
                            << "==" << MomShowString(s)
-                           << "  peekchars="
-                           << MomShowString(peekchars())
+                           << "  curbytes="
+                           << MomShowString(curbytes())
                            << " @" << location_str());
             }
           str.push_back(pc);
-          consume(1);
-          pc = peekbyte(0);
+          consume_utf8(1);
+          pc = peek_utf8(0);
           if (lastofline)
             {
               nblines++;
@@ -212,9 +235,7 @@ MomParser::parse_string(bool *pgotstr)
                    << std::endl);
       if (pgotstr)
         *pgotstr = true;
-      if (_parfun)
-        _parfun(PtokString,inicol,inilincnt);
-      MOM_THISPARSDBGLOG("parse_string ended L"<< inilincnt << ",C" << inicol << " final rawstring "
+      MOM_THISPARSDBGLOG("parse_string ended L"<< inilincnt << ",C" << inicolpos << " final rawstring "
                          << MomShowString(str)
                          << std::endl
                          << " @" << location_str()
@@ -224,7 +245,7 @@ MomParser::parse_string(bool *pgotstr)
 failure:
   if (pgotstr)
     *pgotstr = false;
-  restore_state(inioff, inilincnt, inicol);
+  restore_state(inioff, inilincnt, inicolidx, inicolpos);
   return nullptr;
 } // end  MomParser::parse_string
 
@@ -232,25 +253,27 @@ intptr_t
 MomParser::parse_int(bool *pgotint)
 {
   skip_spaces();
-  auto inicol = _parcol;
+  auto inicolidx = _parcolidx;
+  auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   int pc = 0;
   int nc = 0;
-  pc = peekbyte(0);
-  nc = peekbyte(1);
+  {
+    auto pair = peek_pair_utf8(1);
+    pc = pair.first;
+    nc = pair.second;
+  }
   check_exhaustion();
   if (pc>0 && (((pc=='+' || pc=='-') && isdigit(nc)) || isdigit(pc)))
     {
-      const char*curp = peekchars();
+      const char*curp = curbytes();
       char*endp = nullptr;
       long long ll = strtoll(curp, &endp, 0);
       if (endp>curp)
-        consume(endp-curp);
+        consume_bytes(endp-curp);
       if (pgotint)
         *pgotint = true;
-      if (_parfun)
-        _parfun(PtokInt,inicol,inilincnt);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " int:" << ll);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " int:" << ll);
       return ll;
     }
   else
@@ -272,14 +295,16 @@ MomValue
 MomParser::parse_value(bool *pgotval)
 {
   auto inioff = _parlinoffset;
-  auto inicol = _parcol;
+  auto inicolidx = _parcolidx;
+  auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   int pc = 0;
   int nc = 0;
 again:
   skip_spaces();
   inioff = _parlinoffset;
-  inicol = _parcol;
+  inicolidx = _parcolidx;
+  inicolpos = _parcolpos;
   inilincnt = _parlincount;
   if (eol())
     {
@@ -295,19 +320,20 @@ again:
       goto again;
     }
   check_exhaustion();
-  pc = peekbyte(0);
-  nc = peekbyte(1);
+  {
+    auto pair = peek_pair_utf8(1);
+    pc = pair.first;
+    nc = pair.second;
+  }
   if (pc>0 && (((pc=='+' || pc=='-') && isdigit(nc)) || isdigit(pc)))
     {
-      const char*curp = peekchars();
+      const char*curp = curbytes();
       char*endp = nullptr;
       long long ll = strtoll(curp, &endp, 0);
       if (endp>curp)
-        consume(endp-curp);
+        consume_bytes(endp-curp);
       if (pgotval) *pgotval = true;
-      if (_parfun)
-        _parfun(PtokInt,inicol,inilincnt);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " int:" << ll);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " int:" << ll);
       return _parnobuild?nullptr:MomValue((intptr_t)ll);
     }
   else if (isspace(pc))
@@ -318,17 +344,13 @@ again:
   else if ((pc=='/' && nc == '/') || (pc=='#' && nc == '!'))
     {
       next_line();
-      if (_parfun)
-        _parfun(PtokComment,inicol,inilincnt);
       goto again;
     }
   else if (pc=='_' && nc=='_')
     {
-      consume(2);
+      consume_utf8(2);
       if (pgotval) *pgotval = true;
-      if (_parfun)
-        _parfun(PtokNil,inicol,inilincnt);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " NIL");
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " NIL");
       return MomValue{nullptr};
     }
   else if ((pc<127 && isalpha(pc))
@@ -339,7 +361,7 @@ again:
     }
   else if (pc=='[') // tuple
     {
-      consume(1);
+      consume_utf8(1);
       MomObjptrVector vec;
       int cnt=0;
       for (;;)
@@ -347,10 +369,10 @@ again:
           bool gotcurobj = false;
           MomObject* curob = nullptr;
           skip_spaces();
-          pc = peekbyte(0);
+          pc = peek_utf8(0);
           if (pc == ']')
             {
-              consume(1);
+              consume_utf8(1);
               break;
             }
           curob = parse_objptr(&gotcurobj);
@@ -364,10 +386,8 @@ again:
         *pgotval = true;
       MOM_ASSERT(_parnobuild || cnt == (int)vec.size(),
                  "parsing tuple expecting " << cnt << " got " << vec.size());
-      if (_parfun)
-        _parfun(PtokTuple,inicol,inilincnt);
       auto resv = _parnobuild?nullptr:MomValue(MomTuple::make_from_objptr_vector(vec));
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "tuple/" << cnt
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "tuple/" << cnt
                          << (_parnobuild?"!":" ") << resv);
       return resv;
     }
@@ -375,22 +395,22 @@ again:
     {
       MomObjptrSet set;
       int cnt = 0;
-      consume(1);
+      consume_utf8(1);
       for (;;)
         {
           bool gotcurobj = false;
           skip_spaces();
           MomObject* curob = nullptr;
-          pc = peekbyte(0);
+          pc = peek_utf8(0);
           if (pc == '}')
             {
-              consume(1);
+              consume_utf8(1);
               break;
             }
           curob = parse_objptr(&gotcurobj);
           if ((!_parnobuild && !curob) || !gotcurobj)
             MOM_PARSE_FAILURE(this,
-                              "missing element object in set; peekchars=" << MomShowString(peekchars()) << "; _parlinstr=" << MomShowString(_parlinstr));
+                              "missing element object in set; curbytes=" << MomShowString(curbytes()) << "; _parlinstr=" << MomShowString(_parlinstr));
           if (!_parnobuild)
             set.insert(curob);
           cnt++;
@@ -399,10 +419,8 @@ again:
         *pgotval = true;
       MOM_ASSERT(cnt >= (int)set.size(),
                  "parsing set expecting at most " << cnt << " got " << set.size());
-      if (_parfun)
-        _parfun(PtokSet,inicol,inilincnt);
       auto resv= _parnobuild?nullptr:MomValue(MomSet::make_from_objptr_set(set));
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "set/" << cnt
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "set/" << cnt
                          << (_parnobuild?"!":" ") << resv);
       return resv;
     }
@@ -410,23 +428,23 @@ again:
     /// however, a string may be continued with &+& (it is a literal string catenation operator)
     /// eg "abc" &+& "def"  is the same as "abcdef"
     {
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "start of string");
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "start of string");
       bool gotstr = false;
       bool again = false;
       std::string fullstr;
       do
         {
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " fullstr="
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " fullstr="
                              << MomShowString(fullstr) << " @" << location_str());
           again = false;
           std::string str = parse_string(&gotstr);
           if (!gotstr)
             MOM_PARSE_FAILURE(this, "failed to parse string");
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " got string "
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " got string "
                              << MomShowString(str));
           skip_spaces();
           fullstr += str;
-          if (hasdelim("&+&"))
+          if (got_cstring("&+&"))
             again = true;
         }
       while (again);
@@ -449,30 +467,33 @@ again:
     {
       int cnt = 0;
       std::vector<intptr_t> v;
-      consume(2);
+      consume_utf8(2);
       MOM_DEBUGLOG(parse, "parse_value intseq start @" << location_str());
       for (;;)
         {
           skip_spaces();
-          pc = peekbyte(0);
-          nc = peekbyte(1);
+          {
+            auto pair = peek_pair_utf8(1);
+            pc = pair.first;
+            nc = pair.second;
+          }
           if (pc==EOF)
             {
               goto failure;
             }
           else if (pc=='#' && nc==')')
             {
-              consume(2);
+              consume_utf8(2);
               break;
             }
           else if ((pc >0 && pc<127 && isdigit(pc)) || (nc > 0 && nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
             {
-              const char*curp = peekchars();
+              const char*curp = curbytes();
               char*endp = nullptr;
               long long ll = strtoll(curp, &endp, 0);
               cnt++;
               MOM_DEBUGLOG(parse, "parse_value intseq#" << cnt << "=" << ll << " @" << location_str());
-              consume(endp-curp);
+              consume_bytes(endp-curp);
               if (!_parnobuild)
                 v.push_back(ll);
             }
@@ -481,10 +502,8 @@ again:
         }
       if (pgotval)
         *pgotval = true;
-      if (_parfun)
-        _parfun(PtokIntSeq,inicol,inilincnt);
       auto resv = _parnobuild?nullptr:MomValue(MomIntSq::make_from_vector(v));
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "intseq/" << cnt
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "intseq/" << cnt
                          << (_parnobuild?"!":" ") << resv);
       return resv;
     }
@@ -492,30 +511,33 @@ again:
     {
       int cnt =0;
       std::vector<double> v;
-      consume(2);
+      consume_utf8(2);
       MOM_DEBUGLOG(parse, "parse_value doubleseq start @" << location_str());
       for (;;)
         {
           skip_spaces();
-          pc = peekbyte(0);
-          nc = peekbyte(1);
+          {
+            auto pair = peek_pair_utf8(1);
+            pc = pair.first;
+            nc = pair.second;
+          }
           if (pc==EOF)
             {
               goto failure;
             }
           else if (pc==':' && nc==')')
             {
-              consume(2);
+              consume_utf8(2);
               break;
             }
           else if ((pc<127 && isdigit(pc)) || (nc<127 && isdigit(nc) && (pc=='+' || pc=='-')))
             {
-              const char*curp = peekchars();
+              const char*curp = curbytes();
               char*endp = nullptr;
               double x = strtod(curp, &endp);
               cnt++;
               MOM_DEBUGLOG(parse, "parse_value dblseq#" << cnt << "=" << x << " @" << location_str());
-              consume(endp-curp);
+              consume_bytes(endp-curp);
               if (!_parnobuild)
                 v.push_back(x);
             }
@@ -524,10 +546,8 @@ again:
         }
       if (pgotval)
         *pgotval = true;
-      if (_parfun)
-        _parfun(PtokDoubleSeq,inicol,inilincnt);
       auto resv = _parnobuild?nullptr:MomValue(MomDoubleSq::make_from_vector(v));
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "doubleseq/" << cnt
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "doubleseq/" << cnt
                          << (_parnobuild?"!":" ") << resv);
       return resv;
     }
@@ -537,25 +557,25 @@ again:
       bool gotconn = false;
       std::vector<MomValue> sonvec;
       int cnt = 0;
-      consume(1);
+      consume_utf8(1);
       skip_spaces();
       connob = parse_objptr(&gotconn);
       if ((!_parnobuild && !connob) || !gotconn)
         MOM_PARSE_FAILURE(this, "missing connective object in node");
       skip_spaces();
-      pc = peekbyte(0);
+      pc = peek_utf8(0);
       if (pc != '(')
         MOM_PARSE_FAILURE(this, "missing left parenthesis in node of " << connob);
-      consume(1);
+      consume_utf8(1);
       for (;;)
         {
           bool gotcurval = false;
           MomValue curval{nullptr};
           skip_spaces();
-          pc = peekbyte(0);
+          pc = peek_utf8(0);
           if (pc == ')')
             {
-              consume(1);
+              consume_utf8(1);
               break;
             }
           curval = parse_value(&gotcurval);
@@ -567,10 +587,8 @@ again:
         }
       if (pgotval)
         *pgotval = true;
-      if (_parfun)
-        _parfun(PtokNode,inicol,inilincnt);
       auto resv =  _parnobuild?nullptr:MomValue(MomNode::make_from_vector(connob,sonvec));
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << ", node/" << cnt
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << ", node/" << cnt
                          << (_parnobuild?"!":" ") << resv
                          << " @" << location_str());
       return resv;
@@ -578,14 +596,14 @@ again:
   else if (pc=="°"[0] && nc=="°"[1])
     {
       static_assert(sizeof("°")==3, "wrong length for ° (degree sign)");
-      consume(2);
+      consume_utf8(1);
       bool gotvval = false;
       auto vv = MomParser::parse_value(&gotvval);
       if (gotvval)
         {
           if (pgotval)
             *pgotval = true;
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "transient"
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "transient"
                              << (_parnobuild?"!":" ") << vv);
           if (vv.is_val())
             return  _parnobuild?nullptr:MomValue(vv.to_val(),MomTransientTag{});
@@ -596,14 +614,14 @@ again:
     }
   else if (pc=='$' && nc=='(' && _parhaschunk)
     {
-      consume(2);
+      consume_utf8(2);
       bool gotvchunk = false;
       auto vc = MomParser::parse_chunk(&gotvchunk);
       if (gotvchunk)
         {
           if (pgotval)
             *pgotval = true;
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "chunk"
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "chunk"
                              << (_parnobuild?"!":" ") << vc);
           return  _parnobuild?nullptr:vc;
         }
@@ -612,7 +630,7 @@ again:
     }
   else if (pc=='$' && nc=='!' && _parvaleval)
     {
-      consume(2);
+      consume_utf8(2);
       bool gotvnod = false;
       auto vnod = MomParser::parse_value(&gotvnod);
       if (!_parnobuild && !vnod.is_val() && !vnod.to_val()->is_node())
@@ -630,7 +648,7 @@ again:
 failure:
   if (pgotval)
     *pgotval = false;
-  restore_state(inioff, inilincnt, inicol);
+  restore_state(inioff, inilincnt, inicolidx, inicolpos);
   return nullptr;
 } // end of MomParser::parse_value
 
@@ -641,16 +659,17 @@ MomParser::parse_chunk(bool *pgotchunk)
   check_exhaustion();
   std::vector<MomValue> vecelem;
   //auto inioff = _parlinoffset;
-  auto inicol = _parcol;
+  auto inicolidx = _parcolidx;
+  auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   while (parse_chunk_element(vecelem))
     {
       // do nothing
     };
-  if (peekbyte(0) == ')' && peekbyte(1) == '$')
+  if (peek_utf8(0) == ')' && peek_utf8(1) == '$')
     {
-      consume(2);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "endchunk/"
+      consume_utf8(2);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "endchunk/"
                          << vecelem.size() << ":"
                          << (MomDoShow([=,&vecelem](std::ostream&out)
       {
@@ -671,13 +690,13 @@ MomParser::parse_chunk(bool *pgotchunk)
         {
           auto vch = chunk_value(vecelem);
           if (!vch)
-            MOM_PARSE_FAILURE(this, "failed to build chunk started at line#" << inilincnt << " column:" << inicol);
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << "endchunk=" << vch);
+            MOM_PARSE_FAILURE(this, "failed to build chunk started at line#" << inilincnt << " column:" << inicolpos);
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "endchunk=" << vch);
           return vch;
         }
     }
   else
-    MOM_PARSE_FAILURE(this, "failed to parse chunk started at line#" << inilincnt << " column:" << inicol);
+    MOM_PARSE_FAILURE(this, "failed to parse chunk started at line#" << inilincnt << " column:" << inicolpos);
 } // end MomParser::parse_chunk
 
 
@@ -690,12 +709,16 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
   int nc = 0;
   check_exhaustion();
   //auto inioff = _parlinoffset;
-  auto inicol = _parcol;
+  auto inicolidx = _parcolidx;
+  auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   MomIdent id;
   const char* endid = nullptr;
-  pc = peekbyte(0);
-  nc = peekbyte(1);
+  {
+    auto pair = peek_pair_utf8(1);
+    pc = pair.first;
+    nc = pair.second;
+  }
   /* in chunks, )$ is ending the chunk */
   if (pc == ')' && nc == '$')
     return false;
@@ -705,7 +728,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
   if (eol())
     {
       next_line();
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem EOL");
       if (!_parnobuild)
         vecelem.push_back(MomString::make_from_string("\n"));
@@ -718,15 +741,15 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       while (isspace(pc))
         {
           spacestr += (char)pc;
-          consume(1);
-          pc = peekbyte(0);
+          consume_utf8(1);
+          pc = peek_utf8(0);
         };
       if (eol())
         {
           spacestr += '\n';
           next_line();
         }
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem spacestr " << MomShowString(spacestr));
       if (!_parnobuild)
         vecelem.push_back(MomString::make_from_string(spacestr));
@@ -739,19 +762,19 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       while (pc>0 && pc<127 && (isalnum(pc) || pc=='_'))
         {
           namestr += (char)pc;
-          consume(1);
-          pc = peekbyte(0);
+          consume_utf8(1);
+          pc = peek_utf8(0);
         }
       auto namv = _parnobuild?nullptr:chunk_name(namestr);
       if (namv)
         {
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " chunkelem name " << namestr << " = " << namv);
           vecelem.push_back(namv);
         }
       else
         {
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " chunkelem namestr " << namestr);
           if (!_parnobuild)
             vecelem.push_back(MomString::make_from_string(namestr));
@@ -759,21 +782,21 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       return true;
     }
   /* handling objids in chunks */
-  else if (pc=='_' && nc<127 && isdigit(nc) && (id=MomIdent::make_from_cstr(peekchars(0),&endid))
+  else if (pc=='_' && nc<127 && isdigit(nc) && (id=MomIdent::make_from_cstr(curbytes(),&endid))
            && endid!=nullptr)
     {
-      std::string idstr(peekchars(0), endid - peekchars());
-      consume(endid - peekchars());
+      std::string idstr(curbytes(), endid - curbytes());
+      consume_bytes(endid - curbytes());
       auto vid = _parnobuild?nullptr:chunk_id(id);
       if (vid)
         {
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " chunkelem id=" << id << " = " << vid);
           vecelem.push_back(vid);
         }
       else
         {
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " chunkelem idstr=" << idstr);
           if (!_parnobuild)
             vecelem.push_back(MomString::make_from_string(idstr));
@@ -783,22 +806,22 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
   /* $, and $; and $. are all handled as separators */
   else if (pc=='$' && (nc == ',' || nc==';' || nc=='.'))
     {
-      consume(2);
+      consume_utf8(2);
       return true;
     }
   /* handle $<name> as a dollarobj, or else a string */
   else if (pc=='$' && nc<127 && isalpha(nc))
     {
       std::string dollstr;
-      consume(1);
-      while ((pc==peekbyte(0))>0 && pc<127 && (isalnum(pc) || pc=='_'))
+      consume_utf8(1);
+      while ((pc==(int)peek_utf8(0))>0 && pc<127 && (isalnum(pc) || pc=='_'))
         {
           dollstr += (char)pc;
-          consume(1);
+          consume_utf8(1);
         }
       if (_parnobuild)
         {
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " chunkelem dollarname nobuild dollstr=$" << dollstr);
           return true;
         }
@@ -806,13 +829,13 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       MomValue v = pob?chunk_dollarobj(pob):nullptr;
       if (v)
         {
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " chunkelem dollarname dollar=" << dollstr << " v=" << v);
           vecelem.push_back(v);
         }
       else
         {
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " chunkelem dollarname dollstr=$" << dollstr);
           vecelem.push_back(MomString::make_from_string(std::string{"$"} + dollstr));
         }
@@ -822,14 +845,14 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
   else if (pc=='$' && nc=='%')
     {
       bool gotval = false;
-      consume(2);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+      consume_utf8(2);
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem start embedded value");
       auto embv = parse_value(&gotval);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem got embedded value" <<(_parnobuild?"!":" ") << embv);
       auto v = _parnobuild?nullptr:chunk_embedded_value(embv);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem embedding value" <<(_parnobuild?"!":" ") << v);
       if (!_parnobuild)
         vecelem.push_back(v);
@@ -841,20 +864,20 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
   else
     {
       std::string str;
-      while ((pc = peekbyte(0))>0 && !eol() && !(isalpha(pc) || isspace(pc)))
+      while ((pc = peek_utf8(0))>0 && !eol() && !(isalpha(pc) || isspace(pc)))
         {
-          nc = peekbyte(1);
+          nc = peek_utf8(1);
           if (pc=='$')
             {
               if (nc == '$')
-                consume(1);
+                consume_utf8(1);
               else
                 break;
             }
           str += (char)pc;
-          consume(1);
+          consume_utf8(1);
         }
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem other " << MomShowString(str));
       if (!_parnobuild)
         vecelem.push_back(MomString::make_from_string(str));
@@ -869,7 +892,8 @@ MomParser::parse_objptr(bool *pgotob)
 {
   MomObject*respob = nullptr;
   auto inioff = _parlinoffset;
-  auto inicol = _parcol;
+  auto inicolidx = _parcolidx;
+  auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   int pc = 0;
   int nc = 0;
@@ -888,9 +912,13 @@ again:
       goto again;
     }
   check_exhaustion();
-  pc = peekbyte(0);
-  nc = peekbyte(1);
-  if (gotspacing())
+  {
+    auto pair = peek_pair_utf8(1);
+    pc = pair.first;
+    nc = pair.second;
+  }
+#warning was gotspacing, so should improve
+  if (pc<127 && isspace(pc))
     {
       skip_spaces();
       goto again;
@@ -898,7 +926,7 @@ again:
   else if (pc=='_' && nc<127 && isdigit(nc))
     {
       const char* endp = nullptr;
-      const char*curp = peekchars();
+      const char*curp = curbytes();
       auto id = MomIdent::make_from_cstr(curp,&endp);
       if (id.is_null()) goto failure;
       if (!_parnobuild)
@@ -910,45 +938,39 @@ again:
         }
       if (_parnobuild || respob)
         {
-          consume(endp-curp);
+          consume_bytes(endp-curp);
           if (pgotob)
             *pgotob = true;
-          if (_parfun)
-            _parfun(PtokId,inicol,inilincnt);
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " objid:" << id);
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " objid:" << id);
           return respob;
         }
       else goto failure;
     }
   else if (pc=='_' && nc=='_')
     {
-      consume(2);
+      consume_utf8(2);
       if (pgotob)
         *pgotob = true;
-      if (_parfun)
-        _parfun(PtokNil,inicol,inilincnt);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol << " OBJNIL");
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " OBJNIL");
       return nullptr;
     }
   else if (isalpha(pc))
     {
-      const char*begnamp = peekchars();
+      const char*begnamp = curbytes();
       const char*endnamp = begnamp;
       while (isalnum(*endnamp) || (*endnamp == '_' && isalnum(endnamp[-1])))
         endnamp++;
       std::string namstr(begnamp, endnamp-begnamp);
       MomObject* ob = fetch_named_object(namstr);
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " namstr=" << MomShowString(namstr)
                          << " NAMEDOB=" << MomShowObject(ob));
       if (ob || _parnobuild)
         {
-          consume(endnamp-begnamp);
+          consume_bytes(endnamp-begnamp);
           if (pgotob)
             *pgotob = true;
-          if (_parfun)
-            _parfun(PtokName,inicol,inilincnt);
-          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicol
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " namedobj: " << namstr << " = " << ob);
           return ob;
         }
@@ -956,7 +978,7 @@ again:
     }
   else if (pc=='$' && nc=='%' && _parobjeval)
     {
-      consume(2);
+      consume_utf8(2);
       bool gotvnod = false;
       auto vnod = MomParser::parse_value(&gotvnod);
       if (!_parnobuild && !vnod.is_val() && !vnod.as_val()->is_node())
@@ -974,7 +996,7 @@ again:
 failure:
   if (pgotob)
     *pgotob = false;
-  restore_state(inioff, inilincnt, inicol);
+  restore_state(inioff, inilincnt, inicolidx, inicolpos);
   return nullptr;
 } // end of MomParser::parse_objptr
 
