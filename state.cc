@@ -627,6 +627,10 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
         }
       else if (contpars.got_cstring("@MAGIC!"))
         pob->set_magic(true);
+      else
+        MOM_PARSE_FAILURE(&contpars, "unexpected state content for pob=" << pob
+                          << ": " << MomShowString(contpars.curbytes())
+                          << " @" << contpars.location_str());
     }
   MOM_DEBUGLOG(load,"load_object_content end pob=" << pob << " thix=" << thix
                << " nbattr=" << nbattr << " nbcomp=" << nbcomp);
