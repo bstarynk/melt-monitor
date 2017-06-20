@@ -2580,6 +2580,11 @@ public:
     PtokDoubleSeq,
     PtokNode,
   };
+  struct MomPrevCurrUnichars
+  {
+    gunichar prev;
+    gunichar curr;
+  };
 private:
   std::istream &_parinp; // input stream
   std::string _parlinstr; // line string
@@ -2746,7 +2751,6 @@ public:
   bool has_cstring(const char*str, unsigned delta=0) const
   {
     const char*pc = curbytes();
-    const char*inipc = pc;
     const char*end = eolptr();
     if (!str) return false;
     unsigned slen = strlen(str);
@@ -2763,6 +2767,7 @@ public:
     if (pc+slen>=end) return false;
     if (!strncmp(pc, str, slen))
       return true;
+    return false;
   }
   bool got_cstring(const char*str, unsigned delta=0)
   {
@@ -2799,24 +2804,56 @@ public:
     else if (has_cstring(_par_comment_start1_)) return true;
     return false;
   }
-  /*previous&current*/ std::pair<gunichar,gunichar>
-  peek_pair_utf8(unsigned delta=0) const
+  MomPrevCurrUnichars
+  peek_prevcurr_utf8(unsigned delta=0) const
   {
-    std::pair<gunichar,gunichar> res = {0,0};
+    MomPrevCurrUnichars res = {0,0};
+    const char*bol = _parlinstr.c_str();
     const char*pc = curbytes();
     const char*end = eolptr();
-    if (!pc || !end) return res;
-    gunichar prev = 0, cur = 0;
-    while (delta>0)
+    if (!pc || !end || pc==end) return res;
+    if (delta==0)
       {
-        if (pc>=end) return res;
-        prev = cur;
+        if (pc>bol)
+          {
+            auto prevc = g_utf8_prev_char(pc);
+            if (prevc)
+              res.prev = g_utf8_get_char_validated(prevc, end - prevc);
+          }
+        if (pc < end)
+          res.curr = g_utf8_get_char_validated(pc, end - pc);
+        return res;
+      }
+    else if (delta==1)
+      {
+        res.prev = g_utf8_get_char_validated(pc, end-pc);
         pc = g_utf8_next_char(pc);
-        cur = g_utf8_get_char_validated(pc, end - pc);
-        delta--;
-      };
-    return {prev,cur};
+        if (pc < end)
+          res.curr = g_utf8_get_char_validated(pc, end - pc);
+        return res;
+      }
+    else
+      {
+        gunichar prev=0;
+        gunichar cur=0;
+        while (delta>0)
+          {
+            if (pc>=end) return res;
+            prev = cur;
+            pc = g_utf8_next_char(pc);
+            cur = g_utf8_get_char_validated(pc, end - pc);
+            delta--;
+          };
+        return {prev,cur};
+      }
   };
+  void
+  peek_prevcurr_utf8(gunichar&prev, gunichar&cur, unsigned delta=0) const
+  {
+    MomPrevCurrUnichars res = peek_prevcurr_utf8(delta);
+    prev = res.prev;
+    cur = res.curr;
+  }
   void consume_utf8(unsigned delta)
   {
     const char*pc = curbytes();

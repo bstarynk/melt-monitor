@@ -84,9 +84,8 @@ MomParser::skip_spaces()
           next_line();
           continue;
         }
-      auto pair = peek_pair_utf8(1);
-      int pc = pair.first;
-      int nc = pair.second;
+      gunichar pc = 0, nc = 0;
+      peek_prevcurr_utf8(pc,nc,1);
       if (isspace(pc))
         consume_utf8(1);
       else if ((pc == '/' && nc == '/')
@@ -152,19 +151,15 @@ MomParser::parse_string(bool *pgotstr)
   auto inicolidx = _parcolidx;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
-  int pc = 0;
-  int nc = 0;
+  gunichar pc = 0;
+  gunichar nc = 0;
 #define MOM_BORDER_SIZE 32
 #define MOM_BORDER_FORMAT "%30[A-Za-z0-9_]"
   char border[MOM_BORDER_SIZE];
   constexpr unsigned bordersize = sizeof(border);
   int borderpos = 0;
   memset (border, 0, bordersize);
-  {
-    auto pair = peek_pair_utf8(1);
-    pc = pair.first;
-    nc = pair.second;
-  }
+  peek_prevcurr_utf8(pc,nc,1);
   if (pc=='"')   // JSON encoded UTF8 string, on the same line
     {
       consume_utf8(1);
@@ -327,13 +322,8 @@ MomParser::parse_int(bool *pgotint)
   auto inicolidx = _parcolidx;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
-  int pc = 0;
-  int nc = 0;
-  {
-    auto pair = peek_pair_utf8(1);
-    pc = pair.first;
-    nc = pair.second;
-  }
+  gunichar pc = 0, nc = 0;
+  peek_prevcurr_utf8(pc,nc,1);
   check_exhaustion();
   if (pc>0 && (((pc=='+' || pc=='-') && isdigit(nc)) || isdigit(pc)))
     {
@@ -369,8 +359,7 @@ MomParser::parse_value(bool *pgotval)
   auto inicolidx = _parcolidx;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
-  int pc = 0;
-  int nc = 0;
+  gunichar pc = 0, nc = 0;
 again:
   skip_spaces();
   inioff = _parlinoffset;
@@ -391,11 +380,7 @@ again:
       goto again;
     }
   check_exhaustion();
-  {
-    auto pair = peek_pair_utf8(1);
-    pc = pair.first;
-    nc = pair.second;
-  }
+  peek_prevcurr_utf8(pc, nc, 1);
   if (pc>0 && (((pc=='+' || pc=='-') && isdigit(nc)) || isdigit(pc)))
     {
       const char*curp = curbytes();
@@ -543,11 +528,7 @@ again:
       for (;;)
         {
           skip_spaces();
-          {
-            auto pair = peek_pair_utf8(1);
-            pc = pair.first;
-            nc = pair.second;
-          }
+          peek_prevcurr_utf8(pc,nc,1);
           if (pc==EOF)
             {
               goto failure;
@@ -587,12 +568,8 @@ again:
       for (;;)
         {
           skip_spaces();
-          {
-            auto pair = peek_pair_utf8(1);
-            pc = pair.first;
-            nc = pair.second;
-          }
-          if (pc==EOF)
+          peek_prevcurr_utf8(pc,nc,1);
+          if (pc==0)
             {
               goto failure;
             }
@@ -776,8 +753,7 @@ MomParser::parse_chunk(bool *pgotchunk)
 bool
 MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
 {
-  int pc = 0;
-  int nc = 0;
+  gunichar pc=0, nc=0;
   check_exhaustion();
   //auto inioff = _parlinoffset;
   auto inicolidx = _parcolidx;
@@ -785,11 +761,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
   auto inilincnt = _parlincount;
   MomIdent id;
   const char* endid = nullptr;
-  {
-    auto pair = peek_pair_utf8(1);
-    pc = pair.first;
-    nc = pair.second;
-  }
+  peek_prevcurr_utf8(pc,nc,1);
   /* in chunks, )$ is ending the chunk */
   if (pc == ')' && nc == '$')
     return false;
@@ -966,8 +938,7 @@ MomParser::parse_objptr(bool *pgotob)
   auto inicolidx = _parcolidx;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
-  int pc = 0;
-  int nc = 0;
+  gunichar pc = 0, nc = 0;
 again:
   if (eol())
     {
@@ -983,11 +954,7 @@ again:
       goto again;
     }
   check_exhaustion();
-  {
-    auto pair = peek_pair_utf8(1);
-    pc = pair.first;
-    nc = pair.second;
-  }
+  peek_prevcurr_utf8(pc,nc,1);
   if ((pc<127 && isspace(pc)) || has_spacing())
     {
       skip_spaces();
