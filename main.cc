@@ -551,6 +551,11 @@ MomShowString::output(std::ostream&os) const
 {
   char *buf = nullptr;
   size_t siz = 0;
+  if (_shnil)
+    {
+      os << "*nullstr*";
+      return;
+    }
   FILE *f = open_memstream(&buf,&siz);
   if (MOM_UNLIKELY(!f))
     MOM_FATAPRINTF("MomShowString::output open_memstream failure %m");

@@ -465,9 +465,10 @@ void mom_output_utf8_escaped (FILE *f, const char *str, int len,
 class MomShowString
 {
   std::string _shstr;
+  bool _shnil;
 public:
-  explicit MomShowString(const std::string& str) : _shstr(str) {};
-  explicit MomShowString(const char*cstr) : _shstr(cstr) {};
+  explicit MomShowString(const std::string& str) : _shstr(str), _shnil(false) {};
+  explicit MomShowString(const char*cstr) : _shstr(cstr?cstr:""), _shnil(cstr==nullptr) {};
   MomShowString(const MomShowString&) = default;
   MomShowString(MomShowString&&) = default;
   ~MomShowString() = default;
