@@ -637,7 +637,8 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
 void
 MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcont)
 {
-  MOM_DEBUGLOG(load,"load_object_content start pob=" << pob << " thix=" << thix << " strcont=" << strcont);
+  MOM_DEBUGLOG(load,"load_object_content start pob=" << pob
+               << " thix=" << thix << " strcont=" << strcont << std::endl);
   std::istringstream incont(strcont);
   MomParser contpars(incont);
   char title[80];
@@ -655,10 +656,12 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   for (;;)
     {
       contpars.skip_spaces();
-      if (contpars.eof()) break;
+      if (contpars.eof())
+        break;
       MOM_DEBUGLOG(load,"load_object_content pob=" << pob
-                   << "contpars::"<< contpars.location_str()
-                   << " " << MomShowString(contpars.curbytes()));
+                   << ", contpars@"<< contpars.location_str()
+                   << ": " << MomShowString(contpars.curbytes())
+                   << std::endl);
       if (contpars.got_cstring("@:"))
         {
           bool gotattr = false;
@@ -706,7 +709,10 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
                           << " @" << contpars.location_str());
     }
   MOM_DEBUGLOG(load,"load_object_content end pob=" << pob << " thix=" << thix
-               << " nbattr=" << nbattr << " nbcomp=" << nbcomp);
+               << " nbattr=" << nbattr << " nbcomp=" << nbcomp
+               << " final contpars@" << contpars.location_str()
+               << " remaining: " << MomShowString(contpars.curbytes())
+               << std::endl);
 } // end MomLoader::load_object_content
 
 
