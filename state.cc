@@ -290,6 +290,8 @@ MomLoader::load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob)
     }
   if (globpob)
     {
+      MOM_DEBUGLOG(load,"load_cold_globdata storing globnam=" << globnam
+                   << " globpob=" << globpob);
       pglob->store(globpob);
     }
 } // end MomLoader::load_cold_globdata
@@ -673,6 +675,9 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
             return;
           });
           nbattr++;
+          MOM_DEBUGLOG(load,"load_object_content attr#" << nbattr
+                       <<" pob=" << pob <<
+                       " adding pobattr=" << pobattr << " valattr=" << valattr);
         }
       else if (contpars.got_cstring("&:"))
         {
@@ -686,9 +691,15 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
             return;
           });
           nbcomp++;
+          MOM_DEBUGLOG(load,"load_object_content comp#" << nbcomp
+                       <<" pob=" << pob <<
+                       " adding valcomp=" << valcomp);
         }
       else if (contpars.got_cstring("@MAGIC!"))
-        pob->set_magic(true);
+        {
+          MOM_DEBUGLOG(load,"load_object_content magic pob=" << pob);
+          pob->set_magic(true);
+        }
       else
         MOM_PARSE_FAILURE(&contpars, "unexpected state content for pob=" << pob
                           << ": " << MomShowString(contpars.curbytes())
