@@ -2768,17 +2768,21 @@ public:
     if (!str) return false;
     MOM_ASSERT(g_utf8_validate(str, -1, nullptr), "got_cstring invalid str");
     unsigned slen = strlen(str);
-    if (!pc || !end) return false;
+    if (!pc || !end)
+      return false;
     int nbc=0;
     while (delta>0)
       {
-        if (pc>=end) return false;
+        if (pc>=end)
+          return false;
         pc = g_utf8_next_char(pc);
         delta--;
         nbc++;
       };
-    if (pc>=end) return false;
-    if (pc+slen>=end) return false;
+    if (pc>=end)
+      return false;
+    if (pc+slen>end)
+      return false;
     if (!strncmp(pc, str, slen))
       {
         pc+=slen;
