@@ -686,12 +686,13 @@ MomObject::do_each_object_prefixed(const char*prefixid,
 void
 MomShowObject::output(std::ostream& os) const
 {
-  std::string name;
   if (!_shob)
     {
       os << "__";
       return;
     }
+  MOM_ASSERT(_shob->vkind() == MomKind::TagObjectK, "MomShowObject::output bad _shob");
+  std::string name;
   {
     std::shared_lock<std::shared_mutex> lk(_shob->get_shared_mutex());
     name = mom_get_unsync_name(_shob);

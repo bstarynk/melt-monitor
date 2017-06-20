@@ -1242,7 +1242,8 @@ MomMainWindow::do_object_show_hide(void)
       switch (result)
         {
         case ShowOb:
-          MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide show showtext=" << MomShowString(showtext));
+          MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide show showtext=" << MomShowString(showtext.c_str()));
+          MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide show pob=" << pob);
           if (pob)
             browser_show_object(pob);
           else
@@ -1301,8 +1302,10 @@ MomMainWindow::browser_show_object(MomObject*pob)
 {
   if (pob==nullptr || pob->vkind() != MomKind::TagObjectK)
     MOM_FATAPRINTF("MomMainWindow::browser_show_object invalid pob @%p", (void*)pob);
-  MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start pob=" << MomShowObject(pob)
-               << " nbshown=" << _mwi_shownobmap.size());
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start pob.id=" << pob->id());
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start shown pob=" << MomShowObject(pob));
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start raw pob=" << (pob));
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start nbshown=" << _mwi_shownobmap.size());
   auto shmbegit = _mwi_shownobmap.begin();
   auto shmendit = _mwi_shownobmap.end();
   MomObject*begpob = nullptr;
