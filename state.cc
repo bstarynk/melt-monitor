@@ -65,7 +65,7 @@ public:
   void load(void);
   void set_sequential(bool seq)
   {
-    _ld_sequential=true;
+    _ld_sequential=seq;
   };
 };				// end class MomLoader
 
@@ -648,7 +648,8 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   contpars.next_line();
   int nbcomp = 0;
   int nbattr = 0;
-  MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs, "MomLoader::load_object_content bad thix#" << thix);
+  MOM_ASSERT((thix>0 && thix<=(int)mom_nb_jobs) || _ld_sequential,
+             "MomLoader::load_object_content bad thix#" << thix);
   for (;;)
     {
       contpars.skip_spaces();
