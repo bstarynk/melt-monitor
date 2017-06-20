@@ -2746,7 +2746,7 @@ public:
     while (delta>0)
       {
         if (pc>=end)
-	  return false;
+          return false;
         pc = g_utf8_next_char(pc);
         delta--;
         nbc++;
@@ -3419,6 +3419,7 @@ public:
 /// in state.cc
 extern "C" long mom_dump_in_directory(const char*dirname); // return number of dumped objects
 extern "C" void mom_load_from_directory(const char*dirname);
+extern "C" void mom_load_sequential_from_directory(const char*dirname);
 extern "C" void mom_dump_todo_scan(MomDumper*du, std::function<void(MomDumper*)> todofun);
 extern "C" void mom_dump_todo_emit(MomDumper*du, std::function<void(MomDumper*)> todofun);
 extern "C" void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam);

@@ -29,6 +29,7 @@ class MomLoader
 {
   std::string _ld_dirname;
   const double _ld_startrealtime, _ld_startcputime;
+  bool _ld_sequential;
   // global & user databases and their mutexes
   std::unique_ptr<sqlite::database> _ld_globdbp;
   std::unique_ptr<sqlite::database> _ld_userdbp;
@@ -62,6 +63,10 @@ public:
   static constexpr const bool IS_USER= true;
   static constexpr const bool IS_GLOBAL= false;
   void load(void);
+  void set_sequential(bool seq)
+  {
+    _ld_sequential=true;
+  };
 };				// end class MomLoader
 
 const bool MomLoader::IS_USER;
@@ -130,6 +135,7 @@ MomLoader::MomLoader(const std::string& dirnam)
   : _ld_dirname(dirnam),
     _ld_startrealtime(mom_elapsed_real_time()),
     _ld_startcputime(mom_process_cpu_time()),
+    _ld_sequential(false),
     _ld_globdbp(nullptr), _ld_userdbp(nullptr),
     _ld_mtxglobdb(), _ld_mtxuserdb(),
     _ld_objmap(), _ld_mtxobjmap()
@@ -163,7 +169,8 @@ MomLoader::MomLoader(const std::string& dirnam)
 void
 MomLoader::load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool user)
 {
-  pthread_setname_np(pthread_self(),user?"motouchuser":"mothouchglob");
+  if (!ld->_ld_sequential)
+    pthread_setname_np(pthread_self(),user?"motouchuser":"mothouchglob");
   MOM_DEBUGLOG(load,"load_touch_objects_from_db start user=" << (user?"true":"false"));
   std::lock_guard<std::mutex> gu (*(user?(&ld->_ld_mtxuserdb):(&ld->_ld_mtxglobdb)));
   *pdb << (user?"SELECT ob_id, ob_mtim /*user*/ FROM t_objects" : "SELECT ob_id, ob_mtim /*global*/ FROM t_objects")
@@ -177,48 +184,66 @@ MomLoader::load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool 
   MOM_DEBUGLOG(load,"load_touch_objects_from_db end user=" << (user?"true":"false"));
 } // end MomLoader::load_touch_objects_from_db
 
+
+
 void
 MomLoader::load(void)
 {
   long nbglobob = 0;
   long nbuserob = 0;
-  {
-    auto globthr = std::thread([&](void)
+  if (_ld_sequential)
     {
-      pthread_setname_np(pthread_self(), "moloademglob");
-      MomAnyVal::enable_allocation();
+      MOM_INFORMLOG("loading sequentially from " << _ld_dirname);
       nbglobob
         = load_empty_objects_from_db(_ld_globdbp.get(),IS_GLOBAL);
-    });
-    std::thread userthr;
-    if (_ld_userdbp)
+      nbuserob
+        = load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
+    }
+  else   // multi-threaded
+    {
+      MOM_INFORMLOG("loading with " << mom_nb_jobs << " threads from " << _ld_dirname);
+      auto globthr = std::thread([&](void)
       {
-        userthr = std::thread([&](void)
+        pthread_setname_np(pthread_self(), "moloademglob");
+        MomAnyVal::enable_allocation();
+        nbglobob
+          = load_empty_objects_from_db(_ld_globdbp.get(),IS_GLOBAL);
+      });
+      std::thread userthr;
+      if (_ld_userdbp)
         {
-          pthread_setname_np(pthread_self(), "moloademuser");
-          MomAnyVal::enable_allocation();
-          nbuserob
-            = load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
-        });
-        userthr.join();
-      }
-    globthr.join();
-  }
+          userthr = std::thread([&](void)
+          {
+            pthread_setname_np(pthread_self(), "moloademuser");
+            MomAnyVal::enable_allocation();
+            nbuserob
+              = load_empty_objects_from_db(_ld_userdbp.get(),IS_USER);
+          });
+          userthr.join();
+        }
+      globthr.join();
+    }
   load_all_globdata();
   load_all_objects_content();
   load_all_objects_payload_make();
   load_all_objects_payload_fill();
-  {
-    auto ld = this;
-    auto globthr = std::thread(load_touch_objects_from_db,ld,_ld_globdbp.get(),IS_GLOBAL);
-    std::thread userthr;
-    if (_ld_userdbp)
-      {
-        userthr = std::thread(load_touch_objects_from_db,ld,_ld_userdbp.get(),IS_USER);
-        userthr.join();
-      }
-    globthr.join();
-  }
+  if (_ld_sequential)
+    {
+      load_touch_objects_from_db(this,_ld_globdbp.get(),IS_GLOBAL);
+      load_touch_objects_from_db(this,_ld_userdbp.get(),IS_USER);
+    }
+  else   // multithreaded load
+    {
+      auto ld = this;
+      auto globthr = std::thread(load_touch_objects_from_db,ld,_ld_globdbp.get(),IS_GLOBAL);
+      std::thread userthr;
+      if (_ld_userdbp)
+        {
+          userthr = std::thread(load_touch_objects_from_db,ld,_ld_userdbp.get(),IS_USER);
+          userthr.join();
+        }
+      globthr.join();
+    }
   char cputimbuf[24], realtimbuf[24];
   snprintf(cputimbuf, sizeof(cputimbuf), "%.3f", mom_process_cpu_time() - _ld_startcputime);
   snprintf(realtimbuf, sizeof(realtimbuf), "%.3f", mom_elapsed_real_time() - _ld_startrealtime);
@@ -229,7 +254,7 @@ MomLoader::load(void)
   snprintf(realpotbuf, sizeof(realpotbuf), "%.3f",
            ((mom_elapsed_real_time() - _ld_startrealtime)*1.0e6)
            /(nbglobob+nbuserob));
-  MOM_INFORMLOG("loaded " << nbglobob << " global, " << nbuserob
+  MOM_INFORMLOG((_ld_sequential?"loaded sequentially ":"loaded ") << nbglobob << " global, " << nbuserob
                 << " user = "
                 << (nbglobob+nbuserob) << " objects from " << _ld_dirname
                 << std::endl
@@ -311,41 +336,61 @@ MomLoader::load_all_objects_content(void)
         return res;
       };
     }
-  /// build a vector of queue of objects to be loaded
-  std::vector<std::deque<MomObject*>> vecobjque(mom_nb_jobs);
-  unsigned long obcnt = 0;
-  {
-    std::lock_guard<std::mutex> gu{_ld_mtxobjmap};
-    MOM_DEBUGLOG(load,"load_all_objects_content objmapsize=" << _ld_objmap.size());
-    for (auto p : _ld_objmap)
+  if (_ld_sequential)
+    {
+      std::deque<MomObject*>theobjque;
+      unsigned long obcnt = 0;
+      std::lock_guard<std::mutex> gu{_ld_mtxobjmap};
+      for (auto p : _ld_objmap)
+        {
+          MomObject* pob = p.second;
+          MOM_ASSERT(pob != nullptr && pob->id() == p.first,
+                     "MomLoader::load_all_objects_content bad id");
+          theobjque.push_back(pob);
+          obcnt++;
+          MOM_DEBUGLOG(load,"load_all_objects_content sequential obcnt=" << obcnt << " pob=" << pob);
+        };
+      thread_load_content_objects(this, 0, &theobjque, getglobfun, getuserfun);
+      MOM_DEBUGLOG(load,"load_all_objects_content sequential done obcnt=" << obcnt);
+    }
+  else     // multi-threaded
+    {
+      /// build a vector of queue of objects to be loaded
+      std::vector<std::deque<MomObject*>> vecobjque(mom_nb_jobs);
+      unsigned long obcnt = 0;
       {
-        MomObject* pob = p.second;
-        MOM_ASSERT(pob != nullptr && pob->id() == p.first,
-                   "MomLoader::load_all_objects_content bad id");
-        int qix = obcnt % mom_nb_jobs;
-        vecobjque[qix].push_back(pob);
-        obcnt++;
-        MOM_DEBUGLOG(load,"load_all_objects_content obcnt=" << obcnt << " pob=" << pob << " qix#" << qix);
+        std::lock_guard<std::mutex> gu{_ld_mtxobjmap};
+        MOM_DEBUGLOG(load,"load_all_objects_content objmapsize=" << _ld_objmap.size());
+        for (auto p : _ld_objmap)
+          {
+            MomObject* pob = p.second;
+            MOM_ASSERT(pob != nullptr && pob->id() == p.first,
+                       "MomLoader::load_all_objects_content bad id");
+            int qix = obcnt % mom_nb_jobs;
+            vecobjque[qix].push_back(pob);
+            obcnt++;
+            MOM_DEBUGLOG(load,"load_all_objects_content obcnt=" << obcnt << " pob=" << pob << " qix#" << qix);
+          }
       }
-  }
-  std::vector<std::thread> vecthr(mom_nb_jobs);
-  for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
-    {
-      vecthr[ix-1] = std::thread(thread_load_content_objects, this, ix, &vecobjque[ix-1], getglobfun, getuserfun);
+      std::vector<std::thread> vecthr(mom_nb_jobs);
+      for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
+        {
+          vecthr[ix-1] = std::thread(thread_load_content_objects, this, ix, &vecobjque[ix-1], getglobfun, getuserfun);
+          MOM_DEBUGLOG(load,
+                       "load_all_objects_content thread ix=" << ix
+                       << " of id:" << vecthr[ix-1].get_id());
+        }
+      std::this_thread::yield();
       MOM_DEBUGLOG(load,
-                   "load_all_objects_content thread ix=" << ix
-                   << " of id:" << vecthr[ix-1].get_id());
-    }
-  std::this_thread::yield();
-  MOM_DEBUGLOG(load,
-               "load_all_objects_content started contentload mom_nb_jobs="
-               << mom_nb_jobs);
-  std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
-  for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
-    {
-      vecthr[ix-1].join();
-      MOM_DEBUGLOG(load,"load_all_objects_content joined ix=" << ix);
-    }
+                   "load_all_objects_content started contentload mom_nb_jobs="
+                   << mom_nb_jobs);
+      std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
+      for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
+        {
+          vecthr[ix-1].join();
+          MOM_DEBUGLOG(load,"load_all_objects_content joined ix=" << ix);
+        }
+    } // end multi-threaded
   globstmt.used(true);
   userstmt.used(true);
   MOM_DEBUGLOG(load,"load_all_objects_content end");
@@ -355,16 +400,26 @@ void
 MomLoader::load_all_objects_payload_make(void)
 {
   MOM_DEBUGLOG(load,"load_all_objects_payload_make start");
-  std::thread thrglob(load_all_objects_payload_from_db, this,  _ld_globdbp.get(),  IS_GLOBAL);
-  std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
-  if (_ld_userdbp)
+  if (_ld_sequential)
     {
-      std::this_thread::yield();
-      std::thread thruser(load_all_objects_payload_from_db, this,  _ld_userdbp.get(),  IS_USER);
-      std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
-      thruser.join();
+      MOM_DEBUGLOG(load,"load_all_objects_payload_make sequential starting");
+      load_all_objects_payload_from_db(this, _ld_globdbp.get(),  IS_GLOBAL);
+      MOM_DEBUGLOG(load,"load_all_objects_payload_make sequential done global");
+      load_all_objects_payload_from_db(this, _ld_userdbp.get(),  IS_USER);
     }
-  thrglob.join();
+  else    // multithreaded
+    {
+      std::thread thrglob(load_all_objects_payload_from_db, this,  _ld_globdbp.get(),  IS_GLOBAL);
+      std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
+      if (_ld_userdbp)
+        {
+          std::this_thread::yield();
+          std::thread thruser(load_all_objects_payload_from_db, this,  _ld_userdbp.get(),  IS_USER);
+          std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
+          thruser.join();
+        }
+      thrglob.join();
+    }
   MOM_DEBUGLOG(load,"load_all_objects_payload_make end");
 } // end MomLoader::load_all_objects_payload_make
 
@@ -476,10 +531,13 @@ MomLoader::thread_load_fill_payload_objects(MomLoader*ld, int thix, std::deque<M
     const std::function<std::string(MomObject*)>&fillglobfun,
     const std::function<std::string(MomObject*)>&filluserfun)
 {
-  char buf[24];
-  snprintf(buf, sizeof(buf), "molopayl%d", thix);
-  pthread_setname_np(pthread_self(), buf);
-  MomAnyVal::enable_allocation();
+  if (!ld->_ld_sequential)
+    {
+      char buf[24];
+      snprintf(buf, sizeof(buf), "molopayl%d", thix);
+      pthread_setname_np(pthread_self(), buf);
+      MomAnyVal::enable_allocation();
+    }
   MOM_ASSERT(ld != nullptr,
              "MomLoader::thread_load_fill_payload_objects null ld");
   MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
@@ -524,13 +582,16 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
                                        const std::function<std::string(MomObject*)>&getglobfun,
                                        const std::function<std::string(MomObject*)>&getuserfun)
 {
-  char buf[24];
-  snprintf(buf, sizeof(buf), "moldcont%d", thix);
-  pthread_setname_np(pthread_self(),buf);
+  if (!ld->_ld_sequential)
+    {
+      char buf[24];
+      snprintf(buf, sizeof(buf), "moldcont%d", thix);
+      pthread_setname_np(pthread_self(),buf);
+    }
   MomAnyVal::enable_allocation();
   MOM_ASSERT(ld != nullptr,
              "MomLoader::thread_load_content_objects null ld");
-  MOM_ASSERT(thix>0 && thix<=(int)mom_nb_jobs,
+  MOM_ASSERT((thix>0 && thix<=(int)mom_nb_jobs) || ld->_ld_sequential,
              "MomLoader::thread_load_content_objects bad thix=" << thix);
   MOM_ASSERT(obpqu != nullptr, "MomLoader::thread_load_content_objects null obpqu");
   MOM_DEBUGLOG(load,"thread_load_content_objects thix=#" << thix << " qusiz=" << obpqu->size());
@@ -641,6 +702,16 @@ void
 mom_load_from_directory(const char*dirname)
 {
   MomLoader ld(dirname);
+  MomAnyVal::enable_allocation();
+  ld.load();
+} // end mom_load_from_directory
+
+
+void
+mom_load_sequential_from_directory(const char*dirname)
+{
+  MomLoader ld(dirname);
+  ld.set_sequential(true);
   MomAnyVal::enable_allocation();
   ld.load();
 } // end mom_load_from_directory

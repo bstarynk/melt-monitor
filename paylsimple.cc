@@ -1880,6 +1880,7 @@ MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const M
   if (attrob == MOMP_proxy)
     return py->_pcode_proxy;
 #warning incomplete MomPaylCode::Getmagic
+  return nullptr;
 } // end MomPaylCode::Getmagic
 
 
@@ -1890,6 +1891,7 @@ MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*own, const MomO
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "MomPaylCode::Fetch invalid code payload for own=" << own);
 #warning incomplete MomPaylCode::Fetch
+  return nullptr;
 } // end MomPaylCode::Fetch
 
 void

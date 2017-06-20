@@ -39,6 +39,7 @@ static bool syslogging_mom;
 const char* mom_dump_dir;
 const char* mom_web_option;
 static const char*load_state_mom = ".";
+static bool sequential_load_mom = false;
 thread_local MomRandom MomRandom::_rand_thr_;
 
 typedef std::function<void(void)> todo_t;
@@ -1108,6 +1109,7 @@ enum extraopt_en
   xtraopt_parseval,
   xtraopt_parsefile,
   xtraopt_runcmd,
+  xtraopt_loadsequential,
 };
 
 static const struct option mom_long_options[] =
@@ -1128,6 +1130,7 @@ static const struct option mom_long_options[] =
   {"parse-val", required_argument, nullptr, xtraopt_parseval},
   {"parse-file", required_argument, nullptr, xtraopt_parsefile},
   {"run-cmd", required_argument, nullptr, xtraopt_runcmd},
+  {"load-sequential", required_argument, nullptr, xtraopt_loadsequential},
   /* Terminating nullptr placeholder.  */
   {nullptr, no_argument, nullptr, 0},
 };
@@ -1159,6 +1162,7 @@ usage_mom (const char *argv0)
   printf ("\t --parse-val <val>" " \t#parse some value after load\n");
   printf ("\t --parse-file <file-path>" " \t#parse several values from file after load\n");
   printf ("\t --run-cmd <command>" " \t#run that command\n");
+  printf ("\t --load-sequential <loaddir>" " \t# Load the state sequentially (no threads).\n");
 }
 
 
@@ -1277,6 +1281,12 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           if (!optarg || access (optarg, R_OK))
             MOM_FATAPRINTF ("bad load state %s : %m", optarg);
           load_state_mom = optarg;
+          break;
+        case xtraopt_loadsequential: /* --load-sequential filepath */
+          if (!optarg || access (optarg, R_OK))
+            MOM_FATAPRINTF ("bad load sequential state %s : %m", optarg);
+          load_state_mom = optarg;
+          sequential_load_mom = true;
           break;
         case xtraopt_commentpredef: /* --comment-predefined comment */
           if (optarg)
@@ -1604,7 +1614,12 @@ main (int argc_main, char **argv_main)
   parse_program_arguments_mom(&argc, &argv);
   MomObject::initialize_predefined();
   if (load_state_mom && load_state_mom[0] && load_state_mom[0] != '-')
-    mom_load_from_directory(load_state_mom);
+    {
+      if (sequential_load_mom)
+        mom_load_sequential_from_directory(load_state_mom);
+      else
+        mom_load_from_directory(load_state_mom);
+    }
   MOM_INFORMLOG("running timestamp " << monimelt_timestamp << " lastgitcommit " << monimelt_lastgitcommit << " pid=" << (int)getpid());
   if (!todo_after_load_mom.empty())
     {
