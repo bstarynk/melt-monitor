@@ -2746,7 +2746,9 @@ public:
       };
     if (pc>=end) return false;
     if (pc+slen>=end) return false;
-    if (!strncmp(pc, str, slen)) return true;
+    if (!strncmp(pc, str, slen))
+      return true;
+    return false;
   };
   bool has_cstring(const char*str, unsigned delta=0) const
   {
