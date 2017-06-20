@@ -487,15 +487,16 @@ class MomShowObject
 {
   MomObject*_shob;
 public:
-  explicit MomShowObject(MomObject*pob) : _shob(pob) {};
+  explicit inline MomShowObject(MomObject*pob);
   ~MomShowObject()
   {
     _shob = nullptr;
   };
-  MomShowObject(const MomShowObject&) = default;
-  MomShowObject(MomShowObject&&) = default;
+  MomShowObject(const MomShowObject&src) : _shob(src._shob) {};
+  MomShowObject(MomShowObject&& src) : _shob(std::move(src._shob)) {};
   void output(std::ostream& os) const;
 }; // end MomShowObject
+
 
 inline
 std::ostream& operator << (std::ostream& out, const MomShowObject sho)
@@ -863,9 +864,6 @@ inline std::ostream &operator<<(std::ostream &os, const MomIdent& id)
   MOM_ASSERT(strlen(buf)<sizeof(buf)-1, "bad buf:" << buf);
   return os;
 } // end operator << MomIdent
-
-
-
 
 ////////////////////////////////////////////////////////////////
 
@@ -3418,6 +3416,14 @@ public:
   static MomPyv_update_sig Update;
   static MomPyv_step_sig Step;
 }; // end class MomPaylCode
+
+MomShowObject::MomShowObject(MomObject*pob)
+  : _shob(pob)
+{
+  MOM_ASSERT(pob==nullptr || pob->vkind() == MomKind::TagObjectK,
+             "MomShowObject bad pob=" << (void*)pob);
+} // end MomShowObject::MomShowObject
+
 
 ////////////////
 
