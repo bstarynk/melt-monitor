@@ -349,7 +349,9 @@ MomParser::parse_int(bool *pgotint)
 void
 MomParser::unterminated_small_comment(const char*missing)
 {
-  MOM_PARSE_FAILURE(this, "small comment not ending with " << missing);
+  MOM_PARSE_FAILURE(this, "small comment not ending with " << missing
+                    << " curbytes=" << MomShowString(curbytes())
+                    << " @" << location_str());
 } // end MomParser::unterminated_small_comment
 
 MomValue
