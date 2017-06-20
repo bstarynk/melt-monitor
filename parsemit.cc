@@ -103,7 +103,7 @@ MomParser::skip_spaces()
           else consume_bytes(endcomm-rest + 1);
           continue;
         }
-      else if (starts_with(_par_comment_start1_))
+      else if (has_cstring(_par_comment_start1_))
         {
           consume_utf8(1);
           const char* rest = curbytes()+strlen(_par_comment_start1_);

@@ -2731,52 +2731,42 @@ public:
     if (pc>=end) return 0;
     return g_utf8_get_char_validated(pc, end - pc);
   };
-  bool starts_with(const char*str, unsigned delta=0) const
-  {
-    const char*pc = curbytes();
-    const char*end = eolptr();
-    if (!str) return false;
-    unsigned slen = strlen(str);
-    if (!pc || !end) return false;
-    while (delta>0)
-      {
-        if (pc>=end) return false;
-        pc = g_utf8_next_char(pc);
-        delta--;
-      };
-    if (pc>=end) return false;
-    if (pc+slen>=end) return false;
-    if (!strncmp(pc, str, slen))
-      return true;
-    return false;
-  };
+  // check if we start with a given string without consuming it
   bool has_cstring(const char*str, unsigned delta=0) const
   {
     const char*pc = curbytes();
     const char*end = eolptr();
-    if (!str) return false;
+    if (!str)
+      return false;
+    MOM_ASSERT(g_utf8_validate(str, -1, nullptr), "has_cstring invalid str");
     unsigned slen = strlen(str);
-    if (!pc || !end) return false;
+    if (!pc || !end)
+      return false;
     int nbc=0;
     while (delta>0)
       {
-        if (pc>=end) return false;
+        if (pc>=end)
+	  return false;
         pc = g_utf8_next_char(pc);
         delta--;
         nbc++;
       };
-    if (pc>=end) return false;
-    if (pc+slen>=end) return false;
+    if (pc>=end)
+      return false;
+    if (pc+slen>end)
+      return false;
     if (!strncmp(pc, str, slen))
       return true;
     return false;
   }
+  // check if we start with a given string and consume it if we do
   bool got_cstring(const char*str, unsigned delta=0)
   {
     const char*pc = curbytes();
     const char*inipc = pc;
     const char*end = eolptr();
     if (!str) return false;
+    MOM_ASSERT(g_utf8_validate(str, -1, nullptr), "got_cstring invalid str");
     unsigned slen = strlen(str);
     if (!pc || !end) return false;
     int nbc=0;
