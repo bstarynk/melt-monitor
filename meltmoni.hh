@@ -2614,7 +2614,7 @@ public:
     const MomParser *_pars;
   public:
     Mom_parse_failure(const MomParser* pa, const char*fil, int lin, const std::string&msg)
-      : Mom_runtime_failure(fil,lin,msg+"@"+pa->location_str()), _pars(pa) {}
+      : Mom_runtime_failure(fil,lin,msg+" @"+pa->location_str()), _pars(pa) {}
     ~Mom_parse_failure() = default;
     const MomParser* parser() const
     {

@@ -664,12 +664,20 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
                    << std::endl);
       if (contpars.got_cstring("@:"))
         {
+          MOM_DEBUGLOG(load,"load_object_content attr pob=" << pob
+                       << ", contpars@"<< contpars.location_str());
           bool gotattr = false;
           MomObject*pobattr = contpars.parse_objptr(&gotattr);
+          MOM_DEBUGLOG(load,"load_object_content attr pob=" << pob
+                       << " pobattr=" << pobattr);
           if (!pobattr || !gotattr)
-            MOM_PARSE_FAILURE(&contpars, "missing attribute after @:");
+            MOM_PARSE_FAILURE(&contpars, "missing attribute after @: "
+                              << MomShowString(contpars.curbytes()));
           bool gotval = false;
           MomValue valattr = contpars.parse_value(&gotval);
+          MOM_DEBUGLOG(load,"load_object_content attr pob=" << pob
+                       << " pobattr=" << pobattr
+                       << " valattr=" << valattr);
           if (!gotval)
             MOM_PARSE_FAILURE(&contpars, "missing value for attribute " << pobattr);
           pob->locked_modify([=](MomObject* pthisob)
@@ -687,7 +695,8 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           bool gotcomp = false;
           MomValue valcomp = contpars.parse_value(&gotcomp);
           if (!gotcomp)
-            MOM_PARSE_FAILURE(&contpars, "missing component#" << nbcomp);
+            MOM_PARSE_FAILURE(&contpars, "missing component#" << nbcomp << " after &: "
+                              << MomShowString(contpars.curbytes()));
           pob->locked_modify([=](MomObject* pthisob)
           {
             pthisob->unsync_append_comp(valcomp);
