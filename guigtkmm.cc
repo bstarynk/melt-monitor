@@ -357,8 +357,58 @@ MomComboBoxObjptrText::upgrade_for_string(const char*str)
   else
     {
       // slen>0
-      MOM_WARNLOG("MomComboBoxObjptrText::upgrade_for_string UNIMPLEMENTED str=" << MomShowString(str)
-                  << MOM_SHOW_BACKTRACE("upgrade_for_string non-empty str"));
+      MOM_DEBUGLOG(gui, "upgrade_for_string str=" << MomShowString(str) << " slen=" << slen);
+      if (str[0] < 127 && str[0] > 0 && isalpha(str[0]))
+        {
+          // complete a name
+          std::vector<std::string> namesvec;
+          namesvec.reserve(3+100/(slen+1));
+          mom_each_name_prefixed
+          (str,
+           [&](const std::string& curnam,MomObject*)
+          {
+            namesvec.push_back(curnam);
+            MOM_DEBUGLOG(gui, "upgrade_for_string str=" << MomShowString(str)
+                         << " curnam=" << MomShowString(curnam));
+            return false;
+          });
+          remove_all();
+          for (auto curnam: namesvec)
+            append(curnam.c_str());
+        }
+      else if (str[0] == '_' && slen>=3
+               && str[1] >0 && str[1] < 127 && isalnum(str[1])
+               && str[2] >0 && str[2] < 127 && isalnum(str[2]))
+        {
+          // complete an object id
+          std::vector<MomIdent> idsvec;
+          MomObject::do_each_object_prefixed
+          (str,
+           [&](MomObject*curpob)
+          {
+            idsvec.push_back(curpob->id());
+            MOM_DEBUGLOG(gui, "upgrade_for_string str=" << str
+                         << " curpob=" << curpob);
+            return false;
+          });
+        }
+      else if (str[0] == '@')
+        {
+          // complete a global data name
+          std::vector<std::string> globdatavec;
+          MomRegisterGlobData::do_each_globdata
+          ([&](const std::string&glonam, std::atomic<MomObject*>*)
+          {
+            if (glonam.size() >= slen-1
+                && strncmp(glonam.c_str(), str, slen-1)==0)
+              {
+                globdatavec.push_back(glonam);
+                MOM_DEBUGLOG(gui, "upgrade_for_string str=" << str
+                             << " glonam=" << glonam << ".");
+              }
+            return false;
+          });
+        }
     }
 #warning MomComboBoxObjptrText::upgrade_for_string incomplete
   MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::upgrade_for_string end");

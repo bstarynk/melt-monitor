@@ -1164,7 +1164,9 @@ MomDumper::scan_predefined(void) {
 void
 MomDumper::scan_globdata(void) {
   auto du = this;
-  MomRegisterGlobData::every_globdata([&,du](const std::string&, std::atomic<MomObject*>*pglob) {
+  MomRegisterGlobData::do_each_globdata
+    ([&,du]
+     (const std::string&, std::atomic<MomObject*>*pglob) {
       MomObject*pob = pglob->load();
       if (pob)
 	du->add_scanned_object(pob);
@@ -1180,7 +1182,8 @@ MomDumper::dump_emit_globdata(void) {
   sqlite::database_binder globstmt = (*_du_globdbp) << "INSERT /*globaldb*/ INTO t_globdata VALUES(?,?)";
   sqlite::database_binder userstmt = (*_du_userdbp) << "INSERT /*userdb*/ INTO t_globdata VALUES(?,?)";
   MOM_DEBUGLOG(dump, "dump_emit_globdata start");
-  MomRegisterGlobData::every_globdata([&,du](const std::string&nam, std::atomic<MomObject*>*pglob) {
+  MomRegisterGlobData::do_each_globdata
+    ([&,du](const std::string&nam, std::atomic<MomObject*>*pglob) {
       MomObject*pob = pglob->load();
       MOM_DEBUGLOG(dump, "dump_emit_globdata nam=" << nam << " pob=" << pob << ", sp#" << (pob?((int)pob->space()):0));
       if (pob && du->is_dumped(pob)) {

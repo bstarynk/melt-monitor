@@ -187,7 +187,7 @@ MomGC::initialize_scan(void)
     return false;
   });
   // scan the current globdata
-  MomRegisterGlobData::every_globdata
+  MomRegisterGlobData::do_each_globdata
   ([=](const std::string&nam, std::atomic<MomObject*>*pdata)
   {
     MOM_ASSERT(!nam.empty(), "empty globdata name");

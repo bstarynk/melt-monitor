@@ -2427,7 +2427,8 @@ public:
       return it->second;
     return nullptr;
   };
-  static void every_globdata(std::function<bool(const std::string&nam, std::atomic<MomObject*>*pdata)> f)
+  // call a function on every global data name & address till it returns true
+  static void do_each_globdata(std::function<bool(const std::string&nam, std::atomic<MomObject*>*pdata)> f)
   {
     std::lock_guard<std::mutex> gu(_gd_mtx_);
     for (auto p : _gd_dict_)
@@ -2560,9 +2561,10 @@ struct MomPayload
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
 
+
+
 class MomParser			// in file parsemit.cc
 {
-#warning MomParser should process unicode and convert UTF8 to unicode when reading a line
 public:
   enum TokenKind
   {
