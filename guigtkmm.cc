@@ -1242,14 +1242,29 @@ MomMainWindow::do_object_show_hide(void)
       result = showdialog.run();
       Glib::ustring showtext = showcombox.get_active_text();
       MomObject* pob = nullptr;
-      if (isalpha(showtext[0]))
+      if (showtext[0] < 127 && isalpha(showtext[0]))
         {
           pob = mom_find_named(showtext.c_str());
         }
-      else if (showtext[0] == '_' && isdigit(showtext[1]))
+      else if (showtext[0] == '_' && showtext[1] < 127 && isdigit(showtext[1]))
         {
           MomIdent idob = MomIdent::make_from_string(showtext.c_str(), MomIdent::DONT_FAIL);
           pob = MomObject::find_object_of_id(idob);
+        }
+      else if (showtext[0] == '@' && showtext[1] < 127 && isalpha(showtext[1]))
+        {
+          std::string globnamstr= showtext.substr(1);
+          bool foundglobname = false;
+          {
+            auto globptr = MomRegisterGlobData::find_globdata(globnamstr);
+            if (globptr)
+              {
+                foundglobname = true;
+                pob = globptr->load();
+              }
+          }
+          if (!foundglobname)
+            result = REPEAT;
         }
       MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide result=" << result
                    << " showtext=" << MomShowString(showtext.c_str()) << " pob=" << pob);
