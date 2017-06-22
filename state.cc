@@ -931,13 +931,15 @@ pid_t
 MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpath, const std::string& basepath)
 {
   std::string refpath;
-  if (mom_load_dir && strcmp(mom_load_dir, "-")) {
-    char *realloaddir = realpath(mom_load_dir, nullptr);
-    if (!realloaddir)
-      MOM_FATALOG("fork_dump_database: realpath " << mom_load_dir << " failure");
-    refpath = std::string{realloaddir}+ "/" + basepath + ".sql";
-    free (realloaddir);
-  } else
+  if (mom_load_dir && strcmp(mom_load_dir, "-"))
+    {
+      char *realloaddir = realpath(mom_load_dir, nullptr);
+      if (!realloaddir)
+        MOM_FATALOG("fork_dump_database: realpath " << mom_load_dir << " failure");
+      refpath = std::string{realloaddir}+ "/" + basepath + ".sql";
+      free (realloaddir);
+    }
+  else
     refpath = basepath + ".sql";
   MOM_DEBUGLOG(dump, "fork_dump_database start dbpath=" << dbpath << " sqlpath=" << sqlpath
                << " basepath=" << basepath << " refpath=" << refpath
@@ -1075,7 +1077,6 @@ MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string&
                    << " keepsamesrc=" << (keepsamesrc?"true":"false")
                    << ":: " << openerrmsg
                    << MOM_SHOW_BACKTRACE("rename_file_if_changed failedopen"));
-#warning we got this failure incorrecty when dumping to a fresh directory e.g.: monimelt -d /tmp/m
       MOM_FAILURE("rename_file_if_changed fail to open src " << srcpath
                   << " (" << openerrmsg << ")");
     }
@@ -1181,10 +1182,12 @@ MomDumper::scan_predefined(void) {
 void
 MomDumper::scan_globdata(void) {
   auto du = this;
+  MOM_DEBUGLOG(dump, "scan_globdata start");
   MomRegisterGlobData::do_each_globdata
     ([&,du]
      (const std::string&, std::atomic<MomObject*>*pglob) {
       MomObject*pob = pglob->load();
+      MOM_DEBUGLOG(dump, "scan_globdata pob=" << pob);
       if (pob)
 	du->add_scanned_object(pob);
       return false;
@@ -1203,13 +1206,19 @@ MomDumper::dump_emit_globdata(void) {
     ([&,du](const std::string&nam, std::atomic<MomObject*>*pglob) {
       MomObject*pob = pglob->load();
       MOM_DEBUGLOG(dump, "dump_emit_globdata nam=" << nam << " pob=" << pob << ", sp#" << (pob?((int)pob->space()):0));
-      if (pob && du->is_dumped(pob)) {
+      if (pob  && pob->space() != MomSpace::TransientSp
+	  && du->is_dumped(pob)) {
 	if (pob->space()!=MomSpace::UserSp) {
+	  MOM_DEBUGLOG(dump, "dump_emit_globdata global globdata "
+		       << " nam=" << nam << " pob=" << pob);
 	  globstmt << nam << pob->id().to_string();
 	  MOM_DEBUGLOG(dump, "dump_emit_globdata globstmt="<< globstmt.sql());
 	  globstmt.execute();
 	}
 	else {
+	  MOM_DEBUGLOG(dump, "dump_emit_globdata user globdata "
+		       << " nam=" << nam << " pob=" << pob);
+	  globstmt << nam << pob->id().to_string();
 	  userstmt << nam << pob->id().to_string();
 	  MOM_DEBUGLOG(dump, "dump_emit_globdata userstmt="<< userstmt.sql());
 	  userstmt.execute();
@@ -1220,7 +1229,8 @@ MomDumper::dump_emit_globdata(void) {
     });
   globstmt.used(true);
   userstmt.used(true);
-  MOM_DEBUGLOG(dump, "dump_emit_globdata done");
+  MOM_DEBUGLOG(dump, "dump_emit_globdata end");
+#warning check that all the globdata is emitted
 } // end MomDumper::dump_emit_globdata
 
 
