@@ -273,6 +273,7 @@ MomApplication::create(int &argc, char**argv, const char*name)
 void
 MomApplication::scan_own_gc(MomGC*gc)
 {
+  MOM_ASSERT(gc != nullptr, "null GC for MomApplication::scan_own_gc");
 #warning MomApplication::scan_own_gc incomplete
 } // end MomApplication::scan_own_gc
 
@@ -708,18 +709,18 @@ void
 MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth)
 {
   std::vector<Glib::ustring> tagscopy = tags;
+  MOM_ASSERT(dcx != nullptr, "MomMainWindow::browser_insert_objptr null dcx");
   if (!pob)
     {
       tagscopy.push_back("objocc_nil_tag");
       txit = _mwi_buf->insert_with_tags_by_name
-             (txit,
-              "__",
-              tagscopy);
+	(txit,
+	 "__",
+	 tagscopy);
       return;
     }
   MOM_ASSERT(pob && pob->vkind() == MomKind::TagObjectK, "browser_insert_objptr corrupted pob");
   std::string obnamstr;
-
   char obidbuf[32];
   memset(obidbuf, 0, sizeof(obidbuf));
   pob->id().to_cbuf32(obidbuf);
@@ -731,19 +732,31 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisp
     {
       tagscopy.push_back("objocc_anon_tag");
       txit = _mwi_buf->insert_with_tags_by_name
-             (txit,
-              obidbuf,
-              tagscopy);
+	(txit,
+	 obidbuf,
+	 tagscopy);
     }
   else
     {
       tagscopy.push_back("objocc_named_tag");
       txit = _mwi_buf->insert_with_tags_by_name
-             (txit,
-              obnamstr.c_str(),
-              tagscopy);
+	(txit,
+	 obnamstr.c_str(),
+	 tagscopy);
+      if (depth<=2) {
+	char bufcommid[48];
+	memset (bufcommid, 0, sizeof(bufcommid));
+	tagscopy.pop_back();
+	tagscopy.push_back("obid_comment_tag");
+	snprintf(bufcommid, sizeof(bufcommid), " |=%s|", obidbuf);
+	txit = _mwi_buf->insert_with_tags_by_name
+	  (txit,
+	   bufcommid,
+	   tagscopy);
+      }	
     }
 } // end MomMainWindow::browser_insert_objptr
+
 
 void
 MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags,  int depth)
