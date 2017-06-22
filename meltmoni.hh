@@ -142,6 +142,7 @@ extern "C" const char *mom_hostname (void);
 #endif
 
 extern "C" const char*mom_dump_dir;
+extern "C" const char*mom_load_dir;
 
 typedef std::atomic<int> mom_atomic_int;
 

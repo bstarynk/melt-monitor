@@ -930,9 +930,18 @@ MomDumper::open_databases(void)
 pid_t
 MomDumper::fork_dump_database(const std::string&dbpath, const std::string&sqlpath, const std::string& basepath)
 {
-  std::string refpath = basepath + ".sql";
+  std::string refpath;
+  if (mom_load_dir && strcmp(mom_load_dir, "-")) {
+    char *realloaddir = realpath(mom_load_dir, nullptr);
+    if (!realloaddir)
+      MOM_FATALOG("fork_dump_database: realpath " << mom_load_dir << " failure");
+    refpath = std::string{realloaddir}+ "/" + basepath + ".sql";
+    free (realloaddir);
+  } else
+    refpath = basepath + ".sql";
   MOM_DEBUGLOG(dump, "fork_dump_database start dbpath=" << dbpath << " sqlpath=" << sqlpath
-               << " basepath=" << basepath << " refpath=" << refpath);
+               << " basepath=" << basepath << " refpath=" << refpath
+               << MOM_SHOW_BACKTRACE("fork_dump_database"));
   std::string dumpshellscript = std::string{monimelt_directory} + '/' + "monimelt-dump-state.sh";
   pid_t p = fork();
   if (p==0)
@@ -1060,9 +1069,16 @@ MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string&
                << " keepsamesrc=" << (keepsamesrc?"true":"false"));
   FILE*srcf = fopen(srcpath.c_str(), "r");
   if (!srcf)
+    {
+      std::string openerrmsg = strerror(errno);
+      MOM_DEBUGLOG(dump,"rename_file_if_changed failedopen srcpath=" << srcpath << " dstpath=" << dstpath
+                   << " keepsamesrc=" << (keepsamesrc?"true":"false")
+                   << ":: " << openerrmsg
+                   << MOM_SHOW_BACKTRACE("rename_file_if_changed failedopen"));
 #warning we got this failure incorrecty when dumping to a fresh directory e.g.: monimelt -d /tmp/m
-    MOM_FAILURE("rename_file_if_changed fail to open src " << srcpath
-                << " (" << strerror(errno) << ")");
+      MOM_FAILURE("rename_file_if_changed fail to open src " << srcpath
+                  << " (" << openerrmsg << ")");
+    }
   if (access(dstpath.c_str(), F_OK) && errno==ENOENT)
     {
       fclose(srcf);

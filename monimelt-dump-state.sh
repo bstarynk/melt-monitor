@@ -22,7 +22,7 @@
 ## Keep this in sync with the MomDumper::initialize_db function in state.cc
 
 echo start $0 "$@" >&2
-
+logger --id=$$ -s -t $0 starting at $(date +%c)  "$@"
 dbfile=$1
 sqlfile=$2
 dubase=$3

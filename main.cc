@@ -38,7 +38,7 @@ static struct backtrace_state *btstate_mom;
 static bool syslogging_mom;
 const char* mom_dump_dir;
 const char* mom_web_option;
-static const char*load_state_mom = ".";
+const char*mom_load_dir = ".";
 static bool sequential_load_mom = false;
 thread_local MomRandom MomRandom::_rand_thr_;
 
@@ -1285,12 +1285,12 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
         case 'L': /* --load filepath */
           if (!optarg || access (optarg, R_OK))
             MOM_FATAPRINTF ("bad load state %s : %m", optarg);
-          load_state_mom = optarg;
+          mom_load_dir = optarg;
           break;
         case xtraopt_loadsequential: /* --load-sequential filepath */
           if (!optarg || access (optarg, R_OK))
             MOM_FATAPRINTF ("bad load sequential state %s : %m", optarg);
-          load_state_mom = optarg;
+          mom_load_dir = optarg;
           sequential_load_mom = true;
           break;
         case xtraopt_commentpredef: /* --comment-predefined comment */
@@ -1618,12 +1618,12 @@ main (int argc_main, char **argv_main)
   MomAnyVal::enable_allocation();
   parse_program_arguments_mom(&argc, &argv);
   MomObject::initialize_predefined();
-  if (load_state_mom && load_state_mom[0] && load_state_mom[0] != '-')
+  if (mom_load_dir && mom_load_dir[0] && mom_load_dir[0] != '-')
     {
       if (sequential_load_mom)
-        mom_load_sequential_from_directory(load_state_mom);
+        mom_load_sequential_from_directory(mom_load_dir);
       else
-        mom_load_from_directory(load_state_mom);
+        mom_load_from_directory(mom_load_dir);
     }
   MOM_INFORMLOG("running timestamp " << monimelt_timestamp << " lastgitcommit " << monimelt_lastgitcommit << " pid=" << (int)getpid());
   if (!todo_after_load_mom.empty())
