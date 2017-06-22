@@ -1060,6 +1060,7 @@ MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string&
                << " keepsamesrc=" << (keepsamesrc?"true":"false"));
   FILE*srcf = fopen(srcpath.c_str(), "r");
   if (!srcf)
+#warning we got this failure incorrecty when dumping to a fresh directory e.g.: monimelt -d /tmp/m
     MOM_FAILURE("rename_file_if_changed fail to open src " << srcpath
                 << " (" << strerror(errno) << ")");
   if (access(dstpath.c_str(), F_OK) && errno==ENOENT)
