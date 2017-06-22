@@ -413,7 +413,8 @@ again:
     }
   else if ((pc<127 && isalpha(pc))
            || (pc=='_' && nc<127 && isdigit(nc))
-           || (pc=='$' && nc=='%' && _parobjeval))
+           || (pc=='$' && nc=='%' && _parobjeval)
+           || (pc=='@' && nc<127 && isalpha(nc)))
     {
       return MomValue(parse_objptr(pgotval));
     }
@@ -997,7 +998,7 @@ again:
     {
       const char*begnamp = curbytes();
       const char*endnamp = begnamp;
-      while (isalnum(*endnamp) || (*endnamp == '_' && isalnum(endnamp[-1])))
+      while (*endnamp<127 && (isalnum(*endnamp) || (*endnamp == '_' && isalnum(endnamp[-1]))))
         endnamp++;
       std::string namstr(begnamp, endnamp-begnamp);
       MomObject* ob = fetch_named_object(namstr);
@@ -1011,6 +1012,35 @@ again:
             *pgotob = true;
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " namedobj: " << namstr << " = " << ob);
+          return ob;
+        }
+      else goto failure;
+    }
+  // @glob gets the global named glob
+  else if (pc=='@' && nc<127 && isalpha(nc))
+    {
+      const char*begnamp = curbytes();
+      const char*endnamp = begnamp+1;
+      while (*endnamp<127 && (isalnum(*endnamp) || (*endnamp == '_' && isalnum(endnamp[-1]))))
+        endnamp++;
+      std::string globnamstr(begnamp, endnamp-begnamp);
+      MomObject* ob = nullptr;
+      bool foundglobname = false;
+      {
+        auto globptr = MomRegisterGlobData::find_globdata(globnamstr);
+        if (globptr)
+          {
+            foundglobname = true;
+            ob = globptr->load();
+          }
+      }
+      if (ob || (_parnobuild && foundglobname))
+        {
+          consume_bytes(globnamstr.size() + 1);
+          if (pgotob)
+            * pgotob = true;
+          MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
+                             << " globdata: " << globnamstr << " = " << ob);
           return ob;
         }
       else goto failure;
