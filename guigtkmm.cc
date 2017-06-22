@@ -307,9 +307,9 @@ MomComboBoxObjptrText::upgrade_for_string(const char*str)
   std::string corrstr;
   corrstr.reserve(slen+1);
   for (const char*pc = str; *pc && !badstr; pc++)
-    if (!isalnum(*pc) && *pc != '_')
+    if (*pc >= 127 && !isalnum(*pc) && *pc != '_' && !(pc==str && *pc=='@'))
       badstr = true;
-    else if (pc==str && !(isalpha(*pc) || *pc=='_'))
+    else if (pc==str && !(isalpha(*pc) || *pc=='_' || *pc=='@'))
       badstr = true;
     else
       corrstr += pc;
