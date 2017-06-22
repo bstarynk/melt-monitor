@@ -3447,7 +3447,7 @@ extern "C" long mom_nb_named(void);
 extern "C" void mom_each_name_prefixed(const char*prefix,
                                        std::function<bool(const std::string&,MomObject*)> fun);
 extern "C" const char* mom_get_unsync_name(const MomObject*obj);
-extern "C" const std::string mom_get_unsync_string_name(MomObject*obj);
+extern "C" const std::string mom_get_unsync_string_name(const MomObject*obj);
 extern "C" MomObject*mom_unsync_named_object_proxy(MomObject*objn);
 extern "C" void mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy);
 extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(named);

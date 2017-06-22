@@ -695,7 +695,7 @@ MomShowObject::output(std::ostream& os) const
   std::string name;
   {
     std::shared_lock<std::shared_mutex> lk(_shob->get_shared_mutex());
-    name = mom_get_unsync_name(_shob);
+    name = mom_get_unsync_string_name(_shob);
   }
   if (!name.empty())
     {

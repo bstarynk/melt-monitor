@@ -1511,8 +1511,8 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
 	     "MomObject::unsync_emit_dump_content bad object@" << (const void*)this);
   if (space()==MomSpace::TransientSp) return;
   em.emit_newline(0);
-  const char*nam = mom_get_unsync_name(this);
-  if (nam) {
+  std::string nam = mom_get_unsync_string_name(this);
+  if (!nam.empty()) {
     em.out() << "///$" << nam;
     em.emit_newline(0);
   }
