@@ -589,7 +589,7 @@ MomObject::gc_todo_sweep_bucket(MomGC*gc, unsigned buckix)
 } // end MomObject::gc_todo_sweep_bucket
 
 void
-MomObject::MomBucketObj::unsync_buck_gc_sweep_destroy(MomGC*gc)
+MomObject::MomBucketObj::unsync_buck_gc_sweep_destroy(MomGC*)
 {
   std::vector<MomIdent> delidvec;
   auto nbent = _obu_map.size();
@@ -607,7 +607,8 @@ MomObject::MomBucketObj::unsync_buck_gc_sweep_destroy(MomGC*gc)
   for (auto id: delidvec)
     _obu_map.erase(id);
   _obu_map.rehash(0);
-} // end MomObject::MomBucketObj::unsync_buck_gc_clear_marks
+} // end MomObject::MomBucketObj::unsync_buck_gc_sweep_destroy
+
 
 bool
 MomObject::valid_prefixid(const char*prefixid)
