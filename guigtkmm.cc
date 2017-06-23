@@ -114,6 +114,9 @@ class MomMainWindow : public Gtk::Window
 public:
   static constexpr const int _default_display_depth_ = 5;
   static constexpr const int _default_display_width_ = 72;
+  static constexpr const int _default_status_delay_deciseconds_ = 33;
+  static constexpr const bool _SCROLL_TOP_VIEW_ = true;
+  static constexpr const bool _DONT_SCROLL_TOP_VIEW_ = false;
   struct MomBrowsedObject
   {
     MomObject*_sh_ob;
@@ -176,7 +179,7 @@ public:
     show_status_decisec(std::string(msg), delay_decisec);
   };
   void display_full_browser(void);
-  void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob);
+  void browser_insert_object_display(Gtk::TextIter& it, MomObject*ob, bool scrolltopview=false);
   void browser_update_title_banner(void);
   void browser_insert_objptr(Gtk::TextIter& it, MomObject*ob, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth);
   void browser_insert_value(Gtk::TextIter& it, MomValue val, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth);
@@ -508,13 +511,14 @@ MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Gli
 
 
 void
-MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
+MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob, bool scrolltopview)
 {
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display start "
                << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                << " pob=" << MomShowObject(pob)
+               << " scrolltopview=" << (scrolltopview?"true":"false")
                << MOM_SHOW_BACKTRACE("browser_insert_object_display"));
   char obidbuf[32];
   memset(obidbuf, 0, sizeof(obidbuf));
@@ -747,6 +751,12 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob)
     }
   txit = _mwi_buf->insert(txit, "\n");
   _mwi_buf->move_mark(shob._sh_endmark, txit);
+  if (scrolltopview)
+    {
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display pob=" << pob
+                   << " scroll top view");
+      _mwi_txvtop.scroll_to(shob._sh_startmark);
+    }
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end "
                << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                << " pob=" << MomShowObject(pob)
@@ -928,7 +938,6 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
     {
       std::vector<Glib::ustring> tagsescape = tags;
       auto strv = reinterpret_cast<const MomString*>(vv);
-      unsigned sz = strv->sizew();
       std::string str = strv->string();
       txit = _mwi_buf->insert_with_tags_by_name	(txit, "\"", tags);
       tagscopy.push_back("value_string_tag");
@@ -1387,6 +1396,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start nbshown=" << _mwi_shownobmap.size());
   auto shmbegit = _mwi_shownobmap.begin();
   auto shmendit = _mwi_shownobmap.end();
+  auto oldshowit = _mwi_shownobmap.find(pob);
   MomObject*begpob = nullptr;
   MomObject*endpob = nullptr;
   if (shmbegit == shmendit)
@@ -1395,7 +1405,25 @@ MomMainWindow::browser_show_object(MomObject*pob)
       Gtk::TextIter txit = _mwi_buf->end();
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object empty txit="
                    << MomShowTextIter(txit));
-      browser_insert_object_display(txit, pob);
+      browser_insert_object_display(txit, pob,_SCROLL_TOP_VIEW_);
+      browser_update_title_banner();
+    }
+  else if (oldshowit != _mwi_shownobmap.end())
+    {
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object redisplay object pob=" << MomShowObject(pob));
+      MomBrowsedObject& oldshowbob = oldshowit->second;
+      MOM_ASSERT(oldshowbob._sh_startmark, "browser_show_object missing start mark for pob=" << pob);
+      MOM_ASSERT(oldshowbob._sh_endmark, "browser_show_object missing end mark for pob=" << pob);
+      Gtk::TextIter oldstatxit = oldshowbob._sh_startmark->get_iter();
+      Gtk::TextIter oldendtxit = oldshowbob._sh_endmark->get_iter();
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object redisplay pob=" << pob
+                   << " oldstatxit=" << MomShowTextIter(oldstatxit, MomShowTextIter::_FULL_)
+                   << " oldendtxit=" << MomShowTextIter(oldendtxit, MomShowTextIter::_FULL_));
+      _mwi_buf->erase(oldstatxit,oldendtxit);
+      Gtk::TextIter redisptxit = oldshowbob._sh_startmark->get_iter();
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object redisplay pob=" << pob
+                   << " redisptxit="  << MomShowTextIter(redisptxit, MomShowTextIter::_FULL_));
+      browser_insert_object_display(redisptxit, pob);
       browser_update_title_banner();
     }
   else
@@ -1487,7 +1515,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
                            << MomShowTextIter(uppstatxit, MomShowTextIter::_FULL_)
                            << ", pob=" << MomShowObject(pob)
                            << " before upperpob=" << MomShowObject(upperpob));
-              browser_insert_object_display(lowendtxit, pob);
+              browser_insert_object_display(lowendtxit, pob, _SCROLL_TOP_VIEW_);
             }
           else
             MOM_WARNLOG("MomMainWindow::browser_show_object non empty unimplemented for pob="  << pob
@@ -1499,6 +1527,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
                << " nbshown=" << _mwi_shownobmap.size());
 } // end MomMainWindow::browser_show_object
 
+
 void
 MomMainWindow::browser_hide_object(MomObject*pob)
 {
@@ -1508,7 +1537,11 @@ MomMainWindow::browser_hide_object(MomObject*pob)
   auto shmit = _mwi_shownobmap.find(pob);
   if (shmit == _mwi_shownobmap.end())
     {
-      MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object cannot hide undisplayed pob=" << MomShowObject(pob));
+      MOM_WARNLOG("MomMainWindow::browser_hide_object cannot hide undisplayed pob=" << MomShowObject(pob));
+      std::string outmsg;
+      std::ostringstream out (outmsg);
+      out << "cannot hide undisplayed " << pob << std::flush;
+      show_status_decisec(outmsg, _default_status_delay_deciseconds_);
     }
   else
     {
