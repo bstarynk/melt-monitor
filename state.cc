@@ -1230,7 +1230,6 @@ MomDumper::dump_emit_globdata(void) {
   globstmt.used(true);
   userstmt.used(true);
   MOM_DEBUGLOG(dump, "dump_emit_globdata end");
-#warning check that all the globdata is emitted
 } // end MomDumper::dump_emit_globdata
 
 
