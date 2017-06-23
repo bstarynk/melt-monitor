@@ -760,6 +760,8 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end "
                << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                << " pob=" << MomShowObject(pob)
+	       << " startmark@" << MomShowTextIter(shob._sh_startmark->get_iter(), MomShowTextIter::_FULL_)
+	       << " endmark@" << MomShowTextIter(shob._sh_endmark->get_iter(), MomShowTextIter::_FULL_)
                << std::endl);
 } // end MomMainWindow::browser_insert_object_display
 
