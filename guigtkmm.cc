@@ -74,12 +74,13 @@ class MomShowTextIter
 {
   Gtk::TextIter _shtxit;
   bool _showfull;
-  int _shdelta;
+  unsigned _shwidth;
 public:
   static constexpr const bool _FULL_= true;
   static constexpr const bool _PLAIN_= true;
-  explicit MomShowTextIter(Gtk::TextIter txit, bool full = false, int delta = 0) :
-    _shtxit(txit), _showfull(full), _shdelta(delta) {};
+  static constexpr const unsigned _MAX_WIDTH_= 40;
+  explicit MomShowTextIter(Gtk::TextIter txit, bool full = false, unsigned width = 0) :
+    _shtxit(txit), _showfull(full), _shwidth(width) {};
   ~MomShowTextIter() {};
   MomShowTextIter(const MomShowTextIter&) = default;
   MomShowTextIter(MomShowTextIter&&) = default;
@@ -507,7 +508,7 @@ MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Gli
     depth=0;
   constexpr const char nlspaces[]
     = "\n                                                                ";
-  txit = _mwi_buf->insert_with_tags_by_name (txit, nlspaces, nlspaces + (depth % 16), tags);
+  txit = _mwi_buf->insert_with_tags_by_name (txit, nlspaces, nlspaces + (depth % 16) + 1, tags);
 } // end MomMainWindow::browser_insert_newline
 
 
@@ -518,7 +519,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display start "
-               << MomShowTextIter(txit, MomShowTextIter::_FULL_, -6)
+               << MomShowTextIter(txit, MomShowTextIter::_FULL_, 6)
                << " pob=" << MomShowObject(pob)
                << " scrolltopview=" << (scrolltopview?"true":"false")
                << MOM_SHOW_BACKTRACE("browser_insert_object_display"));
@@ -542,7 +543,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << " depth=" << depth
                << " found=" << (found?"true":"false")
-               << ", txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_,-7));
+               << ", txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_,7));
   MomBrowsedObject& shob = itm->second;
   /// the title bar
   MOM_ASSERT(shob._sh_ob == pob, "MomMainWindow::browser_insert_object_display corrupted shob");
@@ -550,15 +551,13 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
     _mwi_buf->move_mark(shob._sh_startmark, txit);
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << ", txit before asterism="
-	       << MomShowTextIter(txit, MomShowTextIter::_FULL_,-7)
-	       << "==" << MomShowTextIter(txit, MomShowTextIter::_PLAIN_,+7)
-	       << std::endl);
+               << MomShowTextIter(txit, MomShowTextIter::_FULL_,7)
+               << std::endl);
   txit = _mwi_buf->insert_with_tag (txit, " \342\201\202 " /* U+2042 ASTERISM ⁂ */, "object_title_tag");
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << ", txit after asterism="
-	       << MomShowTextIter(txit, MomShowTextIter::_FULL_,-7)
-	       << "==" << MomShowTextIter(txit, MomShowTextIter::_PLAIN_,+7)
-	       << std::endl);
+               << MomShowTextIter(txit, MomShowTextIter::_FULL_,7)
+               << std::endl);
   if (!obnamstr.empty())
     {
       txit = _mwi_buf->insert_with_tags_by_name
@@ -586,9 +585,8 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   txit = _mwi_buf->insert(txit, "\n");
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << ", txit after delta+nl="
-	       << MomShowTextIter(txit, MomShowTextIter::_FULL_,-7)
-	       << "==" << MomShowTextIter(txit, MomShowTextIter::_PLAIN_,+7)
-	       << std::endl);
+               << MomShowTextIter(txit, MomShowTextIter::_FULL_,7)
+               << std::endl);
   MOM_DEBUGLOG(gui, "browser_insert_object_display after title pob="<< MomShowObject(pob)
                << " txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_));
   /// show the modtime and the space
@@ -700,7 +698,6 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
         browser_insert_value(txit, valattr, &dctxattrs, tagsattrval, 1);
         browser_insert_newline(txit, tagsattrs, 0);
       }
-    txit = _mwi_buf->insert(txit, "\n");
   }
   ///  show the components
   {
@@ -766,7 +763,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
       browser_insert_newline(txit, tagspayl, 0);
 #warning MomMainWindow::browser_insert_object_display should probably display the payload wisely
     }
-  txit = _mwi_buf->insert(txit, "\n");
+  txit = _mwi_buf->insert_with_tag (txit, "\342\254\236\n" /* U+2B1E WHITE VERY SMALL SQUARE ⬞ */, "object_end_tag");
   _mwi_buf->move_mark(shob._sh_endmark, txit);
   if (scrolltopview)
     {
@@ -778,10 +775,10 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
                << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                << " pob=" << MomShowObject(pob) << std::endl
                << "... startmark@"
-               << MomShowTextIter(shob._sh_startmark->get_iter(), MomShowTextIter::_FULL_, -12)
-	       << std::endl
+               << MomShowTextIter(shob._sh_startmark->get_iter(), MomShowTextIter::_FULL_, 12)
+               << std::endl
                << "... endmark@"
-               << MomShowTextIter(shob._sh_endmark->get_iter(), MomShowTextIter::_FULL_, +12)
+               << MomShowTextIter(shob._sh_endmark->get_iter(), MomShowTextIter::_FULL_, 12)
                << std::endl);
 } // end MomMainWindow::browser_insert_object_display
 
@@ -1318,11 +1315,12 @@ MomMainWindow::do_object_show_hide(void)
   showdialog.add_button("Hide", HideOb);
   showdialog.set_default_response(Gtk::RESPONSE_CANCEL);
   showcombox.signal_changed()
-    .connect([&](void) {
-	       Glib::ustring showtext = showcombox.get_active_text();
-	       MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide showcombox changed showtext="
-			    << MomShowString(showtext.c_str()));
-	     });
+  .connect([&](void)
+  {
+    Glib::ustring showtext = showcombox.get_active_text();
+    MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide showcombox changed showtext="
+                 << MomShowString(showtext.c_str()));
+  });
   showdialog.show_all_children();
   int result =  Gtk::RESPONSE_CANCEL;
   do
@@ -1642,21 +1640,21 @@ MomShowTextIter::output(std::ostream&outs) const
         }
       outs << "!";
     }
-  if (_shdelta < 0)
+  if (_shwidth > 0)
     {
+      unsigned width = _shwidth;
+      if (width > _MAX_WIDTH_)
+        width = _MAX_WIDTH_;
       Gtk::TextIter beforit = _shtxit;
-      beforit.backward_chars(-_shdelta);
-      outs << " *has " << (-_shdelta) << " before ..."
-           << MomShowString(beforit.get_text(_shtxit).c_str()) << "^  ";
-    }
-  else if (_shdelta > 0)
-    {
       Gtk::TextIter afterit = _shtxit;
-      afterit.forward_chars(_shdelta);
-      outs << " *has " << (_shdelta) << " after ^"
-           << MomShowString(_shtxit.get_text(afterit).c_str()) << "...  ";
+      beforit.backward_chars(width);
+      afterit.forward_chars(width);
+      outs << " *has " << width << " around ..."
+           << MomShowString(beforit.get_text(_shtxit).c_str()) << "_^_"
+           << MomShowString(_shtxit.get_text(afterit).c_str()) ;
     }
 } // end MomShowTextIter::output
+
 
 extern "C"
 void
