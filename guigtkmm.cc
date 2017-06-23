@@ -315,7 +315,7 @@ MomComboBoxObjptrText::upgrade_for_string(const char*str)
     else if (pc==str && !(isalpha(*pc) || *pc=='_' || *pc=='@'))
       badstr = true;
     else
-      corrstr += pc;
+      corrstr.push_back(*pc);
   MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::upgrade_for_string corrstr=" << MomShowString(corrstr.c_str())
                << " badstr=" << (badstr?"true":"false"));
   if (badstr)
@@ -1224,7 +1224,7 @@ MomMainWindow::MomMainWindow()
     ctx->add_class("commandwin_cl");
   }
   _mwi_vbox.pack_end(_mwi_statusbar,Gtk::PACK_SHRINK);
-  set_default_size(550,300);
+  set_default_size(630,480);
   display_full_browser();
   show_all_children();
 };				// end MomMainWindow::MomMainWindow
