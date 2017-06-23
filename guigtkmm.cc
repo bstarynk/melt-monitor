@@ -74,10 +74,12 @@ class MomShowTextIter
 {
   Gtk::TextIter _shtxit;
   bool _showfull;
+  int _shdelta;
 public:
   static constexpr const bool _FULL_= true;
   static constexpr const bool _PLAIN_= true;
-  explicit MomShowTextIter(Gtk::TextIter txit, bool full = false) : _shtxit(txit), _showfull(full) {};
+  explicit MomShowTextIter(Gtk::TextIter txit, bool full = false, int delta = 0) :
+    _shtxit(txit), _showfull(full), _shdelta(delta) {};
   ~MomShowTextIter() {};
   MomShowTextIter(const MomShowTextIter&) = default;
   MomShowTextIter(MomShowTextIter&&) = default;
@@ -516,7 +518,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display start "
-               << MomShowTextIter(txit, MomShowTextIter::_FULL_)
+               << MomShowTextIter(txit, MomShowTextIter::_FULL_, -6)
                << " pob=" << MomShowObject(pob)
                << " scrolltopview=" << (scrolltopview?"true":"false")
                << MOM_SHOW_BACKTRACE("browser_insert_object_display"));
@@ -760,8 +762,10 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end "
                << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                << " pob=" << MomShowObject(pob)
-	       << " startmark@" << MomShowTextIter(shob._sh_startmark->get_iter(), MomShowTextIter::_FULL_)
-	       << " endmark@" << MomShowTextIter(shob._sh_endmark->get_iter(), MomShowTextIter::_FULL_)
+               << " startmark@"
+               << MomShowTextIter(shob._sh_startmark->get_iter(), MomShowTextIter::_FULL_, -10)
+               << " endmark@"
+               << MomShowTextIter(shob._sh_endmark->get_iter(), MomShowTextIter::_FULL_, +10)
                << std::endl);
 } // end MomMainWindow::browser_insert_object_display
 
@@ -1219,6 +1223,7 @@ MomMainWindow::MomMainWindow()
   _mwi_scrwbot.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
   _mwi_panedtx.add1(_mwi_scrwtop);
   _mwi_panedtx.add2(_mwi_scrwbot);
+  _mwi_panedtx.set_wide_handle(true);
   {
     _mwi_vbox.pack_start(_mwi_txvcmd,Gtk::PACK_SHRINK);
     _mwi_txvcmd.set_vexpand(false);
@@ -1614,6 +1619,20 @@ MomShowTextIter::output(std::ostream&outs) const
           outs << ":" << tagnamprop.get_value();
         }
       outs << "!";
+    }
+  if (_shdelta < 0)
+    {
+      Gtk::TextIter beforit = _shtxit;
+      beforit.backward_chars(-_shdelta);
+      outs << " *has " << (-_shdelta) << " before ..."
+           << MomShowString(beforit.get_text(_shtxit).c_str()) << "^  ";
+    }
+  else if (_shdelta > 0)
+    {
+      Gtk::TextIter afterit = _shtxit;
+      afterit.forward_chars(_shdelta);
+      outs << " *has " << (_shdelta) << " after ^"
+           << MomShowString(_shtxit.get_text(afterit).c_str()) << "...  ";
     }
 } // end MomShowTextIter::output
 
