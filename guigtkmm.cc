@@ -542,13 +542,23 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << " depth=" << depth
                << " found=" << (found?"true":"false")
-               << ", txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_));
+               << ", txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_,-7));
   MomBrowsedObject& shob = itm->second;
   /// the title bar
   MOM_ASSERT(shob._sh_ob == pob, "MomMainWindow::browser_insert_object_display corrupted shob");
   if (found)
     _mwi_buf->move_mark(shob._sh_startmark, txit);
+  MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
+               << MomShowObject(pob) << ", txit before asterism="
+	       << MomShowTextIter(txit, MomShowTextIter::_FULL_,-7)
+	       << "==" << MomShowTextIter(txit, MomShowTextIter::_PLAIN_,+7)
+	       << std::endl);
   txit = _mwi_buf->insert_with_tag (txit, " \342\201\202 " /* U+2042 ASTERISM ⁂ */, "object_title_tag");
+  MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
+               << MomShowObject(pob) << ", txit after asterism="
+	       << MomShowTextIter(txit, MomShowTextIter::_FULL_,-7)
+	       << "==" << MomShowTextIter(txit, MomShowTextIter::_PLAIN_,+7)
+	       << std::endl);
   if (!obnamstr.empty())
     {
       txit = _mwi_buf->insert_with_tags_by_name
@@ -574,6 +584,11 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
                                  depth),
           std::vector<Glib::ustring> {"object_title_tag","object_title_depth_tag"});
   txit = _mwi_buf->insert(txit, "\n");
+  MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
+               << MomShowObject(pob) << ", txit after delta+nl="
+	       << MomShowTextIter(txit, MomShowTextIter::_FULL_,-7)
+	       << "==" << MomShowTextIter(txit, MomShowTextIter::_PLAIN_,+7)
+	       << std::endl);
   MOM_DEBUGLOG(gui, "browser_insert_object_display after title pob="<< MomShowObject(pob)
                << " txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_));
   /// show the modtime and the space
@@ -761,11 +776,12 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
     }
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end "
                << MomShowTextIter(txit, MomShowTextIter::_FULL_)
-               << " pob=" << MomShowObject(pob)
-               << " startmark@"
-               << MomShowTextIter(shob._sh_startmark->get_iter(), MomShowTextIter::_FULL_, -10)
-               << " endmark@"
-               << MomShowTextIter(shob._sh_endmark->get_iter(), MomShowTextIter::_FULL_, +10)
+               << " pob=" << MomShowObject(pob) << std::endl
+               << "... startmark@"
+               << MomShowTextIter(shob._sh_startmark->get_iter(), MomShowTextIter::_FULL_, -12)
+	       << std::endl
+               << "... endmark@"
+               << MomShowTextIter(shob._sh_endmark->get_iter(), MomShowTextIter::_FULL_, +12)
                << std::endl);
 } // end MomMainWindow::browser_insert_object_display
 
@@ -1301,6 +1317,12 @@ MomMainWindow::do_object_show_hide(void)
   showdialog.add_button("Show", ShowOb);
   showdialog.add_button("Hide", HideOb);
   showdialog.set_default_response(Gtk::RESPONSE_CANCEL);
+  showcombox.signal_changed()
+    .connect([&](void) {
+	       Glib::ustring showtext = showcombox.get_active_text();
+	       MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide showcombox changed showtext="
+			    << MomShowString(showtext.c_str()));
+	     });
   showdialog.show_all_children();
   int result =  Gtk::RESPONSE_CANCEL;
   do
