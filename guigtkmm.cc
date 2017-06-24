@@ -771,13 +771,13 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
                    << " scroll top view");
       _mwi_txvtop.scroll_to(shob._sh_startmark);
     }
-  MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end "
-               << MomShowTextIter(txit, MomShowTextIter::_FULL_)
-               << " pob=" << MomShowObject(pob) << std::endl
-               << "... startmark@"
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display end final txit="
+               << MomShowTextIter(txit, MomShowTextIter::_FULL_, 16)
+               << "... pob=" << MomShowObject(pob) << std::endl
+               << "... startmark:"
                << MomShowTextIter(shob._sh_startmark->get_iter(), MomShowTextIter::_FULL_, 12)
                << std::endl
-               << "... endmark@"
+               << "... endmark:"
                << MomShowTextIter(shob._sh_endmark->get_iter(), MomShowTextIter::_FULL_, 12)
                << std::endl);
 } // end MomMainWindow::browser_insert_object_display
@@ -1468,22 +1468,25 @@ MomMainWindow::browser_show_object(MomObject*pob)
                    << ", beforend=" << (beforend?"true":"false"));
       if (!afterbeg)
         {
-          auto objtittag = MomApplication::itself()->lookup_tag("object_title_tag");
-          Gtk::TextIter txit = _mwi_buf->begin();
-          MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin, begin txit="
-                       << MomShowTextIter(txit, MomShowTextIter::_FULL_)
-                       << ", pob=" << MomShowObject(pob));
-          txit.forward_line();
-          MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin, forwardlin txit="
-                       << MomShowTextIter(txit, MomShowTextIter::_FULL_)
-                       << ", pob=" << MomShowObject(pob));
-          while (txit.has_tag(objtittag))
-            {
-              if (!txit.forward_char())
-                break;
-            }
+          MOM_ASSERT(shmbegit != shmendit,
+                     "browser_show_object shmbegit is not != shmendit for pob=" << pob);
+          MomBrowsedObject& firstbob = shmbegit->second;
+          MOM_ASSERT(firstbob._sh_startmark,
+                     "browser_show_object nil firstbob._sh_startmark for pob=" << pob);
+          Gtk::TextIter firststatxit = firstbob._sh_startmark->get_iter();
+          MOM_DEBUGLOG(gui, "browser_show_object firststatxit="
+                       << MomShowTextIter(firststatxit, MomShowTextIter::_FULL_, 24)
+                       << " for pob=" << MomShowObject(pob)
+                       << " firstob=" << MomShowObject(shmbegit->first));
+          auto firstbeftxit = firststatxit;
+          firstbeftxit.backward_line();
+          firstbeftxit.backward_char();
+          MOM_DEBUGLOG(gui, "browser_show_object firstbeftxit="
+                       << MomShowTextIter(firstbeftxit, MomShowTextIter::_FULL_, 24)
+                       << " for pob=" << MomShowObject(pob));
+          Gtk::TextIter txit = firstbeftxit;
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
-                       << MomShowTextIter(txit, MomShowTextIter::_FULL_)
+                       << MomShowTextIter(txit, MomShowTextIter::_FULL_, 32)
                        << ", pob=" << MomShowObject(pob));
           browser_insert_object_display(txit, pob);
         }
