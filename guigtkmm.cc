@@ -516,6 +516,7 @@ MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Gli
 void
 MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob, bool scrolltopview)
 {
+#warning the initial txit is probably invalid, we need to keep its offset
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display start "
@@ -534,7 +535,8 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   if (itm == _mwi_shownobmap.end())
     {
       auto begmark = _mwi_buf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
-      auto endmark = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ true);
+      auto endmark = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
+#warning still wrong display order even when changing gravity
       auto pairitb = _mwi_shownobmap.emplace(pob,MomBrowsedObject(pob,begmark,endmark));
       itm = pairitb.first;
       found = false;
