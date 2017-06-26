@@ -491,7 +491,7 @@ MomMainWindow::display_full_browser(void)
     }
   else
     {
-      _mwi_endtitlemark = _mwi_buf->create_mark("end_title", it, /* left_gravity: */ false);
+      _mwi_endtitlemark = _mwi_buf->create_mark("end_title", it, /* left_gravity: */ true);
     }
   it = _mwi_buf->insert(it, "\n");
   for (auto itob : _mwi_shownobmap)
@@ -1447,7 +1447,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
       Gtk::TextIter txit = _mwi_buf->end();
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object empty txit="
                    << MomShowTextIter(txit));
-      browser_insert_object_display(txit, pob,_SCROLL_TOP_VIEW_);
+      browser_insert_object_display(txit, pob, _SCROLL_TOP_VIEW_);
       browser_update_title_banner();
     }
   else if (oldshowit != _mwi_shownobmap.end())
@@ -1486,9 +1486,9 @@ MomMainWindow::browser_show_object(MomObject*pob)
           MOM_ASSERT(shmbegit != shmendit,
                      "browser_show_object shmbegit is not != shmendit for pob=" << pob);
           Gtk::TextIter endtitltxit = _mwi_endtitlemark->get_iter();
-          endtitltxit.forward_char(); // after the newline
+          endtitltxit.forward_line(); // after the newline
           MOM_DEBUGLOG(gui, "browser_show_object beforebeg endtitltxit="
-                       << MomShowTextIter(endtitltxit, MomShowTextIter::_FULL_, 8));
+                       << MomShowTextIter(endtitltxit, MomShowTextIter::_FULL_, 12));
           Gtk::TextIter txit = endtitltxit;
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
                        << MomShowTextIter(txit, MomShowTextIter::_FULL_, 32)
@@ -1644,7 +1644,12 @@ MomShowTextIter::output(std::ostream&outs) const
         {
           if (!tagref) continue;
           auto tagnamprop = tagref->property_name();
-          outs << ":" << tagnamprop.get_value();
+          outs << ":";
+          if (_shtxit.starts_tag(tagref))
+            outs<<'+';
+          else if (_shtxit.ends_tag(tagref))
+            outs<<'-';
+          outs << tagnamprop.get_value();
         }
       outs << "!";
     }
