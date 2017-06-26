@@ -117,6 +117,8 @@ class MomMainWindow : public Gtk::Window
 {
 public:
   static constexpr const int _default_display_depth_ = 5;
+  static constexpr const int _min_display_depth_ = 2;
+  static constexpr const int _max_display_depth_ = 10;
   static constexpr const int _default_display_width_ = 72;
   static constexpr const int _default_status_delay_deciseconds_ = 33;
   static constexpr const bool _SCROLL_TOP_VIEW_ = true;
@@ -159,11 +161,13 @@ private:
   Gtk::MenuItem _mwi_mit_edit_copy;
   Gtk::MenuItem _mwi_mit_object_show_hide;
   Gtk::MenuItem _mwi_mit_object_refresh;
+  Gtk::MenuItem _mwi_mit_object_options;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_buf;
   // mark to end of title string, always followed by newline:
   Glib::RefPtr<Gtk::TextMark> _mwi_endtitlemark;
   int _mwi_dispdepth;
   int _mwi_dispwidth;
+  bool _mwi_dispid;
   Gtk::Paned _mwi_panedtx;
   Gtk::ScrolledWindow _mwi_scrwtop;
   Gtk::ScrolledWindow _mwi_scrwbot;
@@ -194,6 +198,7 @@ public:
   void do_window_dump(void);
   void do_object_show_hide(void);
   void do_object_refresh(void);
+  void do_object_options(void);
   void scan_gc(MomGC*);
 };				// end class MomMainWindow
 
@@ -866,7 +871,7 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisp
              (txit,
               obnamstr.c_str(),
               tagscopy);
-      if (depth<=2)
+      if (depth<=2 && _mwi_dispid)
         {
           char bufcommid[48];
           memset (bufcommid, 0, sizeof(bufcommid));
@@ -1236,9 +1241,11 @@ MomMainWindow::MomMainWindow()
     _mwi_mit_edit_copy("_Copy",true),
     _mwi_mit_object_show_hide("_Show/hide",true),
     _mwi_mit_object_refresh("_Refresh",true),
+    _mwi_mit_object_options("_Options",true),
     _mwi_buf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
     _mwi_dispdepth(_default_display_depth_),
     _mwi_dispwidth(_default_display_width_),
+    _mwi_dispid(false),
     _mwi_panedtx(Gtk::ORIENTATION_VERTICAL),
     _mwi_txvtop(_mwi_buf), _mwi_txvbot(_mwi_buf),
     _mwi_txvcmd(),
@@ -1266,8 +1273,10 @@ MomMainWindow::MomMainWindow()
   _mwi_mit_object.set_submenu(_mwi_menu_object);
   _mwi_menu_object.append(_mwi_mit_object_show_hide);
   _mwi_menu_object.append(_mwi_mit_object_refresh);
+  _mwi_menu_object.append(_mwi_mit_object_options);
   _mwi_mit_object_show_hide.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_object_show_hide));
   _mwi_mit_object_refresh.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_object_refresh));
+  _mwi_mit_object_options.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_object_options));
   _mwi_vbox.set_spacing(2);
   _mwi_vbox.set_border_width(1);
   _mwi_vbox.pack_start(_mwi_menubar,Gtk::PACK_SHRINK);
@@ -1434,6 +1443,54 @@ MomMainWindow::do_object_show_hide(void)
 #warning incomplete MomMainWindow::do_object_show_hide
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide end");
 } // end MomMainWindow::do_object_show_hide
+
+void
+MomMainWindow::do_object_options(void)
+{
+  int res=0;
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_object_options start");
+  Gtk::Dialog optiondialog("Show options", *this, true/*modal*/);
+  Gtk::Box* optcontbox = optiondialog.get_content_area();
+  Gtk::Box subbox(Gtk::ORIENTATION_HORIZONTAL,3);
+  optcontbox->pack_end(subbox,Gtk::PACK_EXPAND_WIDGET,3);
+  Gtk::Label depthlabel("depth");
+  subbox.pack_end(depthlabel,Gtk::PACK_SHRINK,2);
+  Gtk::Scale depthscale(Gtk::ORIENTATION_HORIZONTAL);
+  depthscale.set_range(_min_display_depth_, _max_display_depth_);
+  depthscale.set_increments(1.0,3.0);
+  depthscale.set_value(_mwi_dispdepth);
+  for (int d = _min_display_depth_; d<= _max_display_depth_; d++)
+    depthscale.add_mark(d,Gtk::POS_BOTTOM,Glib::ustring::compose("%1", d));
+  subbox.pack_end(depthscale,Gtk::PACK_EXPAND_WIDGET,3);
+  Gtk::Separator sep(Gtk::ORIENTATION_VERTICAL);
+  subbox.pack_end(sep,Gtk::PACK_SHRINK,3);
+  Gtk::CheckButton displayidbut("display ids");
+  displayidbut.set_active(_mwi_dispid);
+  subbox.pack_end(displayidbut,Gtk::PACK_EXPAND_WIDGET,3);
+  optiondialog.add_button("Apply", Gtk::RESPONSE_APPLY);
+  optiondialog.add_button("Cancel", Gtk::RESPONSE_CANCEL);
+  optiondialog.set_default_size(440,-1);
+  optiondialog.show_all_children();
+  res = optiondialog.run();
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_object_options res=" << res);
+  if (res ==  Gtk::RESPONSE_APPLY)
+    {
+      double depthval = depthscale.get_value();
+      int newdepth = newdepth;
+      if (newdepth<_min_display_depth_)
+        newdepth = _min_display_depth_;
+      else if (newdepth>_max_display_depth_)
+        newdepth = _max_display_depth_;
+      bool dispids = displayidbut.get_active();
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_object_options raw depthval=" << depthval
+                   << ", newdepth=" << newdepth
+                   << " dispids=" << (dispids?"true":"false"));
+      _mwi_dispdepth = newdepth;
+      _mwi_dispid = dispids;
+    }
+  optiondialog.hide();
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_object_options end");
+} // end MomMainWindow::do_object_options
 
 void
 MomMainWindow::browser_update_title_banner(void)
