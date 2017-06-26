@@ -674,6 +674,8 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           if (!pobattr || !gotattr)
             MOM_PARSE_FAILURE(&contpars, "missing attribute after @: "
                               << MomShowString(contpars.curbytes()));
+          MOM_DEBUGLOG(load,"load_object_content attr pob=" << pob << " pobattr=" << pobattr
+                       << " before parse_value");
           bool gotval = false;
           MomValue valattr = contpars.parse_value(&gotval);
           MOM_DEBUGLOG(load,"load_object_content attr pob=" << pob
