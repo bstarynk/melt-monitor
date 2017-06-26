@@ -563,7 +563,6 @@ MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Gli
 void
 MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob, bool scrolltopview)
 {
-#warning the initial txit is probably invalid, we need to keep its offset
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
              "MomMainWindow::browser_insert_object_display bad object");
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display start "
@@ -698,15 +697,18 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
       }
     txit = _mwi_buf->insert(txit, "\n");
   }
+  MOM_DEBUGLOG(gui, "browser_insert_object_display before attributes pob=" << pob);
   /// show the attributes
   {
     MomDisplayCtx dctxattrs(&shob);
     std::map<MomObject*,MomValue,MomObjNameLess> mapattrs;
     pob->unsync_each_phys_attr([&](MomObject*pobattr,MomValue valattr)
     {
+      MOM_DEBUGLOG(gui, "browser_insert_object_display physattr: pob=" << pob << " pobattr=" << pobattr << ", valattr=" << valattr);
       mapattrs.insert({pobattr,valattr});
       return false;
     });
+    MOM_DEBUGLOG(gui, "browser_insert_object_display pob=" << pob << " with " << mapattrs.size() << " attributes to show");
     std::vector<Glib::ustring> tagsattrs{"attributes_tag"};
     std::vector<Glib::ustring> tagsattrindex{"attributes_tag","index_comment_tag"};
     std::vector<Glib::ustring> tagsattrobj{"attributes_tag","attrobj_tag"};
@@ -748,6 +750,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
         browser_insert_newline(txit, tagsattrs, 0);
       }
   }
+  MOM_DEBUGLOG(gui, "browser_insert_object_display pob=" << pob << " before components");
   ///  show the components
   {
     MomDisplayCtx dctxcomps(&shob);
@@ -757,6 +760,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
     char atitlebuf[72];
     memset(atitlebuf, 0, sizeof(atitlebuf));
     unsigned nbcomp = pob->unsync_nb_comps();
+    MOM_DEBUGLOG(gui, "browser_insert_object_display pob=" << pob << " nbcomp=" << nbcomp);
     if (nbcomp == 0)
       {
         snprintf(atitlebuf, sizeof(atitlebuf),
@@ -1547,6 +1551,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
                    << MomShowTextIter(txit));
       browser_insert_object_display(txit, pob, _SCROLL_TOP_VIEW_);
       browser_update_title_banner();
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object after first object pob=" << MomShowObject(pob));
     }
   else if (oldshowit != _mwi_shownobmap.end())
     {
@@ -1565,6 +1570,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
                    << " redisptxit="  << MomShowTextIter(redisptxit, MomShowTextIter::_FULL_));
       browser_insert_object_display(redisptxit, pob);
       browser_update_title_banner();
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object after redisplay object pob=" << MomShowObject(pob));
     }
   else
     {
