@@ -108,6 +108,7 @@ public:
   ~MomComboBoxObjptrText();
   void do_change_boxobjptr(void);
   void on_my_show(void);
+  MomObject* active_object(void);
 };				// end MomComboBoxObjptrText
 const long MomComboBoxObjptrText::_nb_named_threshold_;
 
@@ -302,6 +303,36 @@ MomApplication::scan_gc(MomGC*gc)
 } // end MomApplication::scan_gc
 
 ////////////////
+MomObject*
+MomComboBoxObjptrText::active_object(void)
+{
+  Glib::ustring showtext = get_active_text();
+  MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::active_object start showtext=" << MomShowString(showtext.c_str()));
+  MomObject* pob = nullptr;
+  if (showtext[0] < 127 && isalpha(showtext[0]))
+    {
+      pob = mom_find_named(showtext.c_str());
+    }
+  else if (showtext[0] == '_' && showtext[1] < 127 && isdigit(showtext[1]))
+    {
+      MomIdent idob = MomIdent::make_from_string(showtext.c_str(), MomIdent::DONT_FAIL);
+      pob = MomObject::find_object_of_id(idob);
+    }
+  else if (showtext[0] == '@' && showtext[1] < 127 && isalpha(showtext[1]))
+    {
+      std::string globnamstr= showtext.substr(1);
+      {
+        auto globptr = MomRegisterGlobData::find_globdata(globnamstr);
+        if (globptr)
+          {
+            pob = globptr->load();
+          }
+      }
+    }
+  MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::active_object result pob=" << pob);
+  return pob;
+} // end MomComboBoxObjptrText::active_object
+
 void
 MomComboBoxObjptrText::upgrade_for_string(const char*str)
 {
@@ -1333,6 +1364,15 @@ MomMainWindow::do_object_show_hide(void)
     Glib::ustring showtext = showcombox.get_active_text();
     MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide showcombox changed showtext="
                  << MomShowString(showtext.c_str()));
+    MomObject* pob = showcombox.active_object();
+    MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide showcombox changed pob=" << pob);
+    if (pob)
+      {
+        if (_mwi_shownobmap.find(pob) != _mwi_shownobmap.end())
+          showdialog.set_default_response(HideOb);
+        else
+          showdialog.set_default_response(ShowOb);
+      };
   });
   showdialog.show_all_children();
   int result =  Gtk::RESPONSE_CANCEL;
@@ -1494,7 +1534,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
                        << MomShowTextIter(txit, MomShowTextIter::_FULL_, 32)
                        << ", pob=" << MomShowObject(pob));
-	  txit = _mwi_buf->insert(txit, "\n");
+          txit = _mwi_buf->insert(txit, "\n");
           browser_insert_object_display(txit, pob);
         }
       else if (!beforend)
