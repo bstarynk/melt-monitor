@@ -334,7 +334,8 @@ MomLoader::load_all_objects_content(void)
         MOM_DEBUGLOG(load,"load_all_objects_content getuserfun start pob=" << pob);
         std::string res;
         userstmt << pob->id().to_string() >> res;
-        MOM_DEBUGLOG(load,"load_all_objects_content getuserfun pob=" << pob << " res=" << res);
+        MOM_DEBUGLOG(load,"load_all_objects_content getuserfun pob=" << pob << " res=" << res
+                     << std::endl << "... == " << MomShowString(res) << std::endl);
         return res;
       };
     }
