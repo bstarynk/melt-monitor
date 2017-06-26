@@ -159,6 +159,7 @@ private:
   Gtk::MenuItem _mwi_mit_object_show_hide;
   Gtk::MenuItem _mwi_mit_object_refresh;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_buf;
+  Glib::RefPtr<Gtk::TextMark> _mwi_endtitlemark;
   int _mwi_dispdepth;
   int _mwi_dispwidth;
   Gtk::Paned _mwi_panedtx;
@@ -483,6 +484,14 @@ MomMainWindow::display_full_browser(void)
   _mwi_buf->set_text("");
   auto it = _mwi_buf->begin();
   it = _mwi_buf->insert_with_tag (it, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob), "page_title_tag");
+  if (_mwi_endtitlemark)
+    {
+      _mwi_buf->move_mark(_mwi_endtitlemark, it);
+    }
+  else
+    {
+      _mwi_endtitlemark = _mwi_buf->create_mark("end_title", it, /* left_gravity: */ false);
+    }
   it = _mwi_buf->insert(it, "\n");
   for (auto itob : _mwi_shownobmap)
     {
@@ -1402,6 +1411,7 @@ MomMainWindow::browser_update_title_banner(void)
   int nbshownob = _mwi_shownobmap.size();
   it = _mwi_buf->insert_with_tag (begit, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob),
                                   titletag);
+  _mwi_buf->move_mark(_mwi_endtitlemark, it);
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner end nbshownob=" << nbshownob);
 } // end MomMainWindow::browser_update_title_banner
 
