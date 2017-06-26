@@ -271,6 +271,7 @@ MomApplication::on_activate(void)
   }
   auto mainwin = new MomMainWindow();
   add_window(*mainwin);
+  mainwin->show_all_children();
   mainwin->show();
   MOM_DEBUGLOG(gui,"MomApplication::on_activate mainwin=" << mainwin);
 } // end MomApplication::on_activate
@@ -1524,6 +1525,11 @@ MomMainWindow::do_object_refresh(void)
 {
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_refresh start");
   display_full_browser();
+  int nbshownob = _mwi_shownobmap.size();
+  char msg[40];
+  memset(msg, 0, sizeof(msg));
+  snprintf(msg, sizeof(msg), "%d objects", nbshownob);
+  show_status_decisec(msg, _default_status_delay_deciseconds_);
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_refresh end");
 } // end MomMainWindow::do_object_refresh
 
@@ -1677,10 +1683,12 @@ MomMainWindow::browser_hide_object(MomObject*pob)
   auto shmit = _mwi_shownobmap.find(pob);
   if (shmit == _mwi_shownobmap.end())
     {
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object did not find pob=" << MomShowObject(pob));
       MOM_WARNLOG("MomMainWindow::browser_hide_object cannot hide undisplayed pob=" << MomShowObject(pob));
       std::string outmsg;
       std::ostringstream out (outmsg);
       out << "cannot hide undisplayed " << pob << std::flush;
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object fail outmsg=" << MomShowString(outmsg));
       show_status_decisec(outmsg, _default_status_delay_deciseconds_);
     }
   else
@@ -1696,6 +1704,11 @@ MomMainWindow::browser_hide_object(MomObject*pob)
       _mwi_buf->delete_mark(bob._sh_endmark);
       _mwi_shownobmap.erase(shmit);
       browser_update_title_banner();
+      std::string outmsg;
+      std::ostringstream out (outmsg);
+      out << "hide " << pob << std::flush;
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object good outmsg=" << MomShowString(outmsg) << " for pob=" << pob);
+      show_status_decisec(outmsg, _default_status_delay_deciseconds_);
     }
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object end pob=" << pob);
 } // end MomMainWindow::browser_hide_object
@@ -1794,6 +1807,8 @@ mom_gtk_error_handler (const gchar *log_domain,
               << " message " << message
               << MOM_SHOW_BACKTRACE("gtk_error_handler"));
 } // end mom_gtk_error_handler
+
+
 
 int
 mom_run_gtkmm_gui(int& argc, char**argv)
