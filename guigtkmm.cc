@@ -1439,6 +1439,8 @@ MomMainWindow::browser_show_object(MomObject*pob)
   auto oldshowit = _mwi_shownobmap.find(pob);
   MomObject*begpob = nullptr;
   MomObject*endpob = nullptr;
+  auto obtitletag = MomApplication::itself()->lookup_tag("object_title_tag");
+  obtitletag->set_priority(0);
   if (shmbegit == shmendit)
     {
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object first object pob=" << MomShowObject(pob));
