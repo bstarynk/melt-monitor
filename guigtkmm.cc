@@ -494,6 +494,7 @@ MomMainWindow::display_full_browser(void)
       _mwi_endtitlemark = _mwi_buf->create_mark("end_title", it, /* left_gravity: */ true);
     }
   it = _mwi_buf->insert(it, "\n");
+  it = _mwi_buf->insert(it, "\n");
   for (auto itob : _mwi_shownobmap)
     {
       browser_insert_object_display(it, itob.first);
@@ -1493,6 +1494,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
                        << MomShowTextIter(txit, MomShowTextIter::_FULL_, 32)
                        << ", pob=" << MomShowObject(pob));
+	  txit = _mwi_buf->insert(txit, "\n");
           browser_insert_object_display(txit, pob);
         }
       else if (!beforend)
