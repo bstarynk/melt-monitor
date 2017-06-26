@@ -159,6 +159,7 @@ private:
   Gtk::MenuItem _mwi_mit_object_show_hide;
   Gtk::MenuItem _mwi_mit_object_refresh;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_buf;
+  // mark to end of title string, always followed by newline:
   Glib::RefPtr<Gtk::TextMark> _mwi_endtitlemark;
   int _mwi_dispdepth;
   int _mwi_dispwidth;
@@ -1482,21 +1483,11 @@ MomMainWindow::browser_show_object(MomObject*pob)
         {
           MOM_ASSERT(shmbegit != shmendit,
                      "browser_show_object shmbegit is not != shmendit for pob=" << pob);
-          MomBrowsedObject& firstbob = shmbegit->second;
-          MOM_ASSERT(firstbob._sh_startmark,
-                     "browser_show_object nil firstbob._sh_startmark for pob=" << pob);
-          Gtk::TextIter firststatxit = firstbob._sh_startmark->get_iter();
-          MOM_DEBUGLOG(gui, "browser_show_object firststatxit="
-                       << MomShowTextIter(firststatxit, MomShowTextIter::_FULL_, 24)
-                       << " for pob=" << MomShowObject(pob)
-                       << " firstob=" << MomShowObject(shmbegit->first));
-          auto firstbeftxit = firststatxit;
-          firstbeftxit.backward_line();
-          firstbeftxit.backward_char();
-          MOM_DEBUGLOG(gui, "browser_show_object firstbeftxit="
-                       << MomShowTextIter(firstbeftxit, MomShowTextIter::_FULL_, 24)
-                       << " for pob=" << MomShowObject(pob));
-          Gtk::TextIter txit = firstbeftxit;
+          Gtk::TextIter endtitltxit = _mwi_endtitlemark->get_iter();
+          endtitltxit.forward_char(); // after the newline
+          MOM_DEBUGLOG(gui, "browser_show_object beforebeg endtitltxit="
+                       << MomShowTextIter(endtitltxit, MomShowTextIter::_FULL_, 8));
+          Gtk::TextIter txit = endtitltxit;
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
                        << MomShowTextIter(txit, MomShowTextIter::_FULL_, 32)
                        << ", pob=" << MomShowObject(pob));
