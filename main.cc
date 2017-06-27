@@ -1291,7 +1291,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           if (!optarg || access (optarg, R_OK))
             MOM_FATAPRINTF ("bad load sequential state %s : %m", optarg);
           mom_load_dir = optarg;
-	  MOM_INFORMPRINTF("will load sequentially from %s", mom_load_dir);
+          MOM_INFORMPRINTF("will load sequentially from %s", mom_load_dir);
           sequential_load_mom = true;
           break;
         case xtraopt_commentpredef: /* --comment-predefined comment */
