@@ -23,7 +23,7 @@
 /// from https://github.com/aminroosta/sqlite_modern_cpp
 #include "sqlite_modern_cpp.h"
 
-
+#warning ./monimelt --load-sequential .  behave differently with and without -Dload
 // we don't want to move MomLoader into meltmoni.hh because it uses sqlite::
 class MomLoader
 {
