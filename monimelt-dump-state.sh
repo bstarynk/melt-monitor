@@ -47,6 +47,7 @@ fi
 if [ -z "$dubase" ]; then
     dubase=$(basename $dbfile .sqlite)
 fi
+logger --id=$$ -s -t $0 dbfile: "$dbfile" sqlfile: "$sqlfile" dubase: "$dubase" sqlref: "$sqlref"
 
 tempdump=$(basename $(tempfile -d . -p _tmp_$(basename $dubase) -s .sql))
 trap 'rm -f $tempdump' EXIT INT QUIT TERM
@@ -114,11 +115,12 @@ fi
 
 if [ -e "$sqlref" ]; then
     # if only the first 128 bytes changed, it is some comment
-    if cmp --quiet --ignore-initial 128 "$sqlref" $tempdump ; then
+    if cmp --quiet --ignore-initial 128 "$sqlref" "$tempdump" ; then
 	echo $0: unchanged Monimelt Sqlite3 dump "$sqlfile" reference "$sqlref" >&2
 	if [ ! -e "$sqlfile" ]; then
-	    ln -s "$sqlref" "$sqlfile"
+	    ln -s -v "$sqlref" "$sqlfile"
 	fi
+	touch -f "$dbfile" "$sqlfile"
 	exit 0
     fi
 elif [ -e "$sqlfile" ]; then
@@ -126,6 +128,6 @@ elif [ -e "$sqlfile" ]; then
     mv -v --backup=existing "$sqlfile" "$sqlfile~" >&2    
 fi
 ## we need that the .sql file has the same date as the .sqlite file
-mv $tempdump "$sqlfile"
+mv "$tempdump" "$sqlfile"
 touch -f "$dbfile" "$sqlfile"
 #eof monimelt-dump-state.sh
