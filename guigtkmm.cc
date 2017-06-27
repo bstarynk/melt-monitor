@@ -800,11 +800,13 @@ MomMainWindow::browser_insert_object_attributes(Gtk::TextIter& txit, MomObject*p
           browser_insert_newline(txit, tagsattrs, 0);
         }
     }
-  else
+  else  // nbattr is zero
     {
       snprintf(atitlebuf, sizeof(atitlebuf),
                "%s no attributes %s",
                MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,atitlebuf, tagsattrindex);
     }
 } // end MomMainWindow::browser_insert_object_attributes
 
