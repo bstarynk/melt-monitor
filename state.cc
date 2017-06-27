@@ -24,6 +24,11 @@
 #include "sqlite_modern_cpp.h"
 
 #warning ./monimelt --load-sequential .  behave differently with and without -Dload
+
+// this is to help debugging, we test the pob against this id
+MomIdent mom_load_spyid1; //see load_spyid1_breakpoint_at
+MomIdent mom_load_spyid2; //see load_spyid2_breakpoint_at
+
 // we don't want to move MomLoader into meltmoni.hh because it uses sqlite::
 class MomLoader
 {
@@ -46,6 +51,22 @@ class MomLoader
     if (it != _ld_objmap.end()) return it->second;
     return nullptr;
   }
+  inline bool load_got_spyid1(MomObject*pob) const
+  {
+    if (!mom_load_spyid1 || !pob) return false;
+    MOM_ASSERT(pob->vkind() == MomKind::TagObjectK, "load_got_spyid1 bad pob");
+    return pob->id() == mom_load_spyid1;
+  };
+  inline bool load_got_spyid2(MomObject*pob) const
+  {
+    if (!mom_load_spyid2 || !pob) return false;
+    MOM_ASSERT(pob->vkind() == MomKind::TagObjectK, "load_got_spyid2 bad pob");
+    return pob->id() == mom_load_spyid2;
+  };
+  void load_spyid1_breakpoint_at(int lin, const char*msg) const;
+  void load_spyid2_breakpoint_at(int lin, const char*msg) const;
+#define LOAD_SPYID1_BREAKPOINT(Msg) load_spyid1_breakpoint_at(__LINE__, (Msg))
+#define LOAD_SPYID2_BREAKPOINT(Msg) load_spyid2_breakpoint_at(__LINE__, (Msg))
   long load_empty_objects_from_db(sqlite::database* pdb, bool user);
   void load_all_globdata(void);
   void load_all_objects_content(void);
@@ -125,6 +146,10 @@ MomLoader::load_empty_objects_from_db(sqlite::database* pdb, bool user)
       std::lock_guard<std::mutex> gu(_ld_mtxobjmap);
       _ld_objmap.insert({id,pob});
     }
+    if (load_got_spyid1(pob))
+      LOAD_SPYID1_BREAKPOINT("load_empty_objects_from_db id1");
+    else if (load_got_spyid2(pob))
+      LOAD_SPYID2_BREAKPOINT("load_empty_objects_from_db id2");
     if (pob->space() == MomSpace::TransientSp)
       {
         if (user)
@@ -192,6 +217,10 @@ MomLoader::load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool 
   {
     auto id = MomIdent::make_from_cstr(idstr.c_str(),true);
     auto pob = ld->load_find_object_by_id(id);
+    if (ld->load_got_spyid1(pob))
+      ld->LOAD_SPYID1_BREAKPOINT("load_touch_objects_from_db id1");
+    else if (ld->load_got_spyid2(pob))
+      ld->LOAD_SPYID2_BREAKPOINT("load_touch_objects_from_db id2");
     if (pob)
       pob->touch(mtim);
   };
@@ -307,6 +336,10 @@ MomLoader::load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob)
       MOM_DEBUGLOG(load,"load_cold_globdata storing globnam=" << globnam
                    << " globpob=" << globpob);
       pglob->store(globpob);
+      if (load_got_spyid1(globpob))
+        LOAD_SPYID1_BREAKPOINT("load_cold_globdata id1");
+      else if (load_got_spyid2(globpob))
+        LOAD_SPYID2_BREAKPOINT("load_cold_globdata id2");
     }
 } // end MomLoader::load_cold_globdata
 
@@ -333,6 +366,10 @@ MomLoader::load_all_objects_content(void)
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun start pob=" << pob);
     std::string res;
     globstmt << pob->id().to_string() >> res;
+    if (load_got_spyid1(pob))
+      LOAD_SPYID1_BREAKPOINT("load_all_objects_content getglobfun id1");
+    else if (load_got_spyid2(pob))
+      LOAD_SPYID2_BREAKPOINT("load_all_objects_content getglobfun id2");
     MOM_DEBUGLOG(load,"load_all_objects_content getglobfun pob=" << pob << " res=" << res);
     return res;
   };
@@ -348,6 +385,10 @@ MomLoader::load_all_objects_content(void)
         MOM_DEBUGLOG(load,"load_all_objects_content getuserfun start pob=" << pob);
         std::string res;
         userstmt << pob->id().to_string() >> res;
+        if (load_got_spyid1(pob))
+          LOAD_SPYID1_BREAKPOINT("load_all_objects_content getuserfun id1");
+        else if (load_got_spyid2(pob))
+          LOAD_SPYID2_BREAKPOINT("load_all_objects_content getuserfun id2");
         MOM_DEBUGLOG(load,"load_all_objects_content getuserfun pob=" << pob << " res=" << res
                      << std::endl << "... == " << MomShowString(res) << std::endl);
         return res;
@@ -365,6 +406,10 @@ MomLoader::load_all_objects_content(void)
                      "MomLoader::load_all_objects_content bad id");
           theobjque.push_back(pob);
           obcnt++;
+          if (load_got_spyid1(pob))
+            LOAD_SPYID1_BREAKPOINT("load_all_objects_content sequential id1");
+          else if (load_got_spyid2(pob))
+            LOAD_SPYID2_BREAKPOINT("load_all_objects_content sequential id2");
           MOM_DEBUGLOG(load,"load_all_objects_content sequential obcnt=" << obcnt << " pob=" << pob);
         };
       thread_load_content_objects(this, 0, &theobjque, getglobfun, getuserfun);
@@ -383,6 +428,10 @@ MomLoader::load_all_objects_content(void)
             MomObject* pob = p.second;
             MOM_ASSERT(pob != nullptr && pob->id() == p.first,
                        "MomLoader::load_all_objects_content bad id");
+            if (load_got_spyid1(pob))
+              LOAD_SPYID1_BREAKPOINT("load_all_objects_content multithreaded id1");
+            else if (load_got_spyid2(pob))
+              LOAD_SPYID2_BREAKPOINT("load_all_objects_content multithreaded id2");
             int qix = obcnt % mom_nb_jobs;
             vecobjque[qix].push_back(pob);
             obcnt++;
@@ -457,7 +506,12 @@ MomLoader::load_all_objects_payload_from_db(MomLoader*ld, sqlite::database* pdb,
                  << " paylinit=" << paylinit);
     auto id = MomIdent::make_from_string(idstr, MomIdent::DO_FAIL);
     auto pob = ld->load_find_object_by_id(id);
-    if (!pob) MOM_FAILURE("no object of id:" << id);
+    if (ld->load_got_spyid1(pob))
+      ld->LOAD_SPYID1_BREAKPOINT("load_all_objects_payload_from_db id1");
+    else if (ld->load_got_spyid2(pob))
+      ld->LOAD_SPYID2_BREAKPOINT("load_all_objects_payload_from_db id2");
+    if (!pob)
+      MOM_FAILURE("no object of id:" << id);
     MOM_DEBUGLOG(load, "load_all_objects_payload_from_db pob=" << pob << " paykind=" << paykind
                  << std::endl << "..paylinit=" << paylinit);
     const MomVtablePayload_st* pyvt = MomRegisterPayload::find_payloadv(paykind);
@@ -490,6 +544,10 @@ MomLoader::load_all_objects_payload_fill(void)
     std::string res;
     globstmt << pob->id().to_string() >> res;
     MOM_DEBUGLOG(load,"load_all_objects_payload_fill fillglobfun pob=" << pob << " res=" << res);
+    if (load_got_spyid1(pob))
+      LOAD_SPYID1_BREAKPOINT("load_all_objects_payload_fill fillglobfun id1");
+    else if (load_got_spyid2(pob))
+      LOAD_SPYID2_BREAKPOINT("load_all_objects_payload_fill fillglobfun id2");
     return res;
   };
   std::function<std::string(MomObject*)> filluserfun;
@@ -503,6 +561,10 @@ MomLoader::load_all_objects_payload_fill(void)
         std::lock_guard<std::mutex> gu(_ld_mtxuserdb);
         std::string res;
         userstmt << pob->id().to_string() >> res;
+        if (load_got_spyid1(pob))
+          LOAD_SPYID1_BREAKPOINT("load_all_objects_payload_fill filluserfun id1");
+        else if (load_got_spyid2(pob))
+          LOAD_SPYID2_BREAKPOINT("load_all_objects_payload_fill filluserfun id2");
         MOM_DEBUGLOG(load,"load_all_objects_payload_fill filluserfun pob=" << pob << " res=" << res);
         return res;
       };
@@ -519,6 +581,10 @@ MomLoader::load_all_objects_payload_fill(void)
                    "MomLoader::load_all_objects_payload_fill bad id");
         if (!pob->_ob_payl)
           continue;
+        if (load_got_spyid1(pob))
+          LOAD_SPYID1_BREAKPOINT("load_all_objects_payload_fill vector id1");
+        else if (load_got_spyid2(pob))
+          LOAD_SPYID2_BREAKPOINT("load_all_objects_payload_fill vector id2");
         if (!pob->_ob_payl->_py_vtbl->pyv_loadfill)
           {
             MOM_DEBUGLOG(load,"load_all_objects_payload_fill skip pob=" << pob);
@@ -570,6 +636,10 @@ MomLoader::thread_load_fill_payload_objects(MomLoader*ld, int thix, std::deque<M
                  "MomLoader::thread_load_fill_payload_objects bad pob");
       MOM_ASSERT(pob->_ob_payl != nullptr,
                  "MomLoader::thread_load_fill_payload_objects no payload for pob:" <<pob);
+      if (ld->load_got_spyid1(pob))
+        ld->LOAD_SPYID1_BREAKPOINT("thread_load_fill_payload_objects id1");
+      else if (ld->load_got_spyid2(pob))
+        ld->LOAD_SPYID2_BREAKPOINT("thread_load_fill_payload_objects id2");
       std::string strfill;
       if (pob->space() == MomSpace::UserSp)
         strfill = filluserfun(pob);
@@ -587,6 +657,10 @@ void MomLoader::load_object_fill_payload(MomObject*pob, int thix, const std::str
 {
   MOM_DEBUGLOG(load,"load_object_fill_payload start pob=" << pob << " thix=" << thix
                << " strfill=" << strfill);
+  if (load_got_spyid1(pob))
+    LOAD_SPYID1_BREAKPOINT("load_object_fill_payload id1");
+  else if (load_got_spyid2(pob))
+    LOAD_SPYID2_BREAKPOINT("load_object_fill_payload id2");
   auto py = pob->_ob_payl;
   py->_py_vtbl->pyv_loadfill(py, pob, this, strfill.c_str());
   MOM_DEBUGLOG(load,"load_object_fill_payload end pob=" << pob << " thix=" << thix
@@ -622,6 +696,10 @@ MomLoader::thread_load_content_objects(MomLoader*ld, int thix, std::deque<MomObj
                    << (((pob->space() == MomSpace::UserSp)?"user":"global")));
       MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK,
                  "MomLoader::thread_load_content_objects bad pob");
+      if (ld->load_got_spyid1(pob))
+        ld->LOAD_SPYID1_BREAKPOINT("thread_load_content_objects id1");
+      else if (ld->load_got_spyid2(pob))
+        ld->LOAD_SPYID2_BREAKPOINT("thread_load_content_objects id2");
       std::string strcont;
       if (pob->space() == MomSpace::UserSp)
         {
@@ -661,6 +739,10 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   char idbuf[32];
   memset(idbuf, 0, sizeof(idbuf));
   pob->id().to_cbuf32(idbuf);
+  if (load_got_spyid1(pob))
+    LOAD_SPYID1_BREAKPOINT("load_object_content id1");
+  else if (load_got_spyid2(pob))
+    LOAD_SPYID2_BREAKPOINT("load_object_content id2");
   snprintf(title, sizeof(title), "*content %s*", idbuf);
   contpars.set_name(std::string{title}).set_make_from_id(true);
   contpars.next_line();
@@ -685,6 +767,10 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           MomObject*pobattr = contpars.parse_objptr(&gotattr);
           MOM_DEBUGLOG(load,"load_object_content attr pob=" << pob
                        << " pobattr=" << pobattr);
+          if (load_got_spyid1(pobattr))
+            LOAD_SPYID1_BREAKPOINT("load_object_content pobattr id1");
+          else if (load_got_spyid2(pobattr))
+            LOAD_SPYID2_BREAKPOINT("load_object_content pobattr id2");
           if (!pobattr || !gotattr)
             MOM_PARSE_FAILURE(&contpars, "missing attribute after @: "
                               << MomShowString(contpars.curbytes()));
@@ -741,6 +827,22 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
                << std::endl);
 } // end MomLoader::load_object_content
 
+
+void
+MomLoader::load_spyid1_breakpoint_at(int lin, const char*msg) const
+{
+  MOM_INFORMLOG("load_spyid1_breakpoint:" << msg
+                << MomShowBacktraceAt(__FILE__,lin,"load_spyid1_breakpoint"));
+  fflush(nullptr);
+} // end MomLoader::load_spyid1_breakpoint_at
+
+void
+MomLoader::load_spyid2_breakpoint_at(int lin, const char*msg) const
+{
+  MOM_INFORMLOG("load_spyid2_breakpoint:" << msg
+                << MomShowBacktraceAt(__FILE__,lin,"load_spyid2_breakpoint"));
+  fflush(nullptr);
+} // end MomLoader::load_spyid2_breakpoint_at
 
 void
 mom_load_from_directory(const char*dirname)
