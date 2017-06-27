@@ -128,7 +128,9 @@ public:
     MomObject*_sh_ob;
     Glib::RefPtr<Gtk::TextMark> _sh_startmark;
     Glib::RefPtr<Gtk::TextMark> _sh_endmark;
-    MomBrowsedObject(MomObject*ob, Glib::RefPtr<Gtk::TextMark> startmk, Glib::RefPtr<Gtk::TextMark> endmk)
+    MomBrowsedObject(MomObject*ob,
+                     Glib::RefPtr<Gtk::TextMark> startmk=Glib::RefPtr<Gtk::TextMark>(),
+                     Glib::RefPtr<Gtk::TextMark> endmk=Glib::RefPtr<Gtk::TextMark>())
       : _sh_ob(ob), _sh_startmark(startmk), _sh_endmark(endmk) {};
     ~MomBrowsedObject()
     {
@@ -582,22 +584,22 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   if (itm == _mwi_shownobmap.end())
     {
       auto begmark = _mwi_buf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
-      auto endmark = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
-#warning still wrong display order even when changing gravity
-      auto pairitb = _mwi_shownobmap.emplace(pob,MomBrowsedObject(pob,begmark,endmark));
+      auto pairitb = _mwi_shownobmap.emplace(pob,MomBrowsedObject(pob,begmark));
       itm = pairitb.first;
       found = false;
     }
-  else found = true;
+  else {
+    found = true;
+  }
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << " depth=" << depth
                << " found=" << (found?"true":"false")
                << ", txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_,7));
   MomBrowsedObject& shob = itm->second;
-  /// the title bar
-  MOM_ASSERT(shob._sh_ob == pob, "MomMainWindow::browser_insert_object_display corrupted shob");
   if (found)
     _mwi_buf->move_mark(shob._sh_startmark, txit);
+  /// the title bar
+  MOM_ASSERT(shob._sh_ob == pob, "MomMainWindow::browser_insert_object_display corrupted shob");
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << ", txit before asterism="
                << MomShowTextIter(txit, MomShowTextIter::_FULL_,7)
@@ -818,7 +820,10 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
 #warning MomMainWindow::browser_insert_object_display should probably display the payload wisely
     }
   txit = _mwi_buf->insert_with_tag (txit, "\342\254\236\n" /* U+2B1E WHITE VERY SMALL SQUARE ⬞ */, "object_end_tag");
-  _mwi_buf->move_mark(shob._sh_endmark, txit);
+  if (shob._sh_endmark)
+    _mwi_buf->move_mark(shob._sh_endmark, txit);
+  else
+    shob._sh_endmark  = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
   if (scrolltopview)
     {
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display pob=" << pob
@@ -1698,7 +1703,12 @@ MomMainWindow::browser_hide_object(MomObject*pob)
       Gtk::TextIter endtxit = bob._sh_endmark->get_iter();
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object pob=" << MomShowObject(pob)
                    << " statxit=" << MomShowTextIter(statxit, MomShowTextIter::_FULL_)
-                   << ", endtxit="  << MomShowTextIter(endtxit, MomShowTextIter::_FULL_));
+                   << ", endtxit="  << MomShowTextIter(endtxit, MomShowTextIter::_FULL_)
+		   << " spanning " << (endtxit.get_offset() - statxit.get_offset())
+		   << " chars");
+      MOM_ASSERT(endtxit.get_offset() > statxit.get_offset(), "browser_hide_object"
+                   << " statxit=" << MomShowTextIter(statxit, MomShowTextIter::_FULL_)
+                   << " not before endtxit="  << MomShowTextIter(endtxit, MomShowTextIter::_FULL_));
       _mwi_buf->erase(statxit,endtxit);
       _mwi_buf->delete_mark(bob._sh_startmark);
       _mwi_buf->delete_mark(bob._sh_endmark);
