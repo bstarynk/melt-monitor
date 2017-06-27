@@ -269,6 +269,9 @@ MomApplication::on_activate(void)
         _app_browse_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("open%1_tag", d)));
         _app_browse_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("close%1_tag", d)));
       }
+    auto obtitletag = lookup_tag("object_title_tag");
+    MOM_ASSERT(obtitletag, "on_activate nil obtitletag");
+    obtitletag->set_priority(0);
 #warning should implement blink of matching open/close tags
   }
   auto mainwin = new MomMainWindow();
@@ -583,14 +586,15 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   bool found = false;
   if (itm == _mwi_shownobmap.end())
     {
-      auto begmark = _mwi_buf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
+      auto begmark = _mwi_buf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ true);
       auto pairitb = _mwi_shownobmap.emplace(pob,MomBrowsedObject(pob,begmark));
       itm = pairitb.first;
       found = false;
     }
-  else {
-    found = true;
-  }
+  else
+    {
+      found = true;
+    }
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << " depth=" << depth
                << " found=" << (found?"true":"false")
@@ -1552,8 +1556,6 @@ MomMainWindow::browser_show_object(MomObject*pob)
   auto oldshowit = _mwi_shownobmap.find(pob);
   MomObject*begpob = nullptr;
   MomObject*endpob = nullptr;
-  auto obtitletag = MomApplication::itself()->lookup_tag("object_title_tag");
-  obtitletag->set_priority(0);
   if (shmbegit == shmendit)
     {
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object first object pob=" << MomShowObject(pob));
@@ -1704,11 +1706,11 @@ MomMainWindow::browser_hide_object(MomObject*pob)
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object pob=" << MomShowObject(pob)
                    << " statxit=" << MomShowTextIter(statxit, MomShowTextIter::_FULL_)
                    << ", endtxit="  << MomShowTextIter(endtxit, MomShowTextIter::_FULL_)
-		   << " spanning " << (endtxit.get_offset() - statxit.get_offset())
-		   << " chars");
+                   << " spanning " << (endtxit.get_offset() - statxit.get_offset())
+                   << " chars");
       MOM_ASSERT(endtxit.get_offset() > statxit.get_offset(), "browser_hide_object"
-                   << " statxit=" << MomShowTextIter(statxit, MomShowTextIter::_FULL_)
-                   << " not before endtxit="  << MomShowTextIter(endtxit, MomShowTextIter::_FULL_));
+                 << " statxit=" << MomShowTextIter(statxit, MomShowTextIter::_FULL_)
+                 << " not before endtxit="  << MomShowTextIter(endtxit, MomShowTextIter::_FULL_));
       _mwi_buf->erase(statxit,endtxit);
       _mwi_buf->delete_mark(bob._sh_startmark);
       _mwi_buf->delete_mark(bob._sh_endmark);
