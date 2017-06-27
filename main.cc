@@ -1115,6 +1115,8 @@ enum extraopt_en
   xtraopt_parsefile,
   xtraopt_runcmd,
   xtraopt_loadsequential,
+  xtraopt_loadspyid1,
+  xtraopt_loadspyid2,
 };
 
 static const struct option mom_long_options[] =
@@ -1136,6 +1138,8 @@ static const struct option mom_long_options[] =
   {"parse-val", required_argument, nullptr, xtraopt_parseval},
   {"parse-file", required_argument, nullptr, xtraopt_parsefile},
   {"run-cmd", required_argument, nullptr, xtraopt_runcmd},
+  {"load-spy-id1", required_argument, nullptr, xtraopt_loadspyid1},
+  {"load-spy-id2", required_argument, nullptr, xtraopt_loadspyid2},
   /* Terminating nullptr placeholder.  */
   {nullptr, no_argument, nullptr, 0},
 };
@@ -1168,7 +1172,9 @@ usage_mom (const char *argv0)
   printf ("\t --parse-file <file-path>" " \t#parse several values from file after load\n");
   printf ("\t --run-cmd <command>" " \t#run that command\n");
   printf ("\t --load-sequential <loaddir>" " \t# Load the state sequentially (no threads).\n");
-}
+  printf ("\t --load-spy-id1 <id>" " \t# Set the id1 for spying the loader.\n");
+  printf ("\t --load-spy-id2 <id>" " \t# Set the id2 for spying the loader.\n");
+} // end usage_mom
 
 
 static void
@@ -1529,6 +1535,27 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             if (pars.eof())
               MOM_INFORMLOG("parse-file eof at " << pars.location_str() << std::endl);
           });
+          break;
+          case xtraopt_loadspyid1:
+          {
+            if (optarg == nullptr)
+              MOM_FATAPRINTF("missing id for --load-spy-id1");
+            auto idp = MomIdent::make_from_cstr(optarg, true);
+            MOM_INFORMLOG("load-spy-id1 '" << optarg << "'" << std::endl
+                          << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
+                          << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
+            mom_load_spyid1= idp;
+          }
+          case xtraopt_loadspyid2:
+          {
+            if (optarg == nullptr)
+              MOM_FATAPRINTF("missing id for --load-spy-id2");
+            auto idp = MomIdent::make_from_cstr(optarg, true);
+            MOM_INFORMLOG("load-spy-id2 '" << optarg << "'" << std::endl
+                          << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
+                          << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
+            mom_load_spyid2= idp;
+          }
           break;
           default:
             MOM_FATAPRINTF ("bad option (%c/%d) at %d", isalpha (opt) ? opt : '?', opt,
