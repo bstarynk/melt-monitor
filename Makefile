@@ -76,6 +76,7 @@ clean:
 
 loadthendump: monimelt
 	./monimelt -d .
+	$(MAKE)
 
 checkgithooks:
 	@for hf in *-githook.sh ; do \
