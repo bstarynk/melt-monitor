@@ -119,8 +119,9 @@ if [ -e "$sqlref" ]; then
 	echo $0: unchanged Monimelt Sqlite3 dump "$sqlfile" reference "$sqlref" >&2
 	if [ ! -e "$sqlfile" ]; then
 	    ln -s -v "$sqlref" "$sqlfile"
+	else
+	    touch -r "$dbfile" "$sqlfile"
 	fi
-	touch -r "$dbfile" "$sqlfile"
 	exit 0
     fi
 elif [ -e "$sqlfile" ]; then
