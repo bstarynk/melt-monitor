@@ -120,7 +120,7 @@ if [ -e "$sqlref" ]; then
 	if [ ! -e "$sqlfile" ]; then
 	    ln -s -v "$sqlref" "$sqlfile"
 	fi
-	touch -f "$dbfile" "$sqlfile"
+	touch -r "$dbfile" "$sqlfile"
 	exit 0
     fi
 elif [ -e "$sqlfile" ]; then
@@ -129,5 +129,5 @@ elif [ -e "$sqlfile" ]; then
 fi
 ## we need that the .sql file has the same date as the .sqlite file
 mv "$tempdump" "$sqlfile"
-touch -f "$dbfile" "$sqlfile"
+touch -r "$dbfile" "$sqlfile"
 #eof monimelt-dump-state.sh
