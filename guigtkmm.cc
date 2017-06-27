@@ -202,6 +202,11 @@ public:
   void do_object_refresh(void);
   void do_object_options(void);
   void scan_gc(MomGC*);
+private:
+  void browser_insert_object_mtim_space(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
+  void browser_insert_object_attributes(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
+  void browser_insert_object_components(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
+  void browser_insert_object_payload(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
 };				// end class MomMainWindow
 
 ////////////////////////////////////////////////////////////////
@@ -645,189 +650,29 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   MOM_DEBUGLOG(gui, "browser_insert_object_display after title pob="<< MomShowObject(pob)
                << " txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_));
   /// show the modtime and the space
-  {
-    constexpr double one_week = 86400*7.0;
-    constexpr double half_year = 86400/2*365.0;
-    char mtimbuf[72];
-    char mtimfract[8];
-    double obmtim = pob->mtime();
-    time_t mtim = obmtim;
-    int e;
-    snprintf(mtimfract, sizeof(mtimfract), "%.2f", frexp(obmtim,&e));
-    // the tm
-    struct tm obtm = {};
-    localtime_r(&mtim, &obtm);
-    double nowtim = mom_clock_time(CLOCK_REALTIME);
-    // modified this week
-    if (nowtim >= obmtim && nowtim - obmtim < one_week)
-      {
-        strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %d, %H:%M:%S", &obtm);
-        strcat(mtimbuf, mtimfract+1);
-      }
-    // modified half a year ago
-    else if (nowtim >= obmtim && nowtim - obmtim < half_year)
-      {
-        strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d, %H:%M:%S", &obtm);
-        strcat(mtimbuf, mtimfract+1);
-      }
-    else   // modified before, or in the future
-      {
-        strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d %Y, %H:%M:%S", &obtm);
-        strcat(mtimbuf, mtimfract+1);
-      }
-    MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display "
-                 << " pob=" << MomShowObject(pob)
-                 << ", mtim. txit="
-                 << MomShowTextIter(txit, MomShowTextIter::_FULL_)
-                 << ", mtimbuf=" << MomShowString(mtimbuf));
-    txit = _mwi_buf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
-    txit = _mwi_buf->insert(txit, " ");
-    auto spa = pob->space();
-    switch (spa)
-      {
-      case MomSpace::TransientSp:
-        txit = _mwi_buf->insert_with_tag (txit, "\302\244" /*U+00A4 CURRENCY SIGN ¤ */,
-                                          "object_space_tag");
-        break;
-      case MomSpace::PredefSp:
-        txit = _mwi_buf->insert_with_tag (txit, "\342\200\274" /*U+203C DOUBLE EXCLAMATION MARK ‼*/,
-                                          "object_space_tag");
-        break;
-      case MomSpace::GlobalSp:
-        txit = _mwi_buf->insert_with_tag (txit, "\342\200\242" /*U+2022 BULLET •*/,
-                                          "object_space_tag");
-        break;
-      case MomSpace::UserSp:
-        txit = _mwi_buf->insert_with_tag (txit, "\342\200\243" /*U+2023 TRIANGULAR BULLET ‣*/,
-                                          "object_space_tag");
-        break;
-      }
-    txit = _mwi_buf->insert(txit, "\n");
-  }
+  browser_insert_object_mtim_space(txit, pob, shob);
+  txit = _mwi_buf->insert(txit, "\n");
   MOM_DEBUGLOG(gui, "browser_insert_object_display before attributes pob=" << pob);
   /// show the attributes
-  {
-    MomDisplayCtx dctxattrs(&shob);
-    std::map<MomObject*,MomValue,MomObjNameLess> mapattrs;
-    pob->unsync_each_phys_attr([&](MomObject*pobattr,MomValue valattr)
-    {
-      MOM_DEBUGLOG(gui, "browser_insert_object_display physattr: pob=" << pob << " pobattr=" << pobattr << ", valattr=" << valattr);
-      mapattrs.insert({pobattr,valattr});
-      return false;
-    });
-    MOM_DEBUGLOG(gui, "browser_insert_object_display pob=" << pob << " with " << mapattrs.size() << " attributes to show");
-    std::vector<Glib::ustring> tagsattrs{"attributes_tag"};
-    std::vector<Glib::ustring> tagsattrindex{"attributes_tag","index_comment_tag"};
-    std::vector<Glib::ustring> tagsattrobj{"attributes_tag","attrobj_tag"};
-    std::vector<Glib::ustring> tagsattrval{"attributes_tag","attrval_tag"};
-    unsigned nbattr = mapattrs.size();
-    char atitlebuf[72];
-    memset(atitlebuf, 0, sizeof(atitlebuf));
-    if (nbattr > 0)
-      {
-        if (nbattr == 1)
-          snprintf(atitlebuf, sizeof(atitlebuf),
-                   "%s one attribute %s\n",
-                   MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
-        else
-          snprintf(atitlebuf, sizeof(atitlebuf),
-                   "%s %d attributes %s\n",
-                   MomParser::_par_comment_start1_, nbattr, MomParser::_par_comment_end1_);
-      }
-    else
-      {
-        snprintf(atitlebuf, sizeof(atitlebuf),
-                 "%s no attributes %s\n",
-                 MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
-      }
-    txit = _mwi_buf->insert_with_tags_by_name
-           (txit,atitlebuf, tagsattrindex);
-    for (auto itattr : mapattrs)
-      {
-        MomObject*pobattr = itattr.first;
-        MomValue valattr = itattr.second;
-        txit = _mwi_buf->insert_with_tags_by_name
-               (txit, "\342\210\231 " /* U+2219 BULLET OPERATOR ∙ */, tagsattrs);
-        browser_insert_objptr(txit, pobattr, &dctxattrs, tagsattrobj, 0);
-        browser_insert_space(txit, tagsattrs, 1);
-        txit = _mwi_buf->insert_with_tags_by_name
-               (txit, "\342\206\246" /* U+21A6 RIGHTWARDS ARROW FROM BAR ↦ */, tagsattrs);
-        browser_insert_space(txit, tagsattrs, 1);
-        browser_insert_value(txit, valattr, &dctxattrs, tagsattrval, 1);
-        browser_insert_newline(txit, tagsattrs, 0);
-      }
-  }
+  browser_insert_object_attributes(txit, pob, shob);
+  txit = _mwi_buf->insert(txit, "\n");
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob=" << pob << " before components");
   ///  show the components
-  {
-    MomDisplayCtx dctxcomps(&shob);
-    std::vector<Glib::ustring> tagscomps{"components_tag"};
-    std::vector<Glib::ustring> tagscompindex{"components_tag", "index_comment_tag"};
-    std::vector<Glib::ustring> tagscompval{"components_tag", "compval_tag"};
-    char atitlebuf[72];
-    memset(atitlebuf, 0, sizeof(atitlebuf));
-    unsigned nbcomp = pob->unsync_nb_comps();
-    MOM_DEBUGLOG(gui, "browser_insert_object_display pob=" << pob << " nbcomp=" << nbcomp);
-    if (nbcomp == 0)
-      {
-        snprintf(atitlebuf, sizeof(atitlebuf),
-                 "%s no components %s\n",
-                 MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
-      }
-    else if (nbcomp == 1)
-      {
-        snprintf(atitlebuf, sizeof(atitlebuf),
-                 "%s one component %s\n",
-                 MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
-      }
-    else
-      {
-        snprintf(atitlebuf, sizeof(atitlebuf),
-                 "%s %u components %s\n",
-                 MomParser::_par_comment_start1_, nbcomp, MomParser::_par_comment_end1_);
-      }
-    txit = _mwi_buf->insert_with_tags_by_name
-           (txit,atitlebuf, tagscompindex);
-    for (unsigned ix=0; ix<nbcomp; ix++)
-      {
-        snprintf(atitlebuf, sizeof(atitlebuf),
-                 "%s #%u %s",
-                 MomParser::_par_comment_start1_, nbcomp, MomParser::_par_comment_end1_);
-        txit = _mwi_buf->insert_with_tags_by_name
-               (txit,atitlebuf, tagscompindex);
-        browser_insert_space(txit, tagscomps, 1);
-        MomValue compval = pob->unsync_unsafe_comp_at(ix);
-        browser_insert_value(txit, compval, &dctxcomps, tagscompval, 1);
-        browser_insert_newline(txit, tagscomps, 0);
-      }
-    txit = _mwi_buf->insert(txit, "\n");
-  }
+  browser_insert_object_components(txit, pob, shob);
+  txit = _mwi_buf->insert(txit, "\n");
   /// show the payload, if any
   MomPayload* payl = pob->unsync_payload();
   if (payl)
     {
-      MomDisplayCtx dctxpayl(&shob);
-      MOM_ASSERT(payl->_py_vtbl && payl->_py_vtbl->pyv_magic ==  MOM_PAYLOADVTBL_MAGIC,
-                 "browser_insert_object_display corrupted payload of pob=" << pob);
-      std::vector<Glib::ustring> tagspayl{"payload_tag"};
-      std::vector<Glib::ustring> tagspaylindex{"payload_tag", "index_comment_tag"};
-      char atitlebuf[80];
-      memset(atitlebuf, 0, sizeof(atitlebuf));
-      snprintf(atitlebuf, sizeof(atitlebuf),
-               "%s payload %s/%s %s",
-               MomParser::_par_comment_start1_, payl->_py_vtbl->pyv_name,
-               payl->_py_vtbl->pyv_module?:"_",
-               MomParser::_par_comment_end1_);
-      txit = _mwi_buf->insert_with_tags_by_name
-             (txit,atitlebuf, tagspaylindex);
-      browser_insert_newline(txit, tagspayl, 0);
-#warning MomMainWindow::browser_insert_object_display should probably display the payload wisely
+      browser_insert_object_payload(txit,pob,shob);
+      txit = _mwi_buf->insert(txit, "\n");
     }
-  txit = _mwi_buf->insert_with_tag (txit, "\342\254\236\n" /* U+2B1E WHITE VERY SMALL SQUARE ⬞ */, "object_end_tag");
+  txit = _mwi_buf->insert_with_tag (txit, "\342\254\236" /* U+2B1E WHITE VERY SMALL SQUARE ⬞ */, "object_end_tag");
   if (shob._sh_endmark)
     _mwi_buf->move_mark(shob._sh_endmark, txit);
   else
     shob._sh_endmark  = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
+  txit = _mwi_buf->insert(txit, "\n");
   if (scrolltopview)
     {
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display pob=" << pob
@@ -846,6 +691,191 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
 } // end MomMainWindow::browser_insert_object_display
 
 
+void
+MomMainWindow::browser_insert_object_mtim_space(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob)
+{
+  constexpr double one_week = 86400*7.0;
+  constexpr double half_year = 86400/2*365.0;
+  char mtimbuf[72];
+  char mtimfract[8];
+  double obmtim = pob->mtime();
+  time_t mtim = obmtim;
+  int e;
+  snprintf(mtimfract, sizeof(mtimfract), "%.2f", frexp(obmtim,&e));
+  // the tm
+  struct tm obtm = {};
+  localtime_r(&mtim, &obtm);
+  double nowtim = mom_clock_time(CLOCK_REALTIME);
+  // modified this week
+  if (nowtim >= obmtim && nowtim - obmtim < one_week)
+    {
+      strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %d, %H:%M:%S", &obtm);
+      strcat(mtimbuf, mtimfract+1);
+    }
+  // modified half a year ago
+  else if (nowtim >= obmtim && nowtim - obmtim < half_year)
+    {
+      strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d, %H:%M:%S", &obtm);
+      strcat(mtimbuf, mtimfract+1);
+    }
+  else   // modified before, or in the future
+    {
+      strftime(mtimbuf, sizeof(mtimbuf)-5, "mtim: %a %b %d %Y, %H:%M:%S", &obtm);
+      strcat(mtimbuf, mtimfract+1);
+    }
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_mtim_space "
+               << " pob=" << MomShowObject(pob)
+               << ", mtim. txit="
+               << MomShowTextIter(txit, MomShowTextIter::_FULL_)
+               << ", mtimbuf=" << MomShowString(mtimbuf));
+  txit = _mwi_buf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
+  txit = _mwi_buf->insert(txit, " ");
+  auto spa = pob->space();
+  switch (spa)
+    {
+    case MomSpace::TransientSp:
+      txit = _mwi_buf->insert_with_tag (txit, "\302\244" /*U+00A4 CURRENCY SIGN ¤ */,
+                                        "object_space_tag");
+      break;
+    case MomSpace::PredefSp:
+      txit = _mwi_buf->insert_with_tag (txit, "\342\200\274" /*U+203C DOUBLE EXCLAMATION MARK ‼*/,
+                                        "object_space_tag");
+      break;
+    case MomSpace::GlobalSp:
+      txit = _mwi_buf->insert_with_tag (txit, "\342\200\242" /*U+2022 BULLET •*/,
+                                        "object_space_tag");
+      break;
+    case MomSpace::UserSp:
+      txit = _mwi_buf->insert_with_tag (txit, "\342\200\243" /*U+2023 TRIANGULAR BULLET ‣*/,
+                                        "object_space_tag");
+      break;
+    }
+} // end MomMainWindow::browser_insert_object_mtim_space
+
+
+void
+MomMainWindow::browser_insert_object_attributes(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob)
+{
+  MomDisplayCtx dctxattrs(&shob);
+  std::map<MomObject*,MomValue,MomObjNameLess> mapattrs;
+  pob->unsync_each_phys_attr([&](MomObject*pobattr,MomValue valattr)
+  {
+    MOM_DEBUGLOG(gui, "browser_insert_object_attributes physattr: pob=" << pob << " pobattr=" << pobattr << ", valattr=" << valattr);
+    mapattrs.insert({pobattr,valattr});
+    return false;
+  });
+  MOM_DEBUGLOG(gui, "browser_insert_object_attributes pob=" << pob << " with " << mapattrs.size() << " attributes to show");
+  std::vector<Glib::ustring> tagsattrs{"attributes_tag"};
+  std::vector<Glib::ustring> tagsattrindex{"attributes_tag","index_comment_tag"};
+  std::vector<Glib::ustring> tagsattrobj{"attributes_tag","attrobj_tag"};
+  std::vector<Glib::ustring> tagsattrval{"attributes_tag","attrval_tag"};
+  unsigned nbattr = mapattrs.size();
+  char atitlebuf[72];
+  memset(atitlebuf, 0, sizeof(atitlebuf));
+  if (nbattr > 0)
+    {
+      if (nbattr == 1)
+        snprintf(atitlebuf, sizeof(atitlebuf),
+                 "%s one attribute %s\n",
+                 MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
+      else
+        snprintf(atitlebuf, sizeof(atitlebuf),
+                 "%s %d attributes %s\n",
+                 MomParser::_par_comment_start1_, nbattr, MomParser::_par_comment_end1_);
+
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,atitlebuf, tagsattrindex);
+      for (auto itattr : mapattrs)
+        {
+          MomObject*pobattr = itattr.first;
+          MomValue valattr = itattr.second;
+          txit = _mwi_buf->insert_with_tags_by_name
+                 (txit, "\342\210\231 " /* U+2219 BULLET OPERATOR ∙ */, tagsattrs);
+          browser_insert_objptr(txit, pobattr, &dctxattrs, tagsattrobj, 0);
+          browser_insert_space(txit, tagsattrs, 1);
+          txit = _mwi_buf->insert_with_tags_by_name
+                 (txit, "\342\206\246" /* U+21A6 RIGHTWARDS ARROW FROM BAR ↦ */, tagsattrs);
+          browser_insert_space(txit, tagsattrs, 1);
+          browser_insert_value(txit, valattr, &dctxattrs, tagsattrval, 1);
+          browser_insert_newline(txit, tagsattrs, 0);
+        }
+    }
+  else
+    {
+      snprintf(atitlebuf, sizeof(atitlebuf),
+               "%s no attributes %s",
+               MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
+    }
+} // end MomMainWindow::browser_insert_object_attributes
+
+
+void
+MomMainWindow::browser_insert_object_components(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob)
+{
+  MomDisplayCtx dctxcomps(&shob);
+  std::vector<Glib::ustring> tagscomps{"components_tag"};
+  std::vector<Glib::ustring> tagscompindex{"components_tag", "index_comment_tag"};
+  std::vector<Glib::ustring> tagscompval{"components_tag", "compval_tag"};
+  char atitlebuf[72];
+  memset(atitlebuf, 0, sizeof(atitlebuf));
+  unsigned nbcomp = pob->unsync_nb_comps();
+  MOM_DEBUGLOG(gui, "browser_insert_object_display pob=" << pob << " nbcomp=" << nbcomp);
+  if (nbcomp == 0)
+    {
+      snprintf(atitlebuf, sizeof(atitlebuf),
+               "%s no components %s\n",
+               MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
+    }
+  else if (nbcomp == 1)
+    {
+      snprintf(atitlebuf, sizeof(atitlebuf),
+               "%s one component %s\n",
+               MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
+    }
+  else
+    {
+      snprintf(atitlebuf, sizeof(atitlebuf),
+               "%s %u components %s\n",
+               MomParser::_par_comment_start1_, nbcomp, MomParser::_par_comment_end1_);
+    }
+  txit = _mwi_buf->insert_with_tags_by_name
+         (txit,atitlebuf, tagscompindex);
+  for (unsigned ix=0; ix<nbcomp; ix++)
+    {
+      snprintf(atitlebuf, sizeof(atitlebuf),
+               "%s #%u %s",
+               MomParser::_par_comment_start1_, nbcomp, MomParser::_par_comment_end1_);
+      txit = _mwi_buf->insert_with_tags_by_name
+             (txit,atitlebuf, tagscompindex);
+      browser_insert_space(txit, tagscomps, 1);
+      MomValue compval = pob->unsync_unsafe_comp_at(ix);
+      browser_insert_value(txit, compval, &dctxcomps, tagscompval, 1);
+      browser_insert_newline(txit, tagscomps, 0);
+    }
+} // end MomMainWindow::browser_insert_object_components
+
+
+void
+MomMainWindow::browser_insert_object_payload(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob)
+{
+  MomDisplayCtx dctxpayl(&shob);
+  MomPayload* payl = pob->unsync_payload();
+  MOM_ASSERT(payl->_py_vtbl && payl->_py_vtbl->pyv_magic ==  MOM_PAYLOADVTBL_MAGIC,
+             "browser_insert_object_display corrupted payload of pob=" << pob);
+  std::vector<Glib::ustring> tagspayl{"payload_tag"};
+  std::vector<Glib::ustring> tagspaylindex{"payload_tag", "index_comment_tag"};
+  char atitlebuf[80];
+  memset(atitlebuf, 0, sizeof(atitlebuf));
+  snprintf(atitlebuf, sizeof(atitlebuf),
+           "%s payload %s/%s %s",
+           MomParser::_par_comment_start1_, payl->_py_vtbl->pyv_name,
+           payl->_py_vtbl->pyv_module?:"_",
+           MomParser::_par_comment_end1_);
+  txit = _mwi_buf->insert_with_tags_by_name
+         (txit,atitlebuf, tagspaylindex);
+  browser_insert_newline(txit, tagspayl, 0);
+#warning MomMainWindow::browser_insert_object_payload should probably display the payload wisely
+} // end MomMainWindow::browser_insert_object_payload
 
 void
 MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth)
