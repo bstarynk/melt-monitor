@@ -1647,6 +1647,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
         {
           MomBrowsedObject& lastbob = shmlastit->second;
           Gtk::TextIter txit = lastbob._sh_endmark->get_iter();
+          txit.forward_char();
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object after end txit="
                        << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                        << ", pob=" << MomShowObject(pob));
@@ -1688,6 +1689,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
             {
               MomBrowsedObject& lowerbob = shmlowit->second;
               Gtk::TextIter lowendtxit = lowerbob._sh_endmark->get_iter();
+              lowendtxit.forward_char();
               MomBrowsedObject& upperbob = shmuppit->second;
               Gtk::TextIter uppstatxit = upperbob._sh_startmark->get_iter();
               MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle after lowerpob="
@@ -1733,6 +1735,7 @@ MomMainWindow::browser_hide_object(MomObject*pob)
       MomBrowsedObject& bob = shmit->second;
       Gtk::TextIter statxit = bob._sh_startmark->get_iter();
       Gtk::TextIter endtxit = bob._sh_endmark->get_iter();
+      endtxit.forward_char();
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object pob=" << MomShowObject(pob)
                    << " statxit=" << MomShowTextIter(statxit, MomShowTextIter::_FULL_)
                    << ", endtxit="  << MomShowTextIter(endtxit, MomShowTextIter::_FULL_)
