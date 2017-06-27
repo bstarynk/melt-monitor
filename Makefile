@@ -62,9 +62,9 @@ RM= rm -fv
 
 .PHONY: all checkgithooks installgithooks dump restore
 .PHONY: dumpuserstate dumpglobstate restoreuserstate restoreglobstate
-.PHONY: tags modules plugins clean tests
+.PHONY: tags modules plugins clean tests loadthendump
 
-all: checkgithooks monimelt
+all: checkgithooks loadthendump monimelt
 
 
 clean:
@@ -73,6 +73,9 @@ clean:
 	$(RM) _timestamp*
 	$(RM) core*
 	$(RM) *memo*
+
+loadthendump: monimelt
+	./monimelt -d .
 
 checkgithooks:
 	@for hf in *-githook.sh ; do \

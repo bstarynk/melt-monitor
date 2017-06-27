@@ -1130,12 +1130,12 @@ static const struct option mom_long_options[] =
   {"chdir-after-load", required_argument, nullptr, xtraopt_chdir_after_load},
   {"add-predefined", required_argument, nullptr, xtraopt_addpredef},
   {"comment-predefined", required_argument, nullptr, xtraopt_commentpredef},
+  {"load-sequential", required_argument, nullptr, xtraopt_loadsequential},
   {"test-id", no_argument, nullptr, xtraopt_testid},
   {"parse-id", required_argument, nullptr, xtraopt_parseid},
   {"parse-val", required_argument, nullptr, xtraopt_parseval},
   {"parse-file", required_argument, nullptr, xtraopt_parsefile},
   {"run-cmd", required_argument, nullptr, xtraopt_runcmd},
-  {"load-sequential", required_argument, nullptr, xtraopt_loadsequential},
   /* Terminating nullptr placeholder.  */
   {nullptr, no_argument, nullptr, 0},
 };
@@ -1531,7 +1531,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           });
           break;
           default:
-            MOM_FATAPRINTF ("bad option (%c) at %d", isalpha (opt) ? opt : '?',
+            MOM_FATAPRINTF ("bad option (%c/%d) at %d", isalpha (opt) ? opt : '?', opt,
                             optind);
             return;
           }
