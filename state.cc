@@ -85,7 +85,21 @@ MomLoader::load_database(const char*dbradix)
       || !S_ISREG(dbstat.st_mode)) return nullptr;
   if (!stat(sqlpath.c_str(), &sqlstat)
       && sqlstat.st_mtime > dbstat.st_mtime)
-    MOM_FATALOG("load database " << dbpath << " older than its dump " << sqlpath);
+    {
+      struct tm sqltm= {};
+      struct tm dbtm= {};
+      localtime_r(&sqlstat.st_mtime, &sqltm);
+      localtime_r(&dbstat.st_mtime, &dbtm);
+      char sqltibuf[64];
+      char dbtibuf[64];
+      memset (sqltibuf, 0, sizeof(sqltibuf));
+      memset (dbtibuf, 0, sizeof(dbtibuf));
+      strftime(sqltibuf, sizeof(sqltibuf), "%c %Z", &sqltm);
+      strftime(dbtibuf, sizeof(dbtibuf), "%c %Z", &dbtm);
+      MOM_FATALOG("load database " << dbpath << " older ("
+                  << dbtibuf << ") than its dump " << sqlpath
+                  << " (" << sqltibuf << ")");
+    }
   sqlite::sqlite_config dbconfig;
   dbconfig.flags = sqlite::OpenFlags::READONLY;
   return std::make_unique<sqlite::database>(dbpath, dbconfig);
