@@ -2307,6 +2307,10 @@ public:
     else
       _ob_attrs.insert({const_cast<MomObject*>(pobattr),valattr});
   }
+  unsigned unsync_nb_phys_attrs() const
+  {
+    return _ob_attrs.size();
+  }
   void unsync_remove_phys_attr(const MomObject*pobattr)
   {
     if (!pobattr)
