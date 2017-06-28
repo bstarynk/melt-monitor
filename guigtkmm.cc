@@ -149,6 +149,8 @@ public:
     };
   };
 private:
+  static int _mwi_wincount;
+  const int _mwi_winrank;
   Gtk::Box _mwi_vbox;
   Gtk::MenuBar _mwi_menubar;
   Gtk::MenuItem _mwi_mit_app;
@@ -181,6 +183,7 @@ private:
   Gtk::Statusbar _mwi_statusbar;
   std::map<MomObject*,MomBrowsedObject,MomObjNameLess> _mwi_shownobmap;
   double _mwi_cmduseractim;
+  MomObject* _mwi_focusobj;
 public:
   MomMainWindow();
   ~MomMainWindow();
@@ -200,6 +203,11 @@ public:
   void browser_insert_value(Gtk::TextIter& it, MomValue val, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags, int depth);
   void browser_insert_space(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
   void browser_insert_newline(Gtk::TextIter& it, const std::vector<Glib::ustring>& tags, int depth=0);
+  void browser_set_focus_object(MomObject*);
+  MomObject* browser_focused_object(void)
+  {
+    return _mwi_focusobj;
+  };
   void do_window_dump(void);
   void do_object_show_hide(void);
   void do_object_refresh(void);
@@ -533,13 +541,20 @@ MomComboBoxObjptrText::~MomComboBoxObjptrText()
 } // end MomComboBoxObjptrText::~MomComboBoxObjptrText
 
 ////////////////
+int MomMainWindow::_mwi_wincount;
+
 void
 MomMainWindow::display_full_browser(void)
 {
   int nbshownob = _mwi_shownobmap.size();
   _mwi_buf->set_text("");
   auto it = _mwi_buf->begin();
-  it = _mwi_buf->insert_with_tag (it, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob), "page_title_tag");
+  if (nbshownob == 0)
+    it = _mwi_buf->insert_with_tag (it, " ~ no objects ~ ", "page_title_tag");
+  else if (nbshownob == 1)
+    it = _mwi_buf->insert_with_tag (it, " ~ one object ~ ", "page_title_tag");
+  else
+    it = _mwi_buf->insert_with_tag (it, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob), "page_title_tag");
   if (_mwi_endtitlemark)
     {
       _mwi_buf->move_mark(_mwi_endtitlemark, it);
@@ -555,6 +570,10 @@ MomMainWindow::display_full_browser(void)
       browser_insert_object_display(it, itob.first);
       it = _mwi_buf->insert(it, "\n");
     }
+  MomObject* focuspob = _mwi_focusobj;
+  _mwi_focusobj = nullptr; // to force the set focus to do something
+  if (focuspob)
+    browser_set_focus_object(focuspob);
 } // end MomMainWindow::display_full_browser
 
 void
@@ -1298,6 +1317,7 @@ MomMainWindow::show_status_decisec(const std::string&msg, int delay_decisec)
 
 MomMainWindow::MomMainWindow()
   : Gtk::Window(),
+    _mwi_winrank(++_mwi_wincount),
     _mwi_vbox(Gtk::ORIENTATION_VERTICAL),
     _mwi_menubar(),
     _mwi_mit_app("_App",true),
@@ -1324,7 +1344,8 @@ MomMainWindow::MomMainWindow()
     _mwi_txvcmd(),
     _mwi_statusbar(),
     _mwi_shownobmap(),
-    _mwi_cmduseractim(0.0)
+    _mwi_cmduseractim(0.0),
+    _mwi_focusobj(nullptr)
 {
   {
     auto screen = Gdk::Screen::get_default();
@@ -1382,6 +1403,7 @@ MomMainWindow::MomMainWindow()
     cmdbuf->signal_end_user_action().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_end_user_action));
   }
   set_default_size(630,480);
+  property_title().set_value(Glib::ustring::compose("mom window #%1", _mwi_winrank));
   display_full_browser();
   show_all_children();
 };				// end MomMainWindow::MomMainWindow
@@ -1506,7 +1528,10 @@ MomMainWindow::do_object_show_hide(void)
           MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide show showtext=" << MomShowString(showtext.c_str()));
           MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide show pob=" << pob);
           if (pob)
-            browser_show_object(pob);
+            {
+              browser_show_object(pob);
+              browser_set_focus_object(pob);
+            }
           else
             result = REPEAT;
           break;
@@ -1644,8 +1669,13 @@ MomMainWindow::browser_update_title_banner(void)
   _mwi_buf->erase(begit,endit);
   begit =  _mwi_buf->begin();
   int nbshownob = _mwi_shownobmap.size();
-  it = _mwi_buf->insert_with_tag (begit, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob),
-                                  titletag);
+  if (nbshownob == 0)
+    it = _mwi_buf->insert_with_tag (begit, " ~ no objects ~ ", titletag);
+  else if (nbshownob == 1)
+    it = _mwi_buf->insert_with_tag (begit, " ~ one object ~ ", titletag);
+  else
+    it = _mwi_buf->insert_with_tag (begit, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob),
+                                    titletag);
   _mwi_buf->move_mark(_mwi_endtitlemark, it);
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner end nbshownob=" << nbshownob);
 } // end MomMainWindow::browser_update_title_banner
@@ -1659,7 +1689,12 @@ MomMainWindow::do_object_refresh(void)
   int nbshownob = _mwi_shownobmap.size();
   char msg[40];
   memset(msg, 0, sizeof(msg));
-  snprintf(msg, sizeof(msg), "%d objects", nbshownob);
+  if (nbshownob == 0)
+    strcpy(msg, "no object");
+  else if (nbshownob == 1)
+    strcpy(msg, "one object");
+  else
+    snprintf(msg, sizeof(msg), "%d objects", nbshownob);
   show_status_decisec(msg, _default_status_delay_deciseconds_);
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_refresh end");
 } // end MomMainWindow::do_object_refresh
@@ -1811,6 +1846,8 @@ MomMainWindow::browser_hide_object(MomObject*pob)
   if (pob==nullptr || pob->vkind() != MomKind::TagObjectK)
     MOM_FATAPRINTF("MomMainWindow::browser_hide_object invalid pob @%p", (void*)pob);
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object start pob=" << MomShowObject(pob));
+  if (pob == _mwi_focusobj)
+    _mwi_focusobj = nullptr;
   auto shmit = _mwi_shownobmap.find(pob);
   if (shmit == _mwi_shownobmap.end())
     {
@@ -1849,6 +1886,66 @@ MomMainWindow::browser_hide_object(MomObject*pob)
     }
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object end pob=" << pob);
 } // end MomMainWindow::browser_hide_object
+
+void
+MomMainWindow::browser_set_focus_object(MomObject*pob)
+{
+  if (pob == _mwi_focusobj) return;
+  MomObject* oldfocpob = _mwi_focusobj;
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_set_focus_object start oldfocpob=" << oldfocpob
+               << " pob=" << pob);
+  if (oldfocpob != nullptr)
+    {
+      auto oldfocshowit = _mwi_shownobmap.find(oldfocpob);
+      if (oldfocshowit == _mwi_shownobmap.end())
+        {
+          MOM_WARNLOG("browser_set_focus_object old focus " << _mwi_focusobj
+                      << " was hidden " << MOM_SHOW_BACKTRACE("browser_set_focus_object old"));
+        }
+      else
+        {
+          MomBrowsedObject& oldfocbrob = oldfocshowit->second;
+          Gtk::TextIter oldfocstatxit = oldfocbrob._sh_startmark->get_iter();
+          Gtk::TextIter oldfocendtxit = oldfocbrob._sh_endmark->get_iter();
+          MOM_DEBUGLOG(gui, "browser_set_focus_object oldfocpob=" << MomShowObject(oldfocpob)
+                       << " oldfocstatxit=" <<  MomShowTextIter(oldfocstatxit, MomShowTextIter::_FULL_,10)
+                       << " oldfocendtxit=" <<  MomShowTextIter(oldfocendtxit, MomShowTextIter::_FULL_,10));
+          _mwi_buf->remove_tag_by_name("object_focus_tag", oldfocstatxit, oldfocendtxit);
+          Gtk::TextIter oldfoceoltxit = oldfocstatxit;
+          oldfoceoltxit.forward_line();
+          MOM_DEBUGLOG(gui, "browser_set_focus_object oldfocpob=" << oldfocpob
+                       << " oldfoceoltxit="  <<  MomShowTextIter(oldfoceoltxit, MomShowTextIter::_FULL_,10));
+          _mwi_buf->remove_tag_by_name("object_title_focus_tag", oldfocstatxit, oldfoceoltxit);
+        }
+    };
+  if (pob != nullptr)
+    {
+      auto newfocshowit = _mwi_shownobmap.find(pob);
+      if (newfocshowit == _mwi_shownobmap.end())
+        {
+          MOM_WARNLOG("browser_set_focus_object new focus " << pob
+                      << " is hidden " << MOM_SHOW_BACKTRACE("browser_set_focus_object new"));
+        }
+      else
+        {
+          MomBrowsedObject& newfocbrob = newfocshowit->second;
+          Gtk::TextIter newfocstatxit = newfocbrob._sh_startmark->get_iter();
+          Gtk::TextIter newfocendtxit = newfocbrob._sh_endmark->get_iter();
+          MOM_DEBUGLOG(gui, "browser_set_focus_object pob=" << MomShowObject(pob)
+                       << " newfocstatxit=" <<  MomShowTextIter(newfocstatxit, MomShowTextIter::_FULL_,10)
+                       << " newfocendtxit=" <<  MomShowTextIter(newfocendtxit, MomShowTextIter::_FULL_,10));
+          _mwi_buf->apply_tag_by_name("object_focus_tag", newfocstatxit, newfocendtxit);
+          Gtk::TextIter newfoceoltxit = newfocstatxit;
+          newfoceoltxit.forward_line();
+          MOM_DEBUGLOG(gui, "browser_set_focus_object pob=" << pob
+                       << " newfoceoltxit="  <<  MomShowTextIter(newfoceoltxit, MomShowTextIter::_FULL_,10));
+          _mwi_buf->apply_tag_by_name("object_title_focus_tag", newfocstatxit, newfoceoltxit);
+        }
+      MOM_DEBUGLOG(gui, "MomMainWindow::browser_set_focus_object end oldfocpob=" << oldfocpob
+                   << " pob=" << pob);
+    }
+} // end MomMainWindow::browser_set_focus_object
+
 
 void
 MomMainWindow::scan_gc(MomGC*gc)
