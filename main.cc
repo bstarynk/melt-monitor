@@ -1546,6 +1546,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
                           << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
             mom_load_spyid1= idp;
           }
+          break;
           case xtraopt_loadspyid2:
           {
             if (optarg == nullptr)
