@@ -932,6 +932,49 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
 } // end MomParser::parse_chunk_element
 
 
+MomIdent
+MomParser::parse_id(bool *pgotid)
+{
+  skip_spaces();
+  auto inicolidx = _parcolidx;
+  auto inicolpos = _parcolpos;
+  auto inilincnt = _parlincount;
+  gunichar pc = 0, nc = 0;
+  peek_prevcurr_utf8(pc,nc,1);
+  if (pc != '_')
+    {
+      if (pgotid)
+        *pgotid = false;
+      return nullptr;
+    };
+  if (nc == '_')
+    {
+      consume_utf8(2);
+      if (pgotid)
+        *pgotid = true;
+      return nullptr;
+    }
+  else if (nc>127 || !isdigit(nc))
+    {
+      if (pgotid)
+        *pgotid = false;
+      return nullptr;
+    };
+  const char* endp = nullptr;
+  const char*curp = curbytes();
+  auto id = MomIdent::make_from_cstr(curp,&endp);
+  if (id.is_null())
+    {
+      if (pgotid)
+        *pgotid = false;
+      return nullptr;
+    };
+  consume_bytes(endp-curp);
+  if (pgotid)
+    *pgotid = true;
+  return id;
+} // end MomParser::parse_id
+
 
 MomObject*
 MomParser::parse_objptr(bool *pgotob)
@@ -965,9 +1008,8 @@ again:
     }
   else if (pc=='_' && nc<127 && isdigit(nc))
     {
-      const char* endp = nullptr;
-      const char*curp = curbytes();
-      auto id = MomIdent::make_from_cstr(curp,&endp);
+      bool gotid = false;
+      auto id = parse_id(&gotid);
       if (id.is_null()) goto failure;
       if (!_parnobuild)
         {
@@ -978,7 +1020,6 @@ again:
         }
       if (_parnobuild || respob)
         {
-          consume_bytes(endp-curp);
           if (pgotob)
             *pgotob = true;
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " objid:" << id);
