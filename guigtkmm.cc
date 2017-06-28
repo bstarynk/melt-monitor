@@ -210,6 +210,7 @@ public:
   void scan_gc(MomGC*);
   void parse_command(MomParser*);
 private:
+  MomObject* browser_object_around(Gtk::TextIter txit);
   void browser_insert_object_mtim_space(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
   void browser_insert_object_attributes(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
   void browser_insert_object_components(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
@@ -1259,7 +1260,24 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
     }
 } // end MomMainWindow::browser_insert_value
 
-
+MomObject*
+MomMainWindow::browser_object_around(Gtk::TextIter txit)
+{
+  // perhaps should use std::binary_search
+  for (auto it:  _mwi_shownobmap)
+    {
+      MomObject* curpob = it.first;
+      MomBrowsedObject& curbob = it.second;
+      if (curbob._sh_startmark && curbob._sh_endmark)
+        {
+          Gtk::TextIter obstartit = curbob._sh_startmark->get_iter();
+          Gtk::TextIter obendit =  curbob._sh_endmark->get_iter();
+          if (txit.in_range(obstartit, obendit))
+            return curpob;
+        }
+    }
+  return nullptr;
+} // end MomMainWindow::browser_object_around
 
 
 void
