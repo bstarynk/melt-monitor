@@ -2897,7 +2897,6 @@ public:
   MomParser& next_line(void);
   std::string parse_string(bool *pgotstr);
   MomIdent parse_id(bool *pgotid);
-#warning want parse_id in MomParser
   intptr_t parse_int(bool *pgotint);
   MomValue parse_value(bool* pgotval);
   MomValue parse_chunk(bool* pgotchunk); // parse a code chunk, including the ending )$
