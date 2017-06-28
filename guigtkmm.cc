@@ -1941,9 +1941,10 @@ MomMainWindow::browser_set_focus_object(MomObject*pob)
                        << " newfoceoltxit="  <<  MomShowTextIter(newfoceoltxit, MomShowTextIter::_FULL_,10));
           _mwi_buf->apply_tag_by_name("object_title_focus_tag", newfocstatxit, newfoceoltxit);
         }
-      MOM_DEBUGLOG(gui, "MomMainWindow::browser_set_focus_object end oldfocpob=" << oldfocpob
-                   << " pob=" << pob);
     }
+  _mwi_focusobj = pob;
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_set_focus_object end oldfocpob=" << oldfocpob
+               << " pob=" << pob);
 } // end MomMainWindow::browser_set_focus_object
 
 

@@ -28,7 +28,7 @@
 	<child type="tag">
           <object class='GtkTextTag'>
             <property name="name">object_title_focus_tag</property>
-            <property name="underline">PANGO_UNDERLINE_SINGLE</property>
+	    <property name="background">lightsalmon</property>
 	  </object>
 	</child>
       <!-- object_title_id_tag for title of id -->
