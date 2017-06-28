@@ -23,7 +23,6 @@
 /// from https://github.com/aminroosta/sqlite_modern_cpp
 #include "sqlite_modern_cpp.h"
 
-#warning ./monimelt --load-sequential .  behave differently with and without -Dload
 
 // this is to help debugging, we test the pob against this id
 MomIdent mom_load_spyid1; //see load_spyid1_breakpoint_at
