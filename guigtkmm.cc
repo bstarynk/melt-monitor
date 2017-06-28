@@ -670,6 +670,16 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
                                  depth),
           std::vector<Glib::ustring> {"object_title_tag","object_title_depth_tag"});
   txit = _mwi_buf->insert(txit, "\n");
+  if (pob == _mwi_focusobj)
+    {
+      Gtk::TextIter focstatxit = shob._sh_startmark->get_iter();
+      Gtk::TextIter foceoltxit = focstatxit;
+      foceoltxit.forward_line();
+      MOM_DEBUGLOG(gui, "browser_insert_object_display focus pob=" << pob
+                   << "focstatxit ="  <<  MomShowTextIter(focstatxit, MomShowTextIter::_FULL_,10)
+                   << "foceoltxit ="  <<  MomShowTextIter(foceoltxit, MomShowTextIter::_FULL_,10));
+      _mwi_buf->apply_tag_by_name("object_title_focus_tag", focstatxit, foceoltxit);
+    }
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << ", txit after delta+nl="
                << MomShowTextIter(txit, MomShowTextIter::_FULL_,7)
@@ -700,6 +710,15 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   else
     shob._sh_endmark  = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
   txit = _mwi_buf->insert(txit, "\n");
+  if (pob == _mwi_focusobj)
+    {
+      Gtk::TextIter focstatxit = shob._sh_startmark->get_iter();
+      Gtk::TextIter focendtxit = shob._sh_endmark->get_iter();
+      MOM_DEBUGLOG(gui, "browser_insert_object_display focus pob=" << pob
+                   << "focstatxit ="  <<  MomShowTextIter(focstatxit, MomShowTextIter::_FULL_,10)
+                   << "focendtxit ="  <<  MomShowTextIter(focendtxit, MomShowTextIter::_FULL_,10));
+      _mwi_buf->apply_tag_by_name("object_focus_tag", focstatxit, focendtxit);
+    }
   if (scrolltopview)
     {
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_insert_object_display pob=" << pob
