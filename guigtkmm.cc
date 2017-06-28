@@ -175,9 +175,12 @@ private:
   Gtk::ScrolledWindow _mwi_scrwbot;
   Gtk::TextView _mwi_txvtop;
   Gtk::TextView _mwi_txvbot;
+  Gtk::Separator _mwi_sepcmd;
+  Gtk::ScrolledWindow _mwi_scrcmd;
   Gtk::TextView _mwi_txvcmd;
   Gtk::Statusbar _mwi_statusbar;
   std::map<MomObject*,MomBrowsedObject,MomObjNameLess> _mwi_shownobmap;
+  double _mwi_cmduseractim;
 public:
   MomMainWindow();
   ~MomMainWindow();
@@ -201,7 +204,11 @@ public:
   void do_object_show_hide(void);
   void do_object_refresh(void);
   void do_object_options(void);
+  void do_txcmd_begin_user_action(void);
+  void do_txcmd_changed(void);
+  void do_txcmd_end_user_action(void);
   void scan_gc(MomGC*);
+  void parse_command(MomParser*);
 private:
   void browser_insert_object_mtim_space(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
   void browser_insert_object_attributes(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
@@ -1294,9 +1301,12 @@ MomMainWindow::MomMainWindow()
     _mwi_dispid(false),
     _mwi_panedtx(Gtk::ORIENTATION_VERTICAL),
     _mwi_txvtop(_mwi_buf), _mwi_txvbot(_mwi_buf),
+    _mwi_sepcmd(Gtk::ORIENTATION_HORIZONTAL),
+    _mwi_scrcmd(),
     _mwi_txvcmd(),
     _mwi_statusbar(),
-    _mwi_shownobmap()
+    _mwi_shownobmap(),
+    _mwi_cmduseractim(0.0)
 {
   {
     auto screen = Gdk::Screen::get_default();
@@ -1333,16 +1343,26 @@ MomMainWindow::MomMainWindow()
   _mwi_scrwtop.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
   _mwi_scrwbot.add(_mwi_txvbot);
   _mwi_scrwbot.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
+  _mwi_scrcmd.add(_mwi_txvcmd);
+  _mwi_scrcmd.set_policy(Gtk::POLICY_AUTOMATIC,Gtk::POLICY_ALWAYS);
   _mwi_panedtx.add1(_mwi_scrwtop);
   _mwi_panedtx.add2(_mwi_scrwbot);
   _mwi_panedtx.set_wide_handle(true);
   {
-    _mwi_vbox.pack_start(_mwi_txvcmd,Gtk::PACK_SHRINK);
+    _mwi_vbox.pack_start(_mwi_sepcmd,Gtk::PACK_SHRINK);
+    _mwi_vbox.pack_start(_mwi_scrcmd,Gtk::PACK_SHRINK);
     _mwi_txvcmd.set_vexpand(false);
     auto ctx = _mwi_txvcmd.get_style_context();
     ctx->add_class("commandwin_cl");
   }
   _mwi_vbox.pack_end(_mwi_statusbar,Gtk::PACK_SHRINK);
+  //_mwi_txvcmd.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_object_options));
+  {
+    auto cmdbuf = _mwi_txvcmd.get_buffer();
+    cmdbuf->signal_begin_user_action().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_begin_user_action));
+    cmdbuf->signal_changed().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_changed));
+    cmdbuf->signal_end_user_action().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_end_user_action));
+  }
   set_default_size(630,480);
   display_full_browser();
   show_all_children();
@@ -1537,6 +1557,58 @@ MomMainWindow::do_object_options(void)
   optiondialog.hide();
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_options end");
 } // end MomMainWindow::do_object_options
+
+void
+MomMainWindow::do_txcmd_begin_user_action(void)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_begin_user_action");
+  _mwi_cmduseractim = mom_clock_time(CLOCK_REALTIME);
+} // end MomMainWindow::do_txcmd_begin_user_action
+
+void
+MomMainWindow::do_txcmd_changed(void)
+{
+  if (_mwi_cmduseractim <= 0.0)
+    return;
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed start");
+  auto cmdbuf = _mwi_txvcmd.get_buffer();
+  cmdbuf->remove_all_tags(cmdbuf->begin(), cmdbuf->end());
+  std::string strcmd = cmdbuf->get_text();
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed strcmd=" << MomShowString(strcmd));
+  std::istringstream inscmd(strcmd);
+  MomSimpleParser cmdpars(inscmd);
+  cmdpars
+  .set_name("*cmd*")
+  .disable_exhaustion(true)
+  .set_no_build(true)
+  .set_debug(MOM_IS_DEBUGGING(gui));
+  try
+    {
+      cmdpars.next_line().skip_spaces();
+      parse_command(&cmdpars);
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed parse_command done");
+    }
+  catch (MomParser::Mom_parse_failure pfail)
+    {
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed parse_command failed:" << pfail.what());
+    }
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed end");
+} // end MomMainWindow::do_txcmd_changed
+
+void
+MomMainWindow::do_txcmd_end_user_action(void)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_end_user_action");
+  _mwi_cmduseractim = 0.0;
+} // end MomMainWindow::do_txcmd_end_user_action
+
+void
+MomMainWindow::parse_command(MomParser*pars)
+{
+  MOM_ASSERT(pars != nullptr, "parse_command: null parser");
+  pars->skip_spaces();
+  MOM_DEBUGLOG(gui, "MomMainWindow::parse_command start @ " << pars->location_str());
+} // end MomMainWindow::parse_command
 
 void
 MomMainWindow::browser_update_title_banner(void)
