@@ -746,6 +746,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   snprintf(title, sizeof(title), "*content %s*", idbuf);
   contpars.set_name(std::string{title}).set_make_from_id(true);
   contpars.next_line();
+  std::unique_lock<std::shared_mutex> shgu(pob->get_shared_mutex());
   int nbcomp = 0;
   int nbattr = 0;
   MOM_ASSERT((thix>0 && thix<=(int)mom_nb_jobs) || _ld_sequential,
@@ -783,12 +784,10 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
                        << " valattr=" << valattr);
           if (!gotval)
             MOM_PARSE_FAILURE(&contpars, "missing value for attribute " << pobattr);
-          pob->locked_modify([=](MomObject* pthisob)
-          {
-            pthisob->unsync_put_phys_attr(pobattr, valattr);
-            return;
-          });
+          pob->unsync_put_phys_attr(pobattr, valattr);
           nbattr++;
+          MOM_ASSERT(nbattr == (int) pob->unsync_nb_phys_attrs(),
+                     "load_object_content nbattr mismatch");
           MOM_DEBUGLOG(load,"load_object_content attr#" << nbattr
                        <<" pob=" << pob <<
                        " adding pobattr=" << pobattr << " valattr=" << valattr);
@@ -800,11 +799,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           if (!gotcomp)
             MOM_PARSE_FAILURE(&contpars, "missing component#" << nbcomp << " after &: "
                               << MomShowString(contpars.curbytes()));
-          pob->locked_modify([=](MomObject* pthisob)
-          {
-            pthisob->unsync_append_comp(valcomp);
-            return;
-          });
+          pob->unsync_append_comp(valcomp);
           nbcomp++;
           MOM_DEBUGLOG(load,"load_object_content comp#" << nbcomp
                        <<" pob=" << pob <<
