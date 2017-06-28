@@ -245,7 +245,7 @@ MomParser::parse_string(bool *pgotstr)
                            << " border=" << MomShowString(border)
                            << ", borderlen=" << borderlen);
               const char*ps = curbytes();
-              if (nc == border[0] && ps && !strncmp(ps+1, border, borderlen)
+              if ((char)nc == border[0] && ps && !strncmp(ps+1, border, borderlen)
                   && ps[borderlen+1]=='`')
                 {
                   MOM_DEBUGLOG(parsestring,
@@ -319,7 +319,6 @@ intptr_t
 MomParser::parse_int(bool *pgotint)
 {
   skip_spaces();
-  auto inicolidx = _parcolidx;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   gunichar pc = 0, nc = 0;
@@ -532,7 +531,7 @@ again:
         {
           skip_spaces();
           peek_prevcurr_utf8(pc,nc,1);
-          if (pc==EOF)
+          if (pc==0)
             {
               goto failure;
             }
@@ -644,7 +643,7 @@ again:
                          << " @" << location_str());
       return resv;
     }
-  else if (pc=="°"[0] && nc=="°"[1])
+  else if ((char)pc=="°"[0] && (char)nc=="°"[1])
     {
       static_assert(sizeof("°")==3, "wrong length for ° (degree sign)");
       consume_utf8(1);
@@ -710,7 +709,6 @@ MomParser::parse_chunk(bool *pgotchunk)
   check_exhaustion();
   std::vector<MomValue> vecelem;
   //auto inioff = _parlinoffset;
-  auto inicolidx = _parcolidx;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   while (parse_chunk_element(vecelem))
@@ -759,7 +757,6 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
   gunichar pc=0, nc=0;
   check_exhaustion();
   //auto inioff = _parlinoffset;
-  auto inicolidx = _parcolidx;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   MomIdent id;
@@ -860,7 +857,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
     {
       std::string dollstr;
       consume_utf8(1);
-      while ((pc==(int)peek_utf8(0))>0 && pc<127 && (isalnum(pc) || pc=='_'))
+      while ((pc=peek_utf8(0))>0 && pc<127 && (isalnum(pc) || pc=='_'))
         {
           dollstr += (char)pc;
           consume_utf8(1);
@@ -936,9 +933,6 @@ MomIdent
 MomParser::parse_id(bool *pgotid)
 {
   skip_spaces();
-  auto inicolidx = _parcolidx;
-  auto inicolpos = _parcolpos;
-  auto inilincnt = _parlincount;
   gunichar pc = 0, nc = 0;
   peek_prevcurr_utf8(pc,nc,1);
   if (pc != '_')
@@ -1010,7 +1004,8 @@ again:
     {
       bool gotid = false;
       auto id = parse_id(&gotid);
-      if (id.is_null()) goto failure;
+      if (id.is_null() || !gotid)
+        goto failure;
       if (!_parnobuild)
         {
           if (_parmakefromid)
