@@ -787,8 +787,8 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
           pob->unsync_put_phys_attr(pobattr, valattr);
           nbattr++;
           MOM_ASSERT(nbattr == (int) pob->unsync_nb_phys_attrs(),
-                     "load_object_content nbattr mismatch");
-          MOM_DEBUGLOG(load,"load_object_content attr#" << nbattr
+                     "load_object_content nbattr mismatch pob=" << pob);
+          MOM_DEBUGLOG(load, "load_object_content attr#" << nbattr
                        <<" pob=" << pob <<
                        " adding pobattr=" << pobattr << " valattr=" << valattr);
         }
