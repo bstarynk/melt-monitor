@@ -2633,8 +2633,12 @@ public:
       _parbeginwords(MomAnyVal::allocation_word_count()),
       _parbegintime(mom_elapsed_real_time ()),
       _parcolidx{0}, _parcolpos{0},
-      _pardebug{false}, _parsilent{false}, _parmakefromid{false},
+      _pardebug{false},
+      _parsilent{false},
+      _parnobuild{false},
+      _parmakefromid{false},
       _parhaschunk{false},
+      _parnocheckx{false},
       _parname(),
       _parvaleval(), _parobjeval()
   {
