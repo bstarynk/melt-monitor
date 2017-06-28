@@ -216,7 +216,7 @@ public:
   void do_txcmd_changed(void);
   void do_txcmd_end_user_action(void);
   void scan_gc(MomGC*);
-  void parse_command(MomParser*);
+  void parse_command(MomParser*, bool apply=false);
 private:
   MomObject* browser_object_around(Gtk::TextIter txit);
   void browser_insert_object_mtim_space(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
@@ -1665,11 +1665,46 @@ MomMainWindow::do_txcmd_end_user_action(void)
 } // end MomMainWindow::do_txcmd_end_user_action
 
 void
-MomMainWindow::parse_command(MomParser*pars)
+MomMainWindow::parse_command(MomParser*pars, bool apply)
 {
   MOM_ASSERT(pars != nullptr, "parse_command: null parser");
   pars->skip_spaces();
-  MOM_DEBUGLOG(gui, "MomMainWindow::parse_command start @ " << pars->location_str());
+  MOM_DEBUGLOG(gui, "MomMainWindow::parse_command start @ " << pars->location_str()
+               << " " << MomShowString(pars->curbytes()));
+  if (pars->got_cstring("!"))
+    {
+      bool gotattr = false;
+      MomObject* pobattr = pars->parse_objptr(&gotattr);
+      if (!gotattr)
+        MOM_PARSE_FAILURE(pars, "expect object attribute after !");
+      bool gotval = false;
+      MomValue valattr = pars->parse_value(&gotval);
+      if (!gotval)
+        MOM_PARSE_FAILURE(pars, "expect value of attribute after !");
+      if (!_mwi_focusobj)
+        MOM_PARSE_FAILURE(pars, "expect focus object for !");
+      if (apply)
+        {
+          std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
+          _mwi_focusobj->unsync_put_phys_attr(pobattr, valattr);
+        }
+    }
+  else if (pars->got_cstring("&"))
+    {
+      bool gotval = false;
+      MomValue valcomp = pars->parse_value(&gotval);
+      if (!gotval)
+        MOM_PARSE_FAILURE(pars, "expect value of component after &");
+      if (!_mwi_focusobj)
+        MOM_PARSE_FAILURE(pars, "expect focus object for &");
+      if (apply)
+        {
+          std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
+          _mwi_focusobj->unsync_append_comp(valcomp);
+        }
+    }
+  else
+    MOM_PARSE_FAILURE(pars, "bad command");
 } // end MomMainWindow::parse_command
 
 void
