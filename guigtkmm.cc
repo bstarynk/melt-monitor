@@ -1713,17 +1713,21 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     endtxit.forward_chars(namstr.size());
     if (ob)
       {
-        MOM_DEBUGLOG(gui, "prettify known name " << namstr << " txit=" << MomShowTextIter(txit)
+        MOM_DEBUGLOG(gui, "prettify known name " << namstr
+                     << " txit=" << MomShowTextIter(txit)
                      << " endtxit=" << MomShowTextIter(endtxit)
                      << " ob=" << ob);
-        txit.get_buffer()->apply_tag_by_name("knownname_cmdtag", txit, endtxit);
+        txit.get_buffer()->apply_tag_by_name("knownname_cmdtag",
+                                             txit, endtxit);
       }
     else
       {
-        MOM_DEBUGLOG(gui, "prettify new name " << namstr << " txit=" << MomShowTextIter(txit)
+        MOM_DEBUGLOG(gui, "prettify new name " << namstr
+                     << " txit=" << MomShowTextIter(txit)
                      << " endtxit=" << MomShowTextIter(endtxit)
                      << " ob=" << ob);
-        txit.get_buffer()->apply_tag_by_name("newname_cmdtag", txit, endtxit);
+        txit.get_buffer()->apply_tag_by_name("newname_cmdtag",
+                                             txit, endtxit);
       }
     return ob;
   })
@@ -1733,8 +1737,47 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     Gtk::TextIter txit = command_txiter_at_line_col(linecnt, colpos);
     Gtk::TextIter endtxit = txit;
     endtxit.forward_chars(2);
-    MOM_DEBUGLOG(gui, "prettify null cmd txit=" << MomShowTextIter(txit) << " endtxit=" << MomShowTextIter(endtxit));
-    txit.get_buffer()->apply_tag_by_name("null_cmdtag", txit, endtxit);
+    MOM_DEBUGLOG(gui, "prettify null cmd txit=" << MomShowTextIter(txit)
+                 << " endtxit=" << MomShowTextIter(endtxit));
+    txit.get_buffer()->apply_tag_by_name("null_cmdtag",
+                                         txit, endtxit);
+  })
+  .set_parsedval_strfun([&](MomSimpleParser*, const std::string&str,
+                            long inioffset MOM_UNUSED, unsigned inilinecnt, int inicolpos,
+                            long endoffset MOM_UNUSED, unsigned endlinecnt, int endcolpos)
+  {
+    Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos);
+    Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
+    MOM_DEBUGLOG(gui, "prettify string cmd initxit=" << MomShowTextIter(initxit)
+                 << " endtxit=" << MomShowTextIter(endtxit));
+    initxit.get_buffer()->apply_tag_by_name("string_cmdtag",
+                                            initxit, endtxit);
+  })
+  .set_parsedval_intfun([&](MomSimpleParser*, intptr_t num MOM_UNUSED,
+                            long offset, unsigned linecnt, int colpos, int endcolpos)
+  {
+    Gtk::TextIter initxit = command_txiter_at_line_col(linecnt, colpos);
+    Gtk::TextIter endtxit = initxit;
+    endtxit.forward_chars(endcolpos-colpos);
+    MOM_DEBUGLOG(gui, "prettify int cmd initxit=" << MomShowTextIter(initxit)
+                 << " endtxit=" << MomShowTextIter(endtxit));
+    initxit.get_buffer()->apply_tag_by_name("int_cmdtag",
+                                            initxit, endtxit);
+  })
+  .set_parsedval_seqfun([&](MomSimpleParser*,
+                            const MomAnyObjSeq*seq, bool istuple,
+                            long inioffset, unsigned inilinecnt, int inicolpos,
+                            long endoffset, unsigned endlinecnt, int endcolpos,
+                            int depth
+                           )
+  {
+    Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos);
+    Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
+    MOM_DEBUGLOG(gui, "prettify cmd " << (istuple?"tuple":"set")
+                 << " initxit=" << MomShowTextIter(initxit)
+                 << " endtxit=" << MomShowTextIter(endtxit));
+    initxit.get_buffer()->apply_tag_by_name(istuple?"tuple_cmdtag":"set_cmdtag",
+                                            initxit, endtxit);
   })
   ;
 #warning should set a lot of prettification functions via set_parseval_* functions

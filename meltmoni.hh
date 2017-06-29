@@ -3194,13 +3194,13 @@ public:
                                  endoffset, endlinecnt,  endcolpos, depth);
   };
   //
-  MomParser&
-  set_parsedval_seqfun( std::function<void(MomSimpleParser*,
-                        const MomAnyObjSeq*seq, bool istuple,
-                        long inioffset, unsigned inilinecnt, int inicolpos,
-                        long endoffset, unsigned endlinecnt, int endcolpos,
-                        int depth
-                                          )> seqfun)
+  MomSimpleParser&
+  set_parsedval_seqfun(std::function<void(MomSimpleParser*,
+                                          const MomAnyObjSeq*seq, bool istuple,
+                                          long inioffset, unsigned inilinecnt, int inicolpos,
+                                          long endoffset, unsigned endlinecnt, int endcolpos,
+                                          int depth
+                                         )> seqfun)
   {
     _spar_parsedvalsequencefun = seqfun;
     return *this;
@@ -3215,7 +3215,7 @@ public:
                                  endoffset, endlinecnt,  endcolpos, depth);
   };
   //
-  MomParser&
+  MomSimpleParser&
   set_parseval_objptrfun(  std::function<void(MomSimpleParser*,
                            MomObject*pob,
                            long inioffset, unsigned inilinecnt, int inicolpos,

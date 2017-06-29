@@ -294,21 +294,58 @@
             <property name="name">error_cmdtag</property>
             <property name="foreground">darkred</property>
 	  </object>
+	</child>
 	  <!-- null_cmdtag for prettification of null -->
+        <child type="tag">
           <object class='GtkTextTag'>
             <property name="name">null_cmdtag</property>
             <property name="foreground">darkslategrey</property>
 	  </object>
+	</child>
 	  <!-- knownname_cmdtag for prettification of known name -->
+        <child type="tag">
           <object class='GtkTextTag'>
             <property name="name">knownname_cmdtag</property>
             <property name="foreground">cadetblue</property>
 	  </object>
+	</child>
 	  <!-- newname_cmdtag for prettification of new name -->
+        <child type="tag">
           <object class='GtkTextTag'>
             <property name="name">newname_cmdtag</property>
             <property name="foreground">firebrick</property>
             <property name="background">lightglodenrod</property>
+	  </object>
+	</child>
+	  <!-- string_cmdtag for prettification of strings -->
+        <child type="tag">
+          <object class='GtkTextTag'>
+            <property name="name">string_cmdtag</property>
+            <property name="foreground">olivedrab4</property>
+	    <property name="font">Liberation Mono Italic</property>
+            <property name="background">lemonchiffon1</property>
+	  </object>
+	</child>
+	  <!-- int_cmdtag for prettification of integer numbers -->
+        <child type="tag">
+          <object class='GtkTextTag'>
+            <property name="name">int_cmdtag</property>
+            <property name="foreground">dodgetblue4</property>
+	    <property name="font">FreeMono Regular</property>
+	  </object>
+	</child>
+	  <!-- tuple_cmdtag for prettification of tuples -->
+        <child type="tag">
+          <object class='GtkTextTag'>
+            <property name="name">tuple_cmdtag</property>
+            <property name="background">lightblue1</property>
+	  </object>
+	</child>
+	  <!-- set_cmdtag for prettification of sets -->
+        <child type="tag">
+          <object class='GtkTextTag'>
+            <property name="name">set_cmdtag</property>
+            <property name="background">lavenderblush1</property>
 	  </object>
 	</child>
 	<!-- ===== -->
