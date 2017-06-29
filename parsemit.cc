@@ -480,7 +480,7 @@ again:
         parsed_value_sequence(tupv,true,
                               inioff, inilincnt, inicolpos,
                               _parlinoffset+_parcolidx,
-                              _parlincount, _parcolpos);
+                              _parlincount, _parcolpos, depth);
       return resv;
     }
   else if (pc=='{') // set
@@ -519,7 +519,7 @@ again:
         parsed_value_sequence(setv,/*istuple*/false,
                               inioff, inilincnt, inicolpos,
                               _parlinoffset+_parcolidx,
-                              _parlincount, _parcolpos);
+                              _parlincount, _parcolpos, depth);
       return resv;
     }
   else if (pc=='"')   // JSON encoded UTF8 string, on the same line
@@ -613,7 +613,8 @@ again:
         parsed_value_intsq(intsq,
                            inioff, inilincnt, inicolpos,
                            _parlinoffset+_parcolidx,
-                           _parlincount, _parcolpos);
+                           _parlincount, _parcolpos,
+                           depth);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "intseq/" << cnt
                          << (_parnobuild?"!":" ") << resv);
       return resv;
@@ -661,7 +662,8 @@ again:
         parsed_value_doublesq(dblsq,
                               inioff, inilincnt, inicolpos,
                               _parlinoffset+_parcolidx,
-                              _parlincount, _parcolpos);
+                              _parlincount, _parcolpos,
+                              depth);
       return resv;
     }
   else if (pc=='*' /* && nc<127 && !(nc>0 && nc!='_' && ispunct(nc))*/) // node
@@ -715,7 +717,8 @@ again:
                           inioff,inilincnt,inicolpos,
                           leftoff, leftlincnt, leftcolpos,
                           _parlinoffset+_parcolidx,
-                          _parlincount, _parcolpos
+                          _parlincount, _parcolpos,
+                          depth
                          );
       return resv;
     }
@@ -1126,7 +1129,8 @@ again:
             parsed_value_objptr(respob,
                                 inioff, inilincnt, inicolpos,
                                 _parlinoffset+_parcolidx,
-                                _parlincount, _parcolpos);
+                                _parlincount, _parcolpos,
+                                depth);
           return respob;
         }
       else goto failure;
@@ -1162,7 +1166,8 @@ again:
           parsed_value_objptr(ob,
                               inioff, inilincnt, inicolpos,
                               _parlinoffset+_parcolidx,
-                              _parlincount, _parcolpos);
+                              _parlincount, _parcolpos,
+                              depth);
           return ob;
         }
       else goto failure;
@@ -1196,7 +1201,8 @@ again:
           parsed_value_objptr(ob,
                               inioff, inilincnt, inicolpos,
                               _parlinoffset+_parcolidx,
-                              _parlincount, _parcolpos);
+                              _parlincount, _parcolpos,
+                              depth);
           return ob;
         }
       else goto failure;

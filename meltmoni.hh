@@ -2965,28 +2965,33 @@ public:
   /// signal parsing of intsq
   virtual void parsed_value_intsq(const MomIntSq*,
                                   long inioffset MOM_UNUSED, unsigned inilinecnt MOM_UNUSED, int inicolpos MOM_UNUSED,
-                                  long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED) {};
+                                  long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED,
+                                  int depth MOM_UNUSED) {};
   /// signal parsing of doublesq
   virtual void parsed_value_doublesq(const MomDoubleSq*,
                                      long inioffset MOM_UNUSED, unsigned inilinecnt MOM_UNUSED, int inicolpos MOM_UNUSED,
-                                     long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED) {};
+                                     long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED,
+                                     int depth MOM_UNUSED) {};
   /// signal parsing of sequence
   virtual void parsed_value_sequence(const MomAnyObjSeq*seq MOM_UNUSED, bool istuple MOM_UNUSED,
                                      long inioffset MOM_UNUSED, unsigned inilinecnt MOM_UNUSED, int inicolpos MOM_UNUSED,
-                                     long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED)
+                                     long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED,
+                                     int depth MOM_UNUSED)
   {
   };
   /// signal parsing of objptr
   virtual void parsed_value_objptr(MomObject* pob MOM_UNUSED,
                                    long inioffset MOM_UNUSED, unsigned inilinecnt MOM_UNUSED, int inicolpos MOM_UNUSED,
-                                   long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED)
+                                   long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED,
+                                   int depth MOM_UNUSED)
   {
   };
   /// signal parsing of node
   virtual void parsed_value_node(const MomNode* nod MOM_UNUSED,
                                  long inioffset MOM_UNUSED, unsigned inilinecnt MOM_UNUSED, int inicolpos MOM_UNUSED,
                                  long leftoffset MOM_UNUSED, unsigned leftlinecnt MOM_UNUSED, int leftcolpos MOM_UNUSED,
-                                 long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED) {};
+                                 long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED,
+                                 int depth MOM_UNUSED) {};
 };				// end class MomParser
 
 
@@ -3010,26 +3015,31 @@ class MomSimpleParser : public MomParser
                     )>  _spar_parsedvalstrfun;
   std::function<void(MomSimpleParser*, const MomIntSq*,
                      long inioffset, unsigned inilinecnt, int inicolpos,
-                     long endoffset, unsigned endlinecnt, int endcolpos
+                     long endoffset, unsigned endlinecnt, int endcolpos,
+                     int depth
                     )> _spar_parsedvalintsqfun;
   std::function<void(MomSimpleParser*, const MomDoubleSq*,
                      long inioffset, unsigned inilinecnt, int inicolpos,
-                     long endoffset, unsigned endlinecnt, int endcolpos
+                     long endoffset, unsigned endlinecnt, int endcolpos,
+                     int depth
                     )> _spar_parsedvaldoublesqfun;
   std::function<void(MomSimpleParser*,
                      const MomAnyObjSeq*seq, bool istuple,
                      long inioffset, unsigned inilinecnt, int inicolpos,
-                     long endoffset, unsigned endlinecnt, int endcolpos
+                     long endoffset, unsigned endlinecnt, int endcolpos,
+                     int depth
                     )> _spar_parsedvalsequencefun;
   std::function<void(MomSimpleParser*,
                      MomObject*pob,
                      long inioffset, unsigned inilinecnt, int inicolpos,
-                     long endoffset, unsigned endlinecnt, int endcolpos
+                     long endoffset, unsigned endlinecnt, int endcolpos,
+                     int depth
                     )> _spar_parsedvalobjptrfun;
   std::function<void(MomSimpleParser*, const MomNode* nod,
                      long inioffset, unsigned inilinecnt, int inicolpos,
                      long leftoffset, unsigned leftlinecnt, int leftcolpos,
-                     long endoffset, unsigned endlinecnt, int endcolpos
+                     long endoffset, unsigned endlinecnt, int endcolpos,
+                     int depth
                     )> _spar_parsedvalnodefun;
 public:
   MomSimpleParser(std::istream&inp, unsigned lincount=0)
@@ -3038,7 +3048,15 @@ public:
       _spar_chunkidfun(),
       _spar_chunkvalfun(),
       _spar_chunkdollarobjfun(),
-      _spar_chunknodefun()
+      _spar_chunknodefun(),
+      _spar_parsedvalnullfun(),
+      _spar_parsedvalintfun(),
+      _spar_parsedvalstrfun(),
+      _spar_parsedvalintsqfun(),
+      _spar_parsedvaldoublesqfun(),
+      _spar_parsedvalsequencefun(),
+      _spar_parsedvalobjptrfun(),
+      _spar_parsedvalnodefun()
   {};
   virtual ~MomSimpleParser() {};
   MomSimpleParser&
@@ -3138,7 +3156,8 @@ public:
   set_parsedval_intsqfun(
     std::function<void(MomSimpleParser*, const MomIntSq*,
                        long inioffset, unsigned inilinecnt, int inicolpos,
-                       long endoffset, unsigned endlinecnt, int endcolpos
+                       long endoffset, unsigned endlinecnt, int endcolpos,
+                       int depth
                       )> isfun)
   {
     _spar_parsedvalintsqfun = isfun;
@@ -3146,18 +3165,20 @@ public:
   };
   virtual void parsed_value_intsq(const MomIntSq*intsq,
                                   long inioffset, unsigned inilinecnt, int inicolpos,
-                                  long endoffset, unsigned endlinecnt, int endcolpos)
+                                  long endoffset, unsigned endlinecnt, int endcolpos,
+                                  int depth)
   {
     if (_spar_parsedvalintsqfun)
       _spar_parsedvalintsqfun(this, intsq,  inioffset, inilinecnt,  inicolpos,
-                              endoffset, endlinecnt,  endcolpos);
+                              endoffset, endlinecnt,  endcolpos, depth);
   };
   //
   MomSimpleParser&
   set_parsedval_doublesqfun(
     std::function<void(MomSimpleParser*, const MomDoubleSq*,
                        long inioffset, unsigned inilinecnt, int inicolpos,
-                       long endoffset, unsigned endlinecnt, int endcolpos
+                       long endoffset, unsigned endlinecnt, int endcolpos,
+                       int depth
                       )> dsfun)
   {
     _spar_parsedvaldoublesqfun = dsfun;
@@ -3165,18 +3186,20 @@ public:
   };
   virtual void parsed_value_doublesq(const MomDoubleSq*dblsq,
                                      long inioffset, unsigned inilinecnt, int inicolpos,
-                                     long endoffset, unsigned endlinecnt, int endcolpos)
+                                     long endoffset, unsigned endlinecnt, int endcolpos,
+                                     int depth)
   {
     if (_spar_parsedvaldoublesqfun)
       _spar_parsedvaldoublesqfun(this, dblsq,  inioffset, inilinecnt,  inicolpos,
-                                 endoffset, endlinecnt,  endcolpos);
+                                 endoffset, endlinecnt,  endcolpos, depth);
   };
   //
   MomParser&
   set_parsedval_seqfun( std::function<void(MomSimpleParser*,
                         const MomAnyObjSeq*seq, bool istuple,
                         long inioffset, unsigned inilinecnt, int inicolpos,
-                        long endoffset, unsigned endlinecnt, int endcolpos
+                        long endoffset, unsigned endlinecnt, int endcolpos,
+                        int depth
                                           )> seqfun)
   {
     _spar_parsedvalsequencefun = seqfun;
@@ -3184,18 +3207,20 @@ public:
   };
   virtual void parsed_value_sequence(  const MomAnyObjSeq*seq, bool istuple,
                                        long inioffset, unsigned inilinecnt, int inicolpos,
-                                       long endoffset, unsigned endlinecnt, int endcolpos)
+                                       long endoffset, unsigned endlinecnt, int endcolpos,
+                                       int depth)
   {
     if (_spar_parsedvalsequencefun)
       _spar_parsedvalsequencefun(this, seq, istuple, inioffset, inilinecnt,  inicolpos,
-                                 endoffset, endlinecnt,  endcolpos);
+                                 endoffset, endlinecnt,  endcolpos, depth);
   };
   //
   MomParser&
   set_parseval_objptrfun(  std::function<void(MomSimpleParser*,
                            MomObject*pob,
                            long inioffset, unsigned inilinecnt, int inicolpos,
-                           long endoffset, unsigned endlinecnt, int endcolpos
+                           long endoffset, unsigned endlinecnt, int endcolpos,
+                           int depth
                                              )> obpfun)
   {
     _spar_parsedvalobjptrfun = obpfun;
@@ -3203,23 +3228,23 @@ public:
   };
   virtual void parsed_value_objptr(MomObject* pob,
                                    long inioffset, unsigned inilinecnt, int inicolpos,
-                                   long endoffset, unsigned endlinecnt, int endcolpos)
+                                   long endoffset, unsigned endlinecnt, int endcolpos, int depth)
   {
     if (_spar_parsedvalobjptrfun)
       _spar_parsedvalobjptrfun(this, pob, inioffset, inilinecnt,  inicolpos,
-                               endoffset, endlinecnt,  endcolpos);
+                               endoffset, endlinecnt,  endcolpos, depth);
   };
   //
   virtual void parsed_value_node(const MomNode* nod,
                                  long inioffset, unsigned inilinecnt, int inicolpos,
                                  long leftoffset, unsigned leftlinecnt, int leftcolpos,
-                                 long endoffset, unsigned endlinecnt, int endcolpos)
+                                 long endoffset, unsigned endlinecnt, int endcolpos, int depth)
   {
     if (_spar_parsedvalnodefun)
       _spar_parsedvalnodefun(this, nod,
                              inioffset, inilinecnt,  inicolpos,
                              leftoffset,  leftlinecnt,  leftcolpos,
-                             endoffset, endlinecnt,  endcolpos);
+                             endoffset, endlinecnt,  endcolpos, depth);
   };
 };				// end class MomSimpleParser
 
