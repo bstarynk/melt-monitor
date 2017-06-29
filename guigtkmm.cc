@@ -1716,12 +1716,14 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     Gtk::TextIter txit = command_txiter_at_line_col(thisparser->lineno(),
                          thisparser->colpos());
     Gtk::TextIter endtxit = txit;
-    endtxit.forward_chars(namstr.size());
+    endtxit.forward_chars(namstr.size()+1);
     if (ob)
       {
         MOM_DEBUGLOG(gui, "prettify known name " << namstr
-                     << " txit=" << MomShowTextIter(txit)
-                     << " endtxit=" << MomShowTextIter(endtxit)
+                     << " lineno=" << thisparser->lineno()
+                     << " colpos=" << thisparser->colpos()
+                     << " txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_,10)
+                     << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10)
                      << " ob=" << ob);
         cmdbuf->apply_tag_by_name("knownname_cmdtag",
                                   txit, endtxit);
@@ -1729,8 +1731,10 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     else
       {
         MOM_DEBUGLOG(gui, "prettify new name " << namstr
-                     << " txit=" << MomShowTextIter(txit)
-                     << " endtxit=" << MomShowTextIter(endtxit)
+                     << " lineno=" << thisparser->lineno()
+                     << " colpos=" << thisparser->colpos()
+                     << " txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_,10)
+                     << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10)
                      << " ob=" << ob);
         cmdbuf->apply_tag_by_name("newname_cmdtag",
                                   txit, endtxit);
@@ -1754,8 +1758,15 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   {
     Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos);
     Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
-    MOM_DEBUGLOG(gui, "prettify string cmd initxit=" << MomShowTextIter(initxit)
-                 << " endtxit=" << MomShowTextIter(endtxit));
+    MOM_DEBUGLOG(gui, "prettify string cmd str=" << MomShowString(str)
+                 << " inioffset=" << inioffset
+                 << " inilinecnt=" << inilinecnt
+                 << " inicolpos=" << inicolpos
+                 << " initxit=" << MomShowTextIter(initxit, MomShowTextIter::_FULL_,10) << std::endl
+                 << "... endoffset=" << endoffset
+                 << " endlinecnt=" << endlinecnt
+                 << " endcolpos=" << endcolpos
+                 << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10));
     cmdbuf->apply_tag_by_name("string_cmdtag",
                               initxit, endtxit);
   })
@@ -1764,9 +1775,12 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   {
     Gtk::TextIter initxit = command_txiter_at_line_col(linecnt, colpos);
     Gtk::TextIter endtxit = initxit;
-    endtxit.forward_chars(endcolpos-colpos);
-    MOM_DEBUGLOG(gui, "prettify int cmd initxit=" << MomShowTextIter(initxit)
-                 << " endtxit=" << MomShowTextIter(endtxit));
+    endtxit.forward_chars(endcolpos-colpos+1);
+    MOM_DEBUGLOG(gui, "prettify int num=" << num
+                 << " offset=" << offset << " lincnt=" << linecnt
+                 << " colpos=" << colpos << " endcolpos=" << endcolpos
+                 << " cmd initxit=" << MomShowTextIter(initxit, MomShowTextIter::_FULL_,10)
+                 << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10));
     cmdbuf->apply_tag_by_name("int_cmdtag",
                               initxit, endtxit);
   })
@@ -1777,11 +1791,11 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                             int depth
                            )
   {
-    Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos);
-    Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
+    Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos+1);
+    Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos+1);
     MOM_DEBUGLOG(gui, "prettify cmd " << (istuple?"tuple":"set")
-                 << " initxit=" << MomShowTextIter(initxit)
-                 << " endtxit=" << MomShowTextIter(endtxit));
+                 << " initxit=" << MomShowTextIter(initxit, MomShowTextIter::_FULL_,10)
+                 << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10));
     cmdbuf->apply_tag_by_name(istuple?"tuple_cmdtag":"set_cmdtag",
                               initxit, endtxit);
   })
@@ -1814,6 +1828,8 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
       pars->skip_spaces();
       if (pars->eof())
         break;
+      MOM_DEBUGLOG(gui, "parse_command curbytes=" << MomShowString(pars->curbytes())
+                   << " @" << pars->location_str());
 #warning MomMainWindow::parse_command should have a loop till eof
       if (pars->got_cstring("!"))
         {
@@ -1848,7 +1864,7 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
             }
         }
       else
-        MOM_PARSE_FAILURE(pars, "bad command");
+        MOM_PARSE_FAILURE(pars, "bad command @" << pars->location_str());
     }
 } // end MomMainWindow::parse_command
 
