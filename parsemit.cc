@@ -970,6 +970,30 @@ MomParser::parse_id(bool *pgotid)
 } // end MomParser::parse_id
 
 
+std::string
+MomParser::parse_name(bool *pgotname)
+{
+  skip_spaces();
+  gunichar pc = 0, nc = 0;
+  peek_prevcurr_utf8(pc,nc,1);
+  if (isalpha(pc))
+    {
+      const char*begnamp = curbytes();
+      const char*endnamp = begnamp;
+      while (*endnamp<127 && (isalnum(*endnamp) || (*endnamp == '_' && isalnum(endnamp[-1]))))
+        endnamp++;
+      std::string namstr(begnamp, endnamp-begnamp);
+      if (pgotname)
+        *pgotname = true;
+      consume_bytes(endnamp-begnamp);
+      return namstr;
+    }
+  else if (pgotname)
+    *pgotname = false;
+  return "";
+} // end MomParser::parse_name
+
+
 MomObject*
 MomParser::parse_objptr(bool *pgotob)
 {

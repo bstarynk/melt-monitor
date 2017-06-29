@@ -2896,6 +2896,7 @@ public:
   MomParser& skip_spaces(void);
   MomParser& next_line(void);
   std::string parse_string(bool *pgotstr);
+  std::string parse_name(bool *pgotname);
   MomIdent parse_id(bool *pgotid);
   intptr_t parse_int(bool *pgotint);
   MomValue parse_value(bool* pgotval);
