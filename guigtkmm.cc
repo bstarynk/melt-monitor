@@ -1698,7 +1698,7 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   MomSimpleParser cmdpars(inscmd);
   char cmdnambuf[24];
   memset (cmdnambuf, 0, sizeof(cmdnambuf));
-  snprintf(cmdnambuf, "*cmd#%d*", _mwi_winrank);
+  snprintf(cmdnambuf, sizeof(cmdnambuf), "*cmd#%d*", _mwi_winrank);
   cmdpars
   .set_name(cmdnambuf)
   .disable_exhaustion(true)
