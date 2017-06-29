@@ -2944,36 +2944,38 @@ public:
   //// signal parsing could be used for hilighting
   ////
   /// signal parsing of null
-  virtual void parsed_value_null(long /*offset*/, unsigned /*linecnt*/,
-                                 int /*colpos*/) {};
+  virtual void parsed_value_null(long offset, unsigned linecnt,
+                                 int colpos) {};
   /// signal parsing of integer
-  virtual void parsed_value_int(intptr_t /*num*/,
-                                long /*offset*/, unsigned /*linecnt*/,
-                                int /*colpos*/, int /*endcolpos*/) {};
+  virtual void parsed_value_int(intptr_t num,
+                                long offset, unsigned linecnt,
+                                int colpos, int endcolpos) {};
   /// signal parsing of string
-  virtual void parsed_value_string(const std::string&,
-                                   long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/, long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/) {};
+  virtual void parsed_value_string(const std::string&str,
+                                   long inioffset, unsigned inilinecnt, int inicolpos, long endoffset, unsigned endlinecnt, int endcolpos) {};
   /// signal parsing of intsq
   virtual void parsed_value_intsq(const MomIntSq*,
-                                  long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/, long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/) {};
+                                  long inioffset, unsigned inilinecnt, int inicolpos, long endoffset, unsigned endlinecnt, int endcolpos) {};
   /// signal parsing of doublesq
   virtual void parsed_value_doublesq(const MomDoubleSq*,
-                                     long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/, long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/) {};
-#warning incomplete parsed_value signaling in MomParser
+                                     long inioffset, unsigned inilinecnt, int inicolpos, long endoffset, unsigned endlinecnt, int endcolpos) {};
   /// signal parsing of sequence
   virtual void parsed_value_sequence(const MomAnyObjSeq*seq, bool istuple,
-                                     long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/,
-                                     long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/)
+                                     long inioffset, unsigned inilinecnt, int inicolpos,
+                                     long endoffset, unsigned endlinecnt, int endcolpos)
   {
   };
   /// signal parsing of objptr
   virtual void parsed_value_objptr(MomObject* pob,
-                                   long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/,
-                                   long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/)
+                                   long inioffset, unsigned inilinecnt, int inicolpos,
+                                   long endoffset, unsigned endlinecnt, int endcolpos)
   {
   };
   /// signal parsing of node
-  virtual void parsed_value_node() {};
+  virtual void parsed_value_node(const MomNode* nod,
+                                 long inioffset, unsigned inilinecnt, int inicolpos,
+                                 long leftoffset, unsigned leftlinecnt, int leftcolpos,
+                                 long endoffset, unsigned endlinecnt, int endcolpos) {};
 };				// end class MomParser
 
 class MomSimpleParser : public MomParser

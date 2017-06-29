@@ -679,6 +679,11 @@ again:
       pc = peek_utf8(0);
       if (pc != '(')
         MOM_PARSE_FAILURE(this, "missing left parenthesis in node of " << connob);
+
+      auto leftoff = _parlinoffset;
+      auto leftcolidx = _parcolidx;
+      auto leftcolpos = _parcolpos;
+      auto leftlincnt = _parlincount;
       consume_utf8(1);
       for (;;)
         {
@@ -697,13 +702,21 @@ again:
           if (!_parnobuild)
             sonvec.push_back(curval);
           cnt++;
-        }
+        };
       if (pgotval)
         *pgotval = true;
-      auto resv =  _parnobuild?nullptr:MomValue(MomNode::make_from_vector(connob,sonvec));
+      auto nodv = _parnobuild?nullptr:MomNode::make_from_vector(connob,sonvec);
+      auto resv = _parnobuild?nullptr:MomValue(nodv);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << ", node/" << cnt
                          << (_parnobuild?"!":" ") << resv
                          << " @" << location_str());
+      if (_parsignalvalue)
+        parsed_value_node(nodv,
+                          inioff,inilincnt,inicolpos,
+                          leftoff, leftlincnt, leftcolpos,
+                          _parlinoffset+_parcolidx,
+                          _parlincount, _parcolpos
+                         );
       return resv;
     }
   else if ((char)pc=="°"[0] && (char)nc=="°"[1])
