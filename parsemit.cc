@@ -415,6 +415,8 @@ again:
         consume_bytes(endp-curp);
       if (pgotval) *pgotval = true;
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " int:" << ll);
+      if (_parsignalvalue)
+        parsed_value_int((intptr_t)ll, inioff, inilincnt, inicolpos, _parcolpos);
       return _parnobuild?nullptr:MomValue((intptr_t)ll);
     }
   else if (isspace(pc))
@@ -432,6 +434,8 @@ again:
       consume_utf8(2);
       if (pgotval) *pgotval = true;
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " NIL");
+      if (_parsignalvalue)
+        parsed_value_null(inioff, inicolpos, inilincnt);
       return MomValue{nullptr};
     }
   else if ((pc<127 && isalpha(pc))
@@ -532,7 +536,13 @@ again:
       while (again);
       if (pgotval)
         *pgotval = true;
-      return _parnobuild?nullptr:MomValue(MomString::make_from_string(fullstr));
+      auto res = _parnobuild?nullptr:MomValue(MomString::make_from_string(fullstr));
+      if (_parsignalvalue)
+        parsed_value_string(fullstr,
+                            inioff, inilincnt, inicolpos,
+                            _parlinoffset+_parcolidx,
+                            _parlincount, _parcolpos);
+      return res;
     }
   // multi-line raw strings like `ab0|foobar\here|ab0`
   else if (pc=='`' && (nc=='_' || isalnum(nc) || nc=='|'))   // raw strings
@@ -543,6 +553,11 @@ again:
         MOM_PARSE_FAILURE(this, "failed to parse raw string");
       if (pgotval)
         *pgotval = true;
+      if (_parsignalvalue)
+        parsed_value_string(str,
+                            inioff, inilincnt, inicolpos,
+                            _parlinoffset+_parcolidx,
+                            _parlincount, _parcolpos);
       return _parnobuild?nullptr:MomValue(MomString::make_from_string(str));
     }
   else if (pc=='(' && nc=='#')	// (# integer sequence #)
@@ -580,7 +595,13 @@ again:
         }
       if (pgotval)
         *pgotval = true;
-      auto resv = _parnobuild?nullptr:MomValue(MomIntSq::make_from_vector(v));
+      auto intsq = _parnobuild?nullptr:MomIntSq::make_from_vector(v);
+      auto resv = _parnobuild?nullptr:MomValue(intsq);
+      if (_parsignalvalue)
+        parsed_value_intsq(intsq,
+                           inioff, inilincnt, inicolpos,
+                           _parlinoffset+_parcolidx,
+                           _parlincount, _parcolpos);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "intseq/" << cnt
                          << (_parnobuild?"!":" ") << resv);
       return resv;
@@ -620,9 +641,15 @@ again:
         }
       if (pgotval)
         *pgotval = true;
-      auto resv = _parnobuild?nullptr:MomValue(MomDoubleSq::make_from_vector(v));
+      auto dblsq = _parnobuild?nullptr:MomDoubleSq::make_from_vector(v);
+      auto resv = _parnobuild?nullptr:MomValue(dblsq);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "doubleseq/" << cnt
                          << (_parnobuild?"!":" ") << resv);
+      if (_parsignalvalue)
+        parsed_value_doublesq(dblsq,
+                              inioff, inilincnt, inicolpos,
+                              _parlinoffset+_parcolidx,
+                              _parlincount, _parcolpos);
       return resv;
     }
   else if (pc=='*' /* && nc<127 && !(nc>0 && nc!='_' && ispunct(nc))*/) // node

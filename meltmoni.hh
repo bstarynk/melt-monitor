@@ -2606,6 +2606,7 @@ private:
   bool _parmakefromid; // if set, make objects from id
   bool _parhaschunk;   // if set, accept code chunks
   bool _parnocheckx;   // don't check exhaustion
+  bool _parsignalvalue;		// signal parsing of values
   std::string _parname;		// name of parser in messages
   std::function<MomValue(MomParser*,const MomNode*, bool *pok)> _parvaleval;
   std::function<MomObject*(MomParser*,const MomNode*, bool *pok)> _parobjeval;
@@ -2639,6 +2640,7 @@ public:
       _parmakefromid{false},
       _parhaschunk{false},
       _parnocheckx{false},
+      _parsignalvalue{false},
       _parname(),
       _parvaleval(), _parobjeval()
   {
@@ -2664,6 +2666,11 @@ public:
   MomParser& set_no_build(bool nobuild)
   {
     _parnobuild = nobuild;
+    return *this;
+  };
+  MomParser& set_signal_value(bool sigvalflag)
+  {
+    _parsignalvalue = sigvalflag;
     return *this;
   };
   MomParser& set_debug(bool hasdebug)
@@ -2934,6 +2941,31 @@ public:
   {
     return nullptr;
   }
+  //// signal parsing could be used for hilighting
+  ////
+  /// signal parsing of null
+  virtual void parsed_value_null(long /*offset*/, unsigned /*linecnt*/,
+                                 int /*colpos*/) {};
+  /// signal parsing of integer
+  virtual void parsed_value_int(intptr_t /*num*/,
+                                long /*offset*/, unsigned /*linecnt*/,
+                                int /*colpos*/, int /*endcolpos*/) {};
+  /// signal parsing of string
+  virtual void parsed_value_string(const std::string&,
+                                   long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/, long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/) {};
+  /// signal parsing of intsq
+  virtual void parsed_value_intsq(const MomIntSq*,
+                                  long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/, long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/) {};
+  /// signal parsing of doublesq
+  virtual void parsed_value_doublesq(const MomDoubleSq*,
+                                     long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/, long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/) {};
+#warning incomplete parsed_value signaling in MomParser
+  /// signal parsing of sequence
+  virtual void parsed_value_sequence() {};
+  /// signal parsing of object
+  virtual void parsed_value_object() {};
+  /// signal parsing of node
+  virtual void parsed_value_node() {};
 };				// end class MomParser
 
 class MomSimpleParser : public MomParser
