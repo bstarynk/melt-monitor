@@ -2704,9 +2704,17 @@ public:
     snprintf(lbuf, sizeof(lbuf), ":L%u,C%d", _parlincount, _parcolpos);
     return _parname + lbuf;
   };
+  unsigned lineno() const
+  {
+    return _parlincount;
+  };
+  int colpos() const
+  {
+    return _parcolpos;
+  };
   ~MomParser()
   {
-  }
+  };
   std::istream& input() const
   {
     return _parinp;
@@ -2907,10 +2915,10 @@ public:
   MomIdent parse_id(bool *pgotid);
   intptr_t parse_int(bool *pgotint);
   double parse_double(bool *pgotdouble);
-  MomValue parse_value(bool* pgotval);
-  MomValue parse_chunk(bool* pgotchunk); // parse a code chunk, including the ending )$
-  bool parse_chunk_element(std::vector<MomValue>&vec);
-  MomObject* parse_objptr(bool* pgotob);
+  MomValue parse_value(bool* pgotval, int depth=0);
+  MomValue parse_chunk(bool* pgotchunk, int depth=0); // parse a code chunk, including the ending )$
+  bool parse_chunk_element(std::vector<MomValue>&vec, int depth=0);
+  MomObject* parse_objptr(bool* pgotob, int depth=0);
   /// given some name, fetch the corresponding named object
   virtual MomObject* fetch_named_object(const std::string&)
   {

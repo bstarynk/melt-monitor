@@ -233,7 +233,8 @@ public:
   void parse_command(MomParser*, bool apply=false);
 private:
   MomObject* browser_object_around(Gtk::TextIter txit);
-  Gtk::TextIter command_txiter_at_line_col(int lineno, int col) {
+  Gtk::TextIter command_txiter_at_line_col(int lineno, int col)
+  {
     auto cmdbuf = _mwi_txvcmd.get_buffer();
     Gtk::TextIter txit = cmdbuf->begin();
     if (lineno>1)
@@ -1696,19 +1697,44 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   std::istringstream inscmd(strcmd);
   MomSimpleParser cmdpars(inscmd);
   cmdpars
-    .set_name("*cmd*")
-    .disable_exhaustion(true)
-    .set_no_build(!apply)
-    .set_debug(MOM_IS_DEBUGGING(gui));
+  .set_name("*cmd*")
+  .disable_exhaustion(true)
+  .set_no_build(!apply)
+  .set_debug(MOM_IS_DEBUGGING(gui))
+  ;
   cmdpars
-    .set_parsedval_nullfun ([&](MomSimpleParser*thisparser MOM_UNUSED,
-				long offset MOM_UNUSED, unsigned linecnt, int colpos) {
-       Gtk::TextIter txit = command_txiter_at_line_col(linecnt, colpos);
-       Gtk::TextIter endtxit = txit;
-       endtxit.forward_chars(2);
-       MOM_DEBUGLOG(gui, "prettify null cmd txit=" << MomShowTextIter(txit) << " endtxit=" << MomShowTextIter(endtxit));
-       txit.get_buffer()->apply_tag_by_name("null_cmdtag", txit, endtxit);
-     })
+  .set_named_fetch_fun([&](MomSimpleParser*thisparser,
+                           const std::string&namstr)
+  {
+    MomObject* ob = simple_named_object(namstr);
+    Gtk::TextIter txit = command_txiter_at_line_col(thisparser->lineno(),
+                         thisparser->colpos());
+    Gtk::TextIter endtxit = txit;
+    endtxit.forward_chars(namstr.size());
+    if (ob)
+      {
+        MOM_DEBUGLOG(gui, "prettify known name " << namstr << " txit=" << MomShowTextIter(txit)
+                     << " endtxit=" << MomShowTextIter(endtxit)
+                     << " ob=" << ob);
+        txit.get_buffer()->apply_tag_by_name("knownname_cmdtag", txit, endtxit);
+      }
+    else
+      {
+        MOM_DEBUGLOG(gui, "prettify new name " << namstr << " txit=" << MomShowTextIter(txit)
+                     << " endtxit=" << MomShowTextIter(endtxit)
+                     << " ob=" << ob);
+        txit.get_buffer()->apply_tag_by_name("newname_cmdtag", txit, endtxit);
+      }
+  })
+  .set_parsedval_nullfun ([&](MomSimpleParser*thisparser MOM_UNUSED,
+                              long offset MOM_UNUSED, unsigned linecnt, int colpos)
+  {
+    Gtk::TextIter txit = command_txiter_at_line_col(linecnt, colpos);
+    Gtk::TextIter endtxit = txit;
+    endtxit.forward_chars(2);
+    MOM_DEBUGLOG(gui, "prettify null cmd txit=" << MomShowTextIter(txit) << " endtxit=" << MomShowTextIter(endtxit));
+    txit.get_buffer()->apply_tag_by_name("null_cmdtag", txit, endtxit);
+  })
   ;
 #warning should set a lot of prettification functions via set_parseval_* functions
   try

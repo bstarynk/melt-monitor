@@ -378,7 +378,7 @@ MomParser::unterminated_small_comment(const char*missing)
 } // end MomParser::unterminated_small_comment
 
 MomValue
-MomParser::parse_value(bool *pgotval)
+MomParser::parse_value(bool *pgotval, int depth)
 {
   auto inioff = _parlinoffset;
   auto inicolidx = _parcolidx;
@@ -443,7 +443,7 @@ again:
            || (pc=='$' && nc=='%' && _parobjeval)
            || (pc=='@' && nc<127 && isalpha(nc)))
     {
-      return MomValue(parse_objptr(pgotval));
+      return MomValue(parse_objptr(pgotval, depth));
     }
   else if (pc=='[') // tuple
     {
@@ -461,7 +461,7 @@ again:
               consume_utf8(1);
               break;
             }
-          curob = parse_objptr(&gotcurobj);
+          curob = parse_objptr(&gotcurobj, depth+1);
           if ((!_parnobuild && !curob) || !gotcurobj)
             MOM_PARSE_FAILURE(this, "missing component object in vector");
           if (!_parnobuild)
@@ -499,7 +499,7 @@ again:
               consume_utf8(1);
               break;
             }
-          curob = parse_objptr(&gotcurobj);
+          curob = parse_objptr(&gotcurobj, depth+1);
           if ((!_parnobuild && !curob) || !gotcurobj)
             MOM_PARSE_FAILURE(this,
                               "missing element object in set; curbytes=" << MomShowString(curbytes()) << "; _parlinstr=" << MomShowString(_parlinstr));
@@ -672,7 +672,7 @@ again:
       int cnt = 0;
       consume_utf8(1);
       skip_spaces();
-      connob = parse_objptr(&gotconn);
+      connob = parse_objptr(&gotconn, depth+1);
       if ((!_parnobuild && !connob) || !gotconn)
         MOM_PARSE_FAILURE(this, "missing connective object in node");
       skip_spaces();
@@ -696,7 +696,7 @@ again:
               consume_utf8(1);
               break;
             }
-          curval = parse_value(&gotcurval);
+          curval = parse_value(&gotcurval, depth+1);
           if ((!_parnobuild && !curval) || !gotcurval)
             MOM_PARSE_FAILURE(this, "missing son#" << sonvec.size() << " in node of " << connob);
           if (!_parnobuild)
@@ -724,7 +724,7 @@ again:
       static_assert(sizeof("°")==3, "wrong length for ° (degree sign)");
       consume_utf8(1);
       bool gotvval = false;
-      auto vv = MomParser::parse_value(&gotvval);
+      auto vv = MomParser::parse_value(&gotvval,depth+1);
       if (gotvval)
         {
           if (pgotval)
@@ -742,7 +742,7 @@ again:
     {
       consume_utf8(2);
       bool gotvchunk = false;
-      auto vc = MomParser::parse_chunk(&gotvchunk);
+      auto vc = MomParser::parse_chunk(&gotvchunk, depth);
       if (gotvchunk)
         {
           if (pgotval)
@@ -758,7 +758,7 @@ again:
     {
       consume_utf8(2);
       bool gotvnod = false;
-      auto vnod = MomParser::parse_value(&gotvnod);
+      auto vnod = MomParser::parse_value(&gotvnod, depth+1);
       if (!_parnobuild && !vnod.is_val() && !vnod.to_val()->is_node())
         MOM_PARSE_FAILURE(this, "evaluated value expects node after $!, got " << vnod);
       check_exhaustion();
@@ -780,14 +780,14 @@ failure:
 
 
 MomValue
-MomParser::parse_chunk(bool *pgotchunk)
+MomParser::parse_chunk(bool *pgotchunk, int depth)
 {
   check_exhaustion();
   std::vector<MomValue> vecelem;
   //auto inioff = _parlinoffset;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
-  while (parse_chunk_element(vecelem))
+  while (parse_chunk_element(vecelem, depth))
     {
       // do nothing
     };
@@ -828,7 +828,7 @@ MomParser::parse_chunk(bool *pgotchunk)
 
 
 bool
-MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
+MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
 {
   gunichar pc=0, nc=0;
   check_exhaustion();
@@ -967,7 +967,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem)
       consume_utf8(2);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem start embedded value");
-      auto embv = parse_value(&gotval);
+      auto embv = parse_value(&gotval, depth+1);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem got embedded value" <<(_parnobuild?"!":" ") << embv);
       auto v = _parnobuild?nullptr:chunk_embedded_value(embv);
@@ -1071,7 +1071,7 @@ MomParser::parse_name(bool *pgotname)
 
 
 MomObject*
-MomParser::parse_objptr(bool *pgotob)
+MomParser::parse_objptr(bool *pgotob, int depth)
 {
   MomObject*respob = nullptr;
   auto inioff = _parlinoffset;
@@ -1205,7 +1205,7 @@ again:
     {
       consume_utf8(2);
       bool gotvnod = false;
-      auto vnod = MomParser::parse_value(&gotvnod);
+      auto vnod = MomParser::parse_value(&gotvnod,depth+1);
       if (!_parnobuild && !vnod.is_val() && !vnod.as_val()->is_node())
         MOM_PARSE_FAILURE(this, "evaluated object expects node after $%, got " << vnod);
       check_exhaustion();

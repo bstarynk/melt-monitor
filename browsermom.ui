@@ -294,10 +294,21 @@
             <property name="name">error_cmdtag</property>
             <property name="foreground">darkred</property>
 	  </object>
-	  <!-- null_cmdtag for prettyfication of null -->
+	  <!-- null_cmdtag for prettification of null -->
           <object class='GtkTextTag'>
             <property name="name">null_cmdtag</property>
             <property name="foreground">darkslategrey</property>
+	  </object>
+	  <!-- knownname_cmdtag for prettification of known name -->
+          <object class='GtkTextTag'>
+            <property name="name">knownname_cmdtag</property>
+            <property name="foreground">cadetblue</property>
+	  </object>
+	  <!-- newname_cmdtag for prettification of new name -->
+          <object class='GtkTextTag'>
+            <property name="name">newname_cmdtag</property>
+            <property name="foreground">firebrick</property>
+            <property name="background">lightglodenrod</property>
 	  </object>
 	</child>
 	<!-- ===== -->
