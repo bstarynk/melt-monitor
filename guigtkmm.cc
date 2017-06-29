@@ -216,6 +216,7 @@ public:
   void do_txcmd_changed(void);
   void do_txcmd_end_user_action(void);
   void scan_gc(MomGC*);
+  void do_txcmd_prettify_parse(bool apply=false);
   void parse_command(MomParser*, bool apply=false);
 private:
   MomObject* browser_object_around(Gtk::TextIter txit);
@@ -1633,36 +1634,48 @@ MomMainWindow::do_txcmd_changed(void)
   if (_mwi_cmduseractim <= 0.0)
     return;
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed start");
-  auto cmdbuf = _mwi_txvcmd.get_buffer();
-  cmdbuf->remove_all_tags(cmdbuf->begin(), cmdbuf->end());
-  std::string strcmd = cmdbuf->get_text();
-  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed strcmd=" << MomShowString(strcmd));
-  std::istringstream inscmd(strcmd);
-  MomSimpleParser cmdpars(inscmd);
-  cmdpars
-  .set_name("*cmd*")
-  .disable_exhaustion(true)
-  .set_no_build(true)
-  .set_debug(MOM_IS_DEBUGGING(gui));
-  try
-    {
-      cmdpars.next_line().skip_spaces();
-      parse_command(&cmdpars);
-      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed parse_command done");
-    }
-  catch (MomParser::Mom_parse_failure pfail)
-    {
-      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed parse_command failed:" << pfail.what());
-    }
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed end");
 } // end MomMainWindow::do_txcmd_changed
 
 void
 MomMainWindow::do_txcmd_end_user_action(void)
 {
-  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_end_user_action");
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_end_user_action start");
+  do_txcmd_prettify_parse();
   _mwi_cmduseractim = 0.0;
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_end_user_action done");
 } // end MomMainWindow::do_txcmd_end_user_action
+
+
+void
+MomMainWindow::do_txcmd_prettify_parse(bool apply)
+{
+  auto cmdbuf = _mwi_txvcmd.get_buffer();
+  cmdbuf->remove_all_tags(cmdbuf->begin(), cmdbuf->end());
+  std::string strcmd = cmdbuf->get_text();
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse strcmd=" << MomShowString(strcmd));
+  std::istringstream inscmd(strcmd);
+  MomSimpleParser cmdpars(inscmd);
+  cmdpars
+  .set_name("*cmd*")
+  .disable_exhaustion(true)
+  .set_no_build(!apply)
+  .set_debug(MOM_IS_DEBUGGING(gui));
+#warning should set a lot of prettification functions via set_parseval_* functions
+  try
+    {
+      cmdpars.next_line().skip_spaces();
+      parse_command(&cmdpars);
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse parse_command done");
+    }
+  catch (MomParser::Mom_parse_failure pfail)
+    {
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse  parse_command failed:" << pfail.what());
+    }
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse done");
+} // end MomMainWindow::do_txcmd_prettify_parse
+
+
 
 void
 MomMainWindow::parse_command(MomParser*pars, bool apply)
@@ -1671,6 +1684,7 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
   pars->skip_spaces();
   MOM_DEBUGLOG(gui, "MomMainWindow::parse_command start @ " << pars->location_str()
                << " " << MomShowString(pars->curbytes()));
+#warning MomMainWindow::parse_command should have a loop till eof
   if (pars->got_cstring("!"))
     {
       bool gotattr = false;
