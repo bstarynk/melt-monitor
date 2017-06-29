@@ -472,9 +472,15 @@ again:
         *pgotval = true;
       MOM_ASSERT(_parnobuild || cnt == (int)vec.size(),
                  "parsing tuple expecting " << cnt << " got " << vec.size());
-      auto resv = _parnobuild?nullptr:MomValue(MomTuple::make_from_objptr_vector(vec));
+      auto tupv = _parnobuild?nullptr:MomTuple::make_from_objptr_vector(vec);
+      auto resv = _parnobuild?nullptr:MomValue(tupv);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "tuple/" << cnt
                          << (_parnobuild?"!":" ") << resv);
+      if (_parsignalvalue)
+        parsed_value_sequence(tupv,true,
+                              inioff, inilincnt, inicolpos,
+                              _parlinoffset+_parcolidx,
+                              _parlincount, _parcolpos);
       return resv;
     }
   else if (pc=='{') // set
@@ -505,9 +511,15 @@ again:
         *pgotval = true;
       MOM_ASSERT(cnt >= (int)set.size(),
                  "parsing set expecting at most " << cnt << " got " << set.size());
-      auto resv= _parnobuild?nullptr:MomValue(MomSet::make_from_objptr_set(set));
+      auto setv = _parnobuild?nullptr:MomSet::make_from_objptr_set(set);
+      auto resv = _parnobuild?nullptr:MomValue(setv);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "set/" << cnt
                          << (_parnobuild?"!":" ") << resv);
+      if (_parsignalvalue)
+        parsed_value_sequence(setv,/*istuple*/false,
+                              inioff, inilincnt, inicolpos,
+                              _parlinoffset+_parcolidx,
+                              _parlincount, _parcolpos);
       return resv;
     }
   else if (pc=='"')   // JSON encoded UTF8 string, on the same line
@@ -1055,6 +1067,10 @@ MomParser::parse_objptr(bool *pgotob)
   auto inilincnt = _parlincount;
   gunichar pc = 0, nc = 0;
 again:
+  inioff = _parlinoffset;
+  inicolidx = _parcolidx;
+  inicolpos = _parcolpos;
+  inilincnt = _parlincount;
   if (eol())
     {
       skip_spaces();
@@ -1093,6 +1109,11 @@ again:
           if (pgotob)
             *pgotob = true;
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " objid:" << id);
+          if (_parsignalvalue)
+            parsed_value_objptr(respob,
+                                inioff, inilincnt, inicolpos,
+                                _parlinoffset+_parcolidx,
+                                _parlincount, _parcolpos);
           return respob;
         }
       else goto failure;
@@ -1103,6 +1124,8 @@ again:
       if (pgotob)
         *pgotob = true;
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " OBJNIL");
+      if (_parsignalvalue)
+        parsed_value_null(inioff, inicolpos, inilincnt);
       return nullptr;
     }
   else if (isalpha(pc))
@@ -1123,6 +1146,10 @@ again:
             *pgotob = true;
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " namedobj: " << namstr << " = " << ob);
+          parsed_value_objptr(ob,
+                              inioff, inilincnt, inicolpos,
+                              _parlinoffset+_parcolidx,
+                              _parlincount, _parcolpos);
           return ob;
         }
       else goto failure;
@@ -1152,6 +1179,11 @@ again:
             * pgotob = true;
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                              << " globdata: " << globnamstr << " = " << ob);
+
+          parsed_value_objptr(ob,
+                              inioff, inilincnt, inicolpos,
+                              _parlinoffset+_parcolidx,
+                              _parlincount, _parcolpos);
           return ob;
         }
       else goto failure;

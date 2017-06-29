@@ -2961,9 +2961,17 @@ public:
                                      long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/, long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/) {};
 #warning incomplete parsed_value signaling in MomParser
   /// signal parsing of sequence
-  virtual void parsed_value_sequence() {};
-  /// signal parsing of object
-  virtual void parsed_value_object() {};
+  virtual void parsed_value_sequence(const MomAnyObjSeq*seq, bool istuple,
+                                     long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/,
+                                     long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/)
+  {
+  };
+  /// signal parsing of objptr
+  virtual void parsed_value_objptr(MomObject* pob,
+                                   long /*inioffset*/, unsigned /*inilinecnt*/, int /*inicolpos*/,
+                                   long /*endoffset*/, unsigned /*endlinecnt*/, int /*endcolpos*/)
+  {
+  };
   /// signal parsing of node
   virtual void parsed_value_node() {};
 };				// end class MomParser
