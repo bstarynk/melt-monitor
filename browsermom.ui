@@ -284,6 +284,24 @@
             </object>
         </child>
 	<!-- end of browsertagtable_id object -->
-    </object>
+      </object>
+      <!-- *********************** -->
+      <object class='GtkTextTagTable' id='commandtagtable_id'>
+	<!-- ++++++ -->
+        <child type="tag">
+	  <!-- error_cmdtag for portion of command which is erroneous -->
+          <object class='GtkTextTag'>
+            <property name="name">error_cmdtag</property>
+            <property name="foreground">darkred</property>
+	  </object>
+	  <!-- null_cmdtag for prettyfication of null -->
+          <object class='GtkTextTag'>
+            <property name="name">null_cmdtag</property>
+            <property name="foreground">darkslategrey</property>
+	  </object>
+	</child>
+	<!-- ===== -->
+      </object>
+      <!-- end of commandtagtable_id -->
 </interface>
 

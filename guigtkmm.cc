@@ -30,15 +30,20 @@ class MomApplication : public Gtk::Application
   bool _app_dont_dump;
   Glib::RefPtr<Gtk::CssProvider> _app_css_provider;
   Glib::RefPtr<Gtk::Builder> _app_ui_builder;
-  Glib::RefPtr<Gtk::TextTagTable> _app_browse_tagtable;
+  Glib::RefPtr<Gtk::TextTagTable> _app_browser_tagtable;
+  Glib::RefPtr<Gtk::TextTagTable> _app_command_tagtable;
   friend int mom_run_gtkmm_gui(int& argc, char**argv);
   friend class MomMainWindow;
   void scan_own_gc(MomGC*);
 public:
-  static constexpr const int _max_depth_ = 16;
+  static constexpr const int _max_depth_ = 32;
   Glib::RefPtr<Gtk::TextTagTable> browser_tagtable(void)
   {
-    return _app_browse_tagtable;
+    return _app_browser_tagtable;
+  };
+  Glib::RefPtr<Gtk::TextTagTable> command_tagtable(void)
+  {
+    return _app_command_tagtable;
   };
   Glib::RefPtr<Gtk::CssProvider> css_provider(void)
   {
@@ -51,13 +56,21 @@ public:
   {
     return _itself_;
   };
-  Glib::RefPtr<Gtk::TextTag> lookup_tag (const Glib::ustring& name)
+  Glib::RefPtr<Gtk::TextTag> lookup_browser_tag (const Glib::ustring& name)
   {
-    return _app_browse_tagtable->lookup(name);
+    return _app_browser_tagtable->lookup(name);
   };
-  Glib::RefPtr<Gtk::TextTag> lookup_tag (const char*namestr)
+  Glib::RefPtr<Gtk::TextTag> lookup_browser_tag (const char*namestr)
   {
-    return lookup_tag (Glib::ustring(namestr));
+    return lookup_browser_tag (Glib::ustring(namestr));
+  };
+  Glib::RefPtr<Gtk::TextTag> lookup_command_tag (const Glib::ustring& name)
+  {
+    return _app_command_tagtable->lookup(name);
+  };
+  Glib::RefPtr<Gtk::TextTag> lookup_command_tag (const char*namestr)
+  {
+    return lookup_command_tag (Glib::ustring(namestr));
   };
   void on_parsing_css_error(const Glib::RefPtr<const Gtk::CssSection>& section, const Glib::Error& error);
   void on_startup(void);
@@ -220,6 +233,15 @@ public:
   void parse_command(MomParser*, bool apply=false);
 private:
   MomObject* browser_object_around(Gtk::TextIter txit);
+  Gtk::TextIter command_txiter_at_line_col(int lineno, int col) {
+    auto cmdbuf = _mwi_txvcmd.get_buffer();
+    Gtk::TextIter txit = cmdbuf->begin();
+    if (lineno>1)
+      txit.forward_lines(lineno-1);
+    if (col>0)
+      txit.forward_chars(col);
+    return txit;
+  };
   void browser_insert_object_mtim_space(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
   void browser_insert_object_attributes(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
   void browser_insert_object_components(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
@@ -235,7 +257,8 @@ MomApplication::MomApplication(int& argc, char**argv, const char*name)
     _app_dont_dump(false),
     _app_css_provider(),
     _app_ui_builder(),
-    _app_browse_tagtable()
+    _app_browser_tagtable(),
+    _app_command_tagtable()
 {
   _itself_ = this;
 };				// end MomApplication::MomApplication
@@ -269,6 +292,7 @@ MomApplication::on_activate(void)
   constexpr const char* browserui_path = "browsermom.ui";
   constexpr const char* browsercss_path = "browsermom.css";
   constexpr const char* browsertagtable_id = "browsertagtable_id";
+  constexpr const char* commandtagtable_id = "commandtagtable_id";
   MOM_DEBUGLOG(gui,"MomApplication::on_activate start"
                << MOM_SHOW_BACKTRACE("on_activate"));
   Gtk::Application::on_activate();
@@ -283,18 +307,32 @@ MomApplication::on_activate(void)
     Glib::RefPtr<Glib::Object>  plaintagtable = _app_ui_builder->get_object(browsertagtable_id);
     if (!plaintagtable)
       MOM_FATAPRINTF("failed to use UI file %s, can't find %s", browserui_path, browsertagtable_id);
-    _app_browse_tagtable = Glib::RefPtr<Gtk::TextTagTable>::cast_dynamic(plaintagtable);
-    if (!_app_browse_tagtable)
+    _app_browser_tagtable = Glib::RefPtr<Gtk::TextTagTable>::cast_dynamic(plaintagtable);
+    if (!_app_browser_tagtable)
       MOM_FATAPRINTF("failed to use UI file %s, %s is not a TextTagTable", browserui_path, browsertagtable_id);
     for (int d = 0; d<=_max_depth_; d++)
       {
-        _app_browse_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("open%1_tag", d)));
-        _app_browse_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("close%1_tag", d)));
+        _app_browser_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("open%1_tag", d)));
+        _app_browser_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("close%1_tag", d)));
       }
-    auto obtitletag = lookup_tag("object_title_tag");
+    auto obtitletag = lookup_browser_tag("object_title_tag");
     MOM_ASSERT(obtitletag, "on_activate nil obtitletag");
     obtitletag->set_priority(0);
 #warning should implement blink of matching open/close tags
+  }
+  /// initialize the command tag table
+  {
+    Glib::RefPtr<Glib::Object>  cmdtagtableob = _app_ui_builder->get_object(commandtagtable_id);
+    if (!cmdtagtableob)
+      MOM_FATAPRINTF("failed to use UI file %s, can't find %s", browserui_path, commandtagtable_id);
+    _app_command_tagtable = Glib::RefPtr<Gtk::TextTagTable>::cast_dynamic(cmdtagtableob);
+    if (!_app_command_tagtable)
+      MOM_FATAPRINTF("failed to use UI file %s, %s is not a TextTagTable", browserui_path, commandtagtable_id);
+    for (int d = 0; d<=_max_depth_; d++)
+      {
+        _app_command_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("open%1_cmdtag", d)));
+        _app_command_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("close%1_cmdtag", d)));
+      }
   }
   auto mainwin = new MomMainWindow();
   add_window(*mainwin);
@@ -302,6 +340,7 @@ MomApplication::on_activate(void)
   mainwin->show();
   MOM_DEBUGLOG(gui,"MomApplication::on_activate mainwin=" << mainwin);
 } // end MomApplication::on_activate
+
 
 Glib::RefPtr<MomApplication>
 MomApplication::create(int &argc, char**argv, const char*name)
@@ -1657,15 +1696,25 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   std::istringstream inscmd(strcmd);
   MomSimpleParser cmdpars(inscmd);
   cmdpars
-  .set_name("*cmd*")
-  .disable_exhaustion(true)
-  .set_no_build(!apply)
-  .set_debug(MOM_IS_DEBUGGING(gui));
+    .set_name("*cmd*")
+    .disable_exhaustion(true)
+    .set_no_build(!apply)
+    .set_debug(MOM_IS_DEBUGGING(gui));
+  cmdpars
+    .set_parsedval_nullfun ([&](MomSimpleParser*thisparser MOM_UNUSED,
+				long offset MOM_UNUSED, unsigned linecnt, int colpos) {
+       Gtk::TextIter txit = command_txiter_at_line_col(linecnt, colpos);
+       Gtk::TextIter endtxit = txit;
+       endtxit.forward_chars(2);
+       MOM_DEBUGLOG(gui, "prettify null cmd txit=" << MomShowTextIter(txit) << " endtxit=" << MomShowTextIter(endtxit));
+       txit.get_buffer()->apply_tag_by_name("null_cmdtag", txit, endtxit);
+     })
+  ;
 #warning should set a lot of prettification functions via set_parseval_* functions
   try
     {
       cmdpars.next_line().skip_spaces();
-      parse_command(&cmdpars);
+      parse_command(&cmdpars, apply);
       MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse parse_command done");
     }
   catch (MomParser::Mom_parse_failure pfail)
@@ -1727,7 +1776,7 @@ MomMainWindow::browser_update_title_banner(void)
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner start");
   auto it = _mwi_buf->begin();
   Gtk::TextIter begit =  it;
-  auto titletag = MomApplication::itself()->lookup_tag("page_title_tag");
+  auto titletag = MomApplication::itself()->lookup_browser_tag("page_title_tag");
   Gtk::TextIter endit = it;
   while(endit.has_tag(titletag))
     endit.forward_char();
