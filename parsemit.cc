@@ -344,6 +344,30 @@ MomParser::parse_int(bool *pgotint)
     }
 } // end MomParser::parse_int
 
+double
+MomParser::parse_double(bool *pgotdouble)
+{
+  skip_spaces();
+  auto inicolpos = _parcolpos;
+  auto inilincnt = _parlincount;
+  gunichar pc = 0, nc = 0;
+  peek_prevcurr_utf8(pc,nc,1);
+  if (pc<127 && (isdigit(pc)||(pc=='+'||pc=='-')))
+    {
+      const char*curp = curbytes();
+      char*endp = nullptr;
+      double d = strtod(curp, &endp);
+      if (endp>curp)
+        consume_bytes(endp-curp);
+      if (pgotdouble)
+        *pgotdouble = true;
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " double:" << d);
+      return d;
+    };
+  if (pgotdouble)
+    *pgotdouble = false;
+  return 0.0;
+} // end MomParser::parse_double
 
 void
 MomParser::unterminated_small_comment(const char*missing)
