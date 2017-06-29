@@ -1706,7 +1706,7 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   .set_named_fetch_fun([&](MomSimpleParser*thisparser,
                            const std::string&namstr)
   {
-    MomObject* ob = simple_named_object(namstr);
+    MomObject* ob = thisparser->simple_named_object(namstr);
     Gtk::TextIter txit = command_txiter_at_line_col(thisparser->lineno(),
                          thisparser->colpos());
     Gtk::TextIter endtxit = txit;
@@ -1725,6 +1725,7 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                      << " ob=" << ob);
         txit.get_buffer()->apply_tag_by_name("newname_cmdtag", txit, endtxit);
       }
+    return ob;
   })
   .set_parsedval_nullfun ([&](MomSimpleParser*thisparser MOM_UNUSED,
                               long offset MOM_UNUSED, unsigned linecnt, int colpos)
