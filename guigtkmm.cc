@@ -1696,11 +1696,15 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse strcmd=" << MomShowString(strcmd));
   std::istringstream inscmd(strcmd);
   MomSimpleParser cmdpars(inscmd);
+  char cmdnambuf[24];
+  memset (cmdnambuf, 0, sizeof(cmdnambuf));
+  snprintf(cmdnambuf, "*cmd#%d*", _mwi_winrank);
   cmdpars
-  .set_name("*cmd*")
+  .set_name(cmdnambuf)
   .disable_exhaustion(true)
   .set_no_build(!apply)
   .set_debug(MOM_IS_DEBUGGING(gui))
+  .set_signal_value(true)
   ;
   cmdpars
   .set_named_fetch_fun([&](MomSimpleParser*thisparser,
@@ -1803,41 +1807,47 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
   pars->skip_spaces();
   MOM_DEBUGLOG(gui, "MomMainWindow::parse_command start @ " << pars->location_str()
                << " " << MomShowString(pars->curbytes()));
+  while (!pars->eof())
+    {
+      pars->skip_spaces();
+      if (pars->eof())
+        break;
 #warning MomMainWindow::parse_command should have a loop till eof
-  if (pars->got_cstring("!"))
-    {
-      bool gotattr = false;
-      MomObject* pobattr = pars->parse_objptr(&gotattr);
-      if (!gotattr)
-        MOM_PARSE_FAILURE(pars, "expect object attribute after !");
-      bool gotval = false;
-      MomValue valattr = pars->parse_value(&gotval);
-      if (!gotval)
-        MOM_PARSE_FAILURE(pars, "expect value of attribute after !");
-      if (!_mwi_focusobj)
-        MOM_PARSE_FAILURE(pars, "expect focus object for !");
-      if (apply)
+      if (pars->got_cstring("!"))
         {
-          std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
-          _mwi_focusobj->unsync_put_phys_attr(pobattr, valattr);
+          bool gotattr = false;
+          MomObject* pobattr = pars->parse_objptr(&gotattr);
+          if (!gotattr)
+            MOM_PARSE_FAILURE(pars, "expect object attribute after !");
+          bool gotval = false;
+          MomValue valattr = pars->parse_value(&gotval);
+          if (!gotval)
+            MOM_PARSE_FAILURE(pars, "expect value of attribute after !");
+          if (!_mwi_focusobj)
+            MOM_PARSE_FAILURE(pars, "expect focus object for !");
+          if (apply)
+            {
+              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
+              _mwi_focusobj->unsync_put_phys_attr(pobattr, valattr);
+            }
         }
-    }
-  else if (pars->got_cstring("&"))
-    {
-      bool gotval = false;
-      MomValue valcomp = pars->parse_value(&gotval);
-      if (!gotval)
-        MOM_PARSE_FAILURE(pars, "expect value of component after &");
-      if (!_mwi_focusobj)
-        MOM_PARSE_FAILURE(pars, "expect focus object for &");
-      if (apply)
+      else if (pars->got_cstring("&"))
         {
-          std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
-          _mwi_focusobj->unsync_append_comp(valcomp);
+          bool gotval = false;
+          MomValue valcomp = pars->parse_value(&gotval);
+          if (!gotval)
+            MOM_PARSE_FAILURE(pars, "expect value of component after &");
+          if (!_mwi_focusobj)
+            MOM_PARSE_FAILURE(pars, "expect focus object for &");
+          if (apply)
+            {
+              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
+              _mwi_focusobj->unsync_append_comp(valcomp);
+            }
         }
+      else
+        MOM_PARSE_FAILURE(pars, "bad command");
     }
-  else
-    MOM_PARSE_FAILURE(pars, "bad command");
 } // end MomMainWindow::parse_command
 
 void
