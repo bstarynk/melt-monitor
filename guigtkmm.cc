@@ -179,7 +179,8 @@ private:
   Gtk::MenuItem _mwi_mit_object_show_hide;
   Gtk::MenuItem _mwi_mit_object_refresh;
   Gtk::MenuItem _mwi_mit_object_options;
-  Glib::RefPtr<Gtk::TextBuffer> _mwi_buf;
+  Glib::RefPtr<Gtk::TextBuffer> _mwi_browserbuf;
+  Glib::RefPtr<Gtk::TextBuffer> _mwi_commandbuf;
   // mark to end of title string, always followed by newline:
   Glib::RefPtr<Gtk::TextMark> _mwi_endtitlemark;
   int _mwi_dispdepth;
@@ -588,28 +589,28 @@ void
 MomMainWindow::display_full_browser(void)
 {
   int nbshownob = _mwi_shownobmap.size();
-  _mwi_buf->set_text("");
-  auto it = _mwi_buf->begin();
+  _mwi_browserbuf->set_text("");
+  auto it = _mwi_browserbuf->begin();
   if (nbshownob == 0)
-    it = _mwi_buf->insert_with_tag (it, " ~ no objects ~ ", "page_title_tag");
+    it = _mwi_browserbuf->insert_with_tag (it, " ~ no objects ~ ", "page_title_tag");
   else if (nbshownob == 1)
-    it = _mwi_buf->insert_with_tag (it, " ~ one object ~ ", "page_title_tag");
+    it = _mwi_browserbuf->insert_with_tag (it, " ~ one object ~ ", "page_title_tag");
   else
-    it = _mwi_buf->insert_with_tag (it, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob), "page_title_tag");
+    it = _mwi_browserbuf->insert_with_tag (it, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob), "page_title_tag");
   if (_mwi_endtitlemark)
     {
-      _mwi_buf->move_mark(_mwi_endtitlemark, it);
+      _mwi_browserbuf->move_mark(_mwi_endtitlemark, it);
     }
   else
     {
-      _mwi_endtitlemark = _mwi_buf->create_mark("end_title", it, /* left_gravity: */ true);
+      _mwi_endtitlemark = _mwi_browserbuf->create_mark("end_title", it, /* left_gravity: */ true);
     }
-  it = _mwi_buf->insert(it, "\n");
-  it = _mwi_buf->insert(it, "\n");
+  it = _mwi_browserbuf->insert(it, "\n");
+  it = _mwi_browserbuf->insert(it, "\n");
   for (auto itob : _mwi_shownobmap)
     {
       browser_insert_object_display(it, itob.first);
-      it = _mwi_buf->insert(it, "\n");
+      it = _mwi_browserbuf->insert(it, "\n");
     }
   MomObject* focuspob = _mwi_focusobj;
   _mwi_focusobj = nullptr; // to force the set focus to do something
@@ -624,7 +625,7 @@ MomMainWindow::browser_insert_space(Gtk::TextIter& txit, const std::vector<Glib:
   if (linoff >= _mwi_dispwidth)
     browser_insert_newline(txit,tags,depth);
   else
-    txit = _mwi_buf->insert_with_tags_by_name (txit, " ", tags);
+    txit = _mwi_browserbuf->insert_with_tags_by_name (txit, " ", tags);
 } // end MomMainWindow::browser_insert_space
 
 void
@@ -634,7 +635,7 @@ MomMainWindow::browser_insert_newline(Gtk::TextIter& txit, const std::vector<Gli
     depth=0;
   constexpr const char nlspaces[]
     = "\n                                                                ";
-  txit = _mwi_buf->insert_with_tags_by_name (txit, nlspaces, nlspaces + (depth % 16) + 1, tags);
+  txit = _mwi_browserbuf->insert_with_tags_by_name (txit, nlspaces, nlspaces + (depth % 16) + 1, tags);
 } // end MomMainWindow::browser_insert_newline
 
 
@@ -659,7 +660,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   bool found = false;
   if (itm == _mwi_shownobmap.end())
     {
-      auto begmark = _mwi_buf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ true);
+      auto begmark = _mwi_browserbuf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ true);
       auto pairitb = _mwi_shownobmap.emplace(pob,MomBrowsedObject(pob,begmark));
       itm = pairitb.first;
       found = false;
@@ -674,43 +675,43 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
                << ", txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_,7));
   MomBrowsedObject& shob = itm->second;
   if (found)
-    _mwi_buf->move_mark(shob._sh_startmark, txit);
+    _mwi_browserbuf->move_mark(shob._sh_startmark, txit);
   /// the title bar
   MOM_ASSERT(shob._sh_ob == pob, "MomMainWindow::browser_insert_object_display corrupted shob");
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << ", txit before asterism="
                << MomShowTextIter(txit, MomShowTextIter::_FULL_,7)
                << std::endl);
-  txit = _mwi_buf->insert_with_tag (txit, " \342\201\202 " /* U+2042 ASTERISM ⁂ */, "object_title_tag");
+  txit = _mwi_browserbuf->insert_with_tag (txit, " \342\201\202 " /* U+2042 ASTERISM ⁂ */, "object_title_tag");
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << ", txit after asterism="
                << MomShowTextIter(txit, MomShowTextIter::_FULL_,7)
                << std::endl);
   if (!obnamstr.empty())
     {
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,
               Glib::ustring(obnamstr.c_str()),
               std::vector<Glib::ustring> {"object_title_tag","object_title_name_tag"});
-      txit = _mwi_buf->insert_with_tag (txit, " = ", "object_title_tag");
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tag (txit, " = ", "object_title_tag");
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,
               Glib::ustring(obidbuf),
               std::vector<Glib::ustring> {"object_title_tag","object_title_id_tag"});
     }
   else   // anonymous
     {
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,
               Glib::ustring(obidbuf),
               std::vector<Glib::ustring> {"object_title_tag","object_title_anon_tag"});
     }
-  txit = _mwi_buf->insert_with_tags_by_name
+  txit = _mwi_browserbuf->insert_with_tags_by_name
          (txit,
           Glib::ustring::compose(" \360\235\235\231 %1 " /* U+1D759 MATHEMATICAL SANS-SERIF BOLD CAPITAL DELTA 𝝙 */,
                                  depth),
           std::vector<Glib::ustring> {"object_title_tag","object_title_depth_tag"});
-  txit = _mwi_buf->insert(txit, "\n");
+  txit = _mwi_browserbuf->insert(txit, "\n");
   if (pob == _mwi_focusobj)
     {
       Gtk::TextIter focstatxit = shob._sh_startmark->get_iter();
@@ -719,7 +720,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
       MOM_DEBUGLOG(gui, "browser_insert_object_display focus pob=" << pob
                    << "focstatxit ="  <<  MomShowTextIter(focstatxit, MomShowTextIter::_FULL_,10)
                    << "foceoltxit ="  <<  MomShowTextIter(foceoltxit, MomShowTextIter::_FULL_,10));
-      _mwi_buf->apply_tag_by_name("object_title_focus_tag", focstatxit, foceoltxit);
+      _mwi_browserbuf->apply_tag_by_name("object_title_focus_tag", focstatxit, foceoltxit);
     }
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob="
                << MomShowObject(pob) << ", txit after delta+nl="
@@ -729,28 +730,28 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
                << " txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_));
   /// show the modtime and the space
   browser_insert_object_mtim_space(txit, pob, shob);
-  txit = _mwi_buf->insert(txit, "\n");
+  txit = _mwi_browserbuf->insert(txit, "\n");
   MOM_DEBUGLOG(gui, "browser_insert_object_display before attributes pob=" << pob);
   /// show the attributes
   browser_insert_object_attributes(txit, pob, shob);
-  txit = _mwi_buf->insert(txit, "\n");
+  txit = _mwi_browserbuf->insert(txit, "\n");
   MOM_DEBUGLOG(gui, "browser_insert_object_display pob=" << pob << " before components");
   ///  show the components
   browser_insert_object_components(txit, pob, shob);
-  txit = _mwi_buf->insert(txit, "\n");
+  txit = _mwi_browserbuf->insert(txit, "\n");
   /// show the payload, if any
   MomPayload* payl = pob->unsync_payload();
   if (payl)
     {
       browser_insert_object_payload(txit,pob,shob);
-      txit = _mwi_buf->insert(txit, "\n");
+      txit = _mwi_browserbuf->insert(txit, "\n");
     }
-  txit = _mwi_buf->insert_with_tag (txit, "\342\254\236" /* U+2B1E WHITE VERY SMALL SQUARE ⬞ */, "object_end_tag");
+  txit = _mwi_browserbuf->insert_with_tag (txit, "\342\254\236" /* U+2B1E WHITE VERY SMALL SQUARE ⬞ */, "object_end_tag");
   if (shob._sh_endmark)
-    _mwi_buf->move_mark(shob._sh_endmark, txit);
+    _mwi_browserbuf->move_mark(shob._sh_endmark, txit);
   else
-    shob._sh_endmark  = _mwi_buf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
-  txit = _mwi_buf->insert(txit, "\n");
+    shob._sh_endmark  = _mwi_browserbuf->create_mark(Glib::ustring::compose("endmarkob_%1", obidbuf), txit, /*left_gravity:*/ false);
+  txit = _mwi_browserbuf->insert(txit, "\n");
   if (pob == _mwi_focusobj)
     {
       Gtk::TextIter focstatxit = shob._sh_startmark->get_iter();
@@ -758,7 +759,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
       MOM_DEBUGLOG(gui, "browser_insert_object_display focus pob=" << pob
                    << "focstatxit ="  <<  MomShowTextIter(focstatxit, MomShowTextIter::_FULL_,10)
                    << "focendtxit ="  <<  MomShowTextIter(focendtxit, MomShowTextIter::_FULL_,10));
-      _mwi_buf->apply_tag_by_name("object_focus_tag", focstatxit, focendtxit);
+      _mwi_browserbuf->apply_tag_by_name("object_focus_tag", focstatxit, focendtxit);
     }
   if (scrolltopview)
     {
@@ -815,26 +816,26 @@ MomMainWindow::browser_insert_object_mtim_space(Gtk::TextIter& txit, MomObject*p
                << ", mtim. txit="
                << MomShowTextIter(txit, MomShowTextIter::_FULL_)
                << ", mtimbuf=" << MomShowString(mtimbuf));
-  txit = _mwi_buf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
-  txit = _mwi_buf->insert(txit, " ");
+  txit = _mwi_browserbuf->insert_with_tag (txit, mtimbuf, "object_mtime_tag");
+  txit = _mwi_browserbuf->insert(txit, " ");
   auto spa = pob->space();
   switch (spa)
     {
     case MomSpace::TransientSp:
-      txit = _mwi_buf->insert_with_tag (txit, "\302\244" /*U+00A4 CURRENCY SIGN ¤ */,
-                                        "object_space_tag");
+      txit = _mwi_browserbuf->insert_with_tag (txit, "\302\244" /*U+00A4 CURRENCY SIGN ¤ */,
+             "object_space_tag");
       break;
     case MomSpace::PredefSp:
-      txit = _mwi_buf->insert_with_tag (txit, "\342\200\274" /*U+203C DOUBLE EXCLAMATION MARK ‼*/,
-                                        "object_space_tag");
+      txit = _mwi_browserbuf->insert_with_tag (txit, "\342\200\274" /*U+203C DOUBLE EXCLAMATION MARK ‼*/,
+             "object_space_tag");
       break;
     case MomSpace::GlobalSp:
-      txit = _mwi_buf->insert_with_tag (txit, "\342\200\242" /*U+2022 BULLET •*/,
-                                        "object_space_tag");
+      txit = _mwi_browserbuf->insert_with_tag (txit, "\342\200\242" /*U+2022 BULLET •*/,
+             "object_space_tag");
       break;
     case MomSpace::UserSp:
-      txit = _mwi_buf->insert_with_tag (txit, "\342\200\243" /*U+2023 TRIANGULAR BULLET ‣*/,
-                                        "object_space_tag");
+      txit = _mwi_browserbuf->insert_with_tag (txit, "\342\200\243" /*U+2023 TRIANGULAR BULLET ‣*/,
+             "object_space_tag");
       break;
     }
 } // end MomMainWindow::browser_insert_object_mtim_space
@@ -870,17 +871,17 @@ MomMainWindow::browser_insert_object_attributes(Gtk::TextIter& txit, MomObject*p
                  "%s %d attributes %s\n",
                  MomParser::_par_comment_start1_, nbattr, MomParser::_par_comment_end1_);
 
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,atitlebuf, tagsattrindex);
       for (auto itattr : mapattrs)
         {
           MomObject*pobattr = itattr.first;
           MomValue valattr = itattr.second;
-          txit = _mwi_buf->insert_with_tags_by_name
+          txit = _mwi_browserbuf->insert_with_tags_by_name
                  (txit, "\342\210\231 " /* U+2219 BULLET OPERATOR ∙ */, tagsattrs);
           browser_insert_objptr(txit, pobattr, &dctxattrs, tagsattrobj, 0);
           browser_insert_space(txit, tagsattrs, 1);
-          txit = _mwi_buf->insert_with_tags_by_name
+          txit = _mwi_browserbuf->insert_with_tags_by_name
                  (txit, "\342\206\246" /* U+21A6 RIGHTWARDS ARROW FROM BAR ↦ */, tagsattrs);
           browser_insert_space(txit, tagsattrs, 1);
           browser_insert_value(txit, valattr, &dctxattrs, tagsattrval, 1);
@@ -892,7 +893,7 @@ MomMainWindow::browser_insert_object_attributes(Gtk::TextIter& txit, MomObject*p
       snprintf(atitlebuf, sizeof(atitlebuf),
                "%s no attributes %s",
                MomParser::_par_comment_start1_, MomParser::_par_comment_end1_);
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,atitlebuf, tagsattrindex);
     }
 } // end MomMainWindow::browser_insert_object_attributes
@@ -927,14 +928,14 @@ MomMainWindow::browser_insert_object_components(Gtk::TextIter& txit, MomObject*p
                "%s %u components %s\n",
                MomParser::_par_comment_start1_, nbcomp, MomParser::_par_comment_end1_);
     }
-  txit = _mwi_buf->insert_with_tags_by_name
+  txit = _mwi_browserbuf->insert_with_tags_by_name
          (txit,atitlebuf, tagscompindex);
   for (unsigned ix=0; ix<nbcomp; ix++)
     {
       snprintf(atitlebuf, sizeof(atitlebuf),
                "%s #%u %s",
                MomParser::_par_comment_start1_, nbcomp, MomParser::_par_comment_end1_);
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,atitlebuf, tagscompindex);
       browser_insert_space(txit, tagscomps, 1);
       MomValue compval = pob->unsync_unsafe_comp_at(ix);
@@ -960,7 +961,7 @@ MomMainWindow::browser_insert_object_payload(Gtk::TextIter& txit, MomObject*pob,
            MomParser::_par_comment_start1_, payl->_py_vtbl->pyv_name,
            payl->_py_vtbl->pyv_module?:"_",
            MomParser::_par_comment_end1_);
-  txit = _mwi_buf->insert_with_tags_by_name
+  txit = _mwi_browserbuf->insert_with_tags_by_name
          (txit,atitlebuf, tagspaylindex);
   browser_insert_newline(txit, tagspayl, 0);
 #warning MomMainWindow::browser_insert_object_payload should probably display the payload wisely
@@ -974,7 +975,7 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisp
   if (!pob)
     {
       tagscopy.push_back("objocc_nil_tag");
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,
               "__",
               tagscopy);
@@ -992,7 +993,7 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisp
   if (obnamstr.empty())
     {
       tagscopy.push_back("objocc_anon_tag");
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,
               obidbuf,
               tagscopy);
@@ -1000,7 +1001,7 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisp
   else
     {
       tagscopy.push_back("objocc_named_tag");
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,
               obnamstr.c_str(),
               tagscopy);
@@ -1011,7 +1012,7 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisp
           tagscopy.pop_back();
           tagscopy.insert(tagscopy.begin(), "obid_comment_tag");
           snprintf(bufcommid, sizeof(bufcommid), " |=%s|", obidbuf);
-          txit = _mwi_buf->insert_with_tags_by_name
+          txit = _mwi_browserbuf->insert_with_tags_by_name
                  (txit,
                   bufcommid,
                   tagscopy);
@@ -1028,7 +1029,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
   if (val.is_empty())
     {
       tagscopy.push_back("value_nil_tag");
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,
               "__",
               tagscopy);
@@ -1041,7 +1042,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       memset(numbuf, 0, sizeof(numbuf));
       snprintf(numbuf, sizeof(numbuf), "%lld", (long long) iv);
       tagscopy.push_back("value_numerical_tag");
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,
               numbuf,
               tagscopy);
@@ -1051,7 +1052,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
   if (val.is_transient())
     {
       tagscopy.push_back("value_transient_tag");
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,
               "°",
               tagscopy);
@@ -1077,7 +1078,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       tagscopy.push_back("value_numberseq_tag");
       tagsindex.push_back("index_comment_tag");
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, "(#", tagscopy);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, "(#", tagscopy);
       for (unsigned ix=0; ix<sz; ix++)
         {
           char numbuf[32];
@@ -1090,15 +1091,15 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
                   browser_insert_space(txit, tagscopy, depth+1);
                   snprintf(numbuf, sizeof(numbuf), "|%d:|", ix);
                   txit =
-                    _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
+                    _mwi_browserbuf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
                 }
             }
           snprintf(numbuf, sizeof(numbuf), "%lld", (long long)isv->unsafe_at(ix));
           txit =
-            _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagscopy);
+            _mwi_browserbuf->insert_with_tags_by_name  (txit,  numbuf, tagscopy);
         }
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit,   "#)", tagscopy);
+        _mwi_browserbuf->insert_with_tags_by_name (txit,   "#)", tagscopy);
     }
     break;
     //////
@@ -1110,7 +1111,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       tagscopy.push_back("value_numberseq_tag");
       tagsindex.push_back("index_comment_tag");
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, "(:", tagscopy);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, "(:", tagscopy);
       for (unsigned ix=0; ix<sz; ix++)
         {
           char numbuf[48];
@@ -1123,15 +1124,15 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
                   browser_insert_space(txit, tagscopy, depth+1);
                   snprintf (numbuf, sizeof(numbuf), "|%d:|", ix);
                   txit =
-                    _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
+                    _mwi_browserbuf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
                 }
             }
           snprintf(numbuf, sizeof(numbuf), "%.15g", dsv->unsafe_at(ix));
           txit =
-            _mwi_buf->insert_with_tags_by_name (txit, numbuf, tagscopy);
+            _mwi_browserbuf->insert_with_tags_by_name (txit, numbuf, tagscopy);
         }
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, ":)",  tagscopy);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, ":)",  tagscopy);
     }
     break;
     ////
@@ -1140,7 +1141,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       std::vector<Glib::ustring> tagsescape = tags;
       auto strv = reinterpret_cast<const MomString*>(vv);
       std::string str = strv->string();
-      txit = _mwi_buf->insert_with_tags_by_name	(txit, "\"", tags);
+      txit = _mwi_browserbuf->insert_with_tags_by_name	(txit, "\"", tags);
       tagscopy.push_back("value_string_tag");
       tagsescape.push_back("value_stresc_tag");
       const char *s = str.c_str();
@@ -1154,57 +1155,57 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
           if ((linoff +2 >=  _mwi_dispwidth && pc + 10 < end)
               || (isspace(*pc) && linoff + 10 >=  2*_mwi_dispwidth/3 && pc + 10 < end))
             {
-              txit = _mwi_buf->insert_with_tags_by_name (txit, "\"", tags);
+              txit = _mwi_browserbuf->insert_with_tags_by_name (txit, "\"", tags);
               browser_insert_newline(txit, tags, depth);
-              txit = _mwi_buf->insert_with_tags_by_name (txit, "&+&", tagsescape);
-              txit = _mwi_buf->insert_with_tags_by_name (txit, " \"", tags);
+              txit = _mwi_browserbuf->insert_with_tags_by_name (txit, "&+&", tagsescape);
+              txit = _mwi_browserbuf->insert_with_tags_by_name (txit, " \"", tags);
             }
           uc = g_utf8_get_char (pc);
           switch (uc)
             {
             case 0:
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\0", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\0", tagsescape);
               break;
             case '\"':
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\\"", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\\"", tagsescape);
               break;
             case '\'':
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\\'", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\\'", tagsescape);
               break;
             case '\a':
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\a", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\a", tagsescape);
               break;
             case '\b':
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\b", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\b", tagsescape);
               break;
             case '\f':
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\f", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\f", tagsescape);
               break;
             case '\n':
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\n", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\n", tagsescape);
               break;
             case '\r':
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\r", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\r", tagsescape);
               break;
             case '\t':
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\t", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\t", tagsescape);
               break;
             case '\v':
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\v", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\v", tagsescape);
               break;
             case '\033' /*ESCAPE*/:
               txit =
-                _mwi_buf->insert_with_tags_by_name (txit, "\\e", tagsescape);
+                _mwi_browserbuf->insert_with_tags_by_name (txit, "\\e", tagsescape);
               break;
             default:
             {
@@ -1214,25 +1215,25 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
                 {
                   g_unichar_to_utf8(uc, buf);
                   txit =
-                    _mwi_buf->insert_with_tags_by_name (txit, buf, tagscopy);
+                    _mwi_browserbuf->insert_with_tags_by_name (txit, buf, tagscopy);
                 }
               else if (uc<0xffff)
                 {
                   snprintf (buf, sizeof (buf), "\\u%04x", (int) uc);
                   txit =
-                    _mwi_buf->insert_with_tags_by_name (txit, buf, tagsescape);
+                    _mwi_browserbuf->insert_with_tags_by_name (txit, buf, tagsescape);
                 }
               else
                 {
                   snprintf (buf, sizeof (buf), "\\U%08x", (int) uc);
                   txit =
-                    _mwi_buf->insert_with_tags_by_name (txit, buf, tagsescape);
+                    _mwi_browserbuf->insert_with_tags_by_name (txit, buf, tagsescape);
                 }
             }
             break;
             }
         }
-      txit = _mwi_buf->insert_with_tags_by_name
+      txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit, "\"", tags);
     }
     break;
@@ -1249,7 +1250,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       tagspairing.push_back("open_tag");
       tagspairing.push_back(Glib::ustring::compose("open%1_tag", depth));
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, (istuple?"[":"{"), tagspairing);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, (istuple?"[":"{"), tagspairing);
       for (unsigned ix=0; ix<sz; ix++)
         {
           if (ix>0)
@@ -1262,7 +1263,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
                   browser_insert_space(txit, tagscopy, depth+1);
                   snprintf(numbuf, sizeof(numbuf), "|%d:|", ix);
                   txit =
-                    _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
+                    _mwi_browserbuf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
                 }
             }
           browser_insert_objptr(txit, seqv->unsafe_at(ix), dcx,
@@ -1273,7 +1274,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       tagspairing.push_back("close_tag");
       tagspairing.push_back(Glib::ustring::compose("close%1_tag", depth));
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, (istuple?"]":"}"), tagspairing);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, (istuple?"]":"}"), tagspairing);
     }
     break;
     //////
@@ -1286,20 +1287,20 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       std::vector<Glib::ustring> tagspairing = tagscopy;
       tagsindex.push_back("index_comment_tag");
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, "*", tagscopy);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, "*", tagscopy);
       browser_insert_objptr(txit, nodv->conn(), dcx, tagscopy, depth);
       browser_insert_space(txit, tagscopy, depth);
       tagspairing.push_back("open_tag");
       tagspairing.push_back(Glib::ustring::compose("open%1_tag", depth));
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, "(", tagspairing);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, "(", tagspairing);
       if (depth >= _mwi_dispdepth)
         {
           txit =
-            _mwi_buf->insert_with_tags_by_name (txit,
-                                                // U+2026 HORIZONTAL ELLIPSIS …
-                                                "|\342\200\246|",
-                                                tagscopy);
+            _mwi_browserbuf->insert_with_tags_by_name (txit,
+                // U+2026 HORIZONTAL ELLIPSIS …
+                "|\342\200\246|",
+                tagscopy);
         }
       else
         {
@@ -1315,7 +1316,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
                       browser_insert_space(txit, tagscopy, depth+1);
                       snprintf(numbuf, sizeof(numbuf), "|%d:|", ix);
                       txit =
-                        _mwi_buf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
+                        _mwi_browserbuf->insert_with_tags_by_name  (txit,  numbuf, tagsindex);
                     }
                 }
               browser_insert_value(txit, nodv->unsafe_at(ix), dcx,
@@ -1327,7 +1328,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       tagspairing.push_back("close_tag");
       tagspairing.push_back(Glib::ustring::compose("close%1_tag", depth));
       txit =
-        _mwi_buf->insert_with_tags_by_name (txit, ")", tagspairing);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, ")", tagspairing);
     }
     break;
     //////
@@ -1393,15 +1394,16 @@ MomMainWindow::MomMainWindow()
     _mwi_mit_object_show_hide("_Show/hide",true),
     _mwi_mit_object_refresh("_Refresh",true),
     _mwi_mit_object_options("_Options",true),
-    _mwi_buf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
+    _mwi_browserbuf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
+    _mwi_commandbuf(Gtk::TextBuffer::create(MomApplication::itself()->command_tagtable())),
     _mwi_dispdepth(_default_display_depth_),
     _mwi_dispwidth(_default_display_width_),
     _mwi_dispid(false),
     _mwi_panedtx(Gtk::ORIENTATION_VERTICAL),
-    _mwi_txvtop(_mwi_buf), _mwi_txvbot(_mwi_buf),
+    _mwi_txvtop(_mwi_browserbuf), _mwi_txvbot(_mwi_browserbuf),
     _mwi_sepcmd(Gtk::ORIENTATION_HORIZONTAL),
     _mwi_scrcmd(),
-    _mwi_txvcmd(),
+    _mwi_txvcmd(_mwi_commandbuf),
     _mwi_statusbar(),
     _mwi_shownobmap(),
     _mwi_cmduseractim(0.0),
@@ -1690,7 +1692,7 @@ MomMainWindow::do_txcmd_end_user_action(void)
 void
 MomMainWindow::do_txcmd_prettify_parse(bool apply)
 {
-  auto cmdbuf = _mwi_txvcmd.get_buffer();
+  auto cmdbuf = _mwi_commandbuf;
   cmdbuf->remove_all_tags(cmdbuf->begin(), cmdbuf->end());
   std::string strcmd = cmdbuf->get_text();
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse strcmd=" << MomShowString(strcmd));
@@ -1721,8 +1723,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                      << " txit=" << MomShowTextIter(txit)
                      << " endtxit=" << MomShowTextIter(endtxit)
                      << " ob=" << ob);
-        txit.get_buffer()->apply_tag_by_name("knownname_cmdtag",
-                                             txit, endtxit);
+        cmdbuf->apply_tag_by_name("knownname_cmdtag",
+                                  txit, endtxit);
       }
     else
       {
@@ -1730,8 +1732,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                      << " txit=" << MomShowTextIter(txit)
                      << " endtxit=" << MomShowTextIter(endtxit)
                      << " ob=" << ob);
-        txit.get_buffer()->apply_tag_by_name("newname_cmdtag",
-                                             txit, endtxit);
+        cmdbuf->apply_tag_by_name("newname_cmdtag",
+                                  txit, endtxit);
       }
     return ob;
   })
@@ -1743,8 +1745,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     endtxit.forward_chars(2);
     MOM_DEBUGLOG(gui, "prettify null cmd txit=" << MomShowTextIter(txit)
                  << " endtxit=" << MomShowTextIter(endtxit));
-    txit.get_buffer()->apply_tag_by_name("null_cmdtag",
-                                         txit, endtxit);
+    cmdbuf->apply_tag_by_name("null_cmdtag",
+                              txit, endtxit);
   })
   .set_parsedval_strfun([&](MomSimpleParser*, const std::string&str,
                             long inioffset MOM_UNUSED, unsigned inilinecnt, int inicolpos,
@@ -1754,8 +1756,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
     MOM_DEBUGLOG(gui, "prettify string cmd initxit=" << MomShowTextIter(initxit)
                  << " endtxit=" << MomShowTextIter(endtxit));
-    initxit.get_buffer()->apply_tag_by_name("string_cmdtag",
-                                            initxit, endtxit);
+    cmdbuf->apply_tag_by_name("string_cmdtag",
+                              initxit, endtxit);
   })
   .set_parsedval_intfun([&](MomSimpleParser*, intptr_t num MOM_UNUSED,
                             long offset, unsigned linecnt, int colpos, int endcolpos)
@@ -1765,8 +1767,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     endtxit.forward_chars(endcolpos-colpos);
     MOM_DEBUGLOG(gui, "prettify int cmd initxit=" << MomShowTextIter(initxit)
                  << " endtxit=" << MomShowTextIter(endtxit));
-    initxit.get_buffer()->apply_tag_by_name("int_cmdtag",
-                                            initxit, endtxit);
+    cmdbuf->apply_tag_by_name("int_cmdtag",
+                              initxit, endtxit);
   })
   .set_parsedval_seqfun([&](MomSimpleParser*,
                             const MomAnyObjSeq*seq, bool istuple,
@@ -1780,8 +1782,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     MOM_DEBUGLOG(gui, "prettify cmd " << (istuple?"tuple":"set")
                  << " initxit=" << MomShowTextIter(initxit)
                  << " endtxit=" << MomShowTextIter(endtxit));
-    initxit.get_buffer()->apply_tag_by_name(istuple?"tuple_cmdtag":"set_cmdtag",
-                                            initxit, endtxit);
+    cmdbuf->apply_tag_by_name(istuple?"tuple_cmdtag":"set_cmdtag",
+                              initxit, endtxit);
   })
   ;
 #warning should set a lot of prettification functions via set_parseval_* functions
@@ -1854,7 +1856,7 @@ void
 MomMainWindow::browser_update_title_banner(void)
 {
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner start");
-  auto it = _mwi_buf->begin();
+  auto it = _mwi_browserbuf->begin();
   Gtk::TextIter begit =  it;
   auto titletag = MomApplication::itself()->lookup_browser_tag("page_title_tag");
   Gtk::TextIter endit = it;
@@ -1863,17 +1865,17 @@ MomMainWindow::browser_update_title_banner(void)
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner "
                << "begit=" << MomShowTextIter(begit)
                << ", endit=" << MomShowTextIter(endit));
-  _mwi_buf->erase(begit,endit);
-  begit =  _mwi_buf->begin();
+  _mwi_browserbuf->erase(begit,endit);
+  begit =  _mwi_browserbuf->begin();
   int nbshownob = _mwi_shownobmap.size();
   if (nbshownob == 0)
-    it = _mwi_buf->insert_with_tag (begit, " ~ no objects ~ ", titletag);
+    it = _mwi_browserbuf->insert_with_tag (begit, " ~ no objects ~ ", titletag);
   else if (nbshownob == 1)
-    it = _mwi_buf->insert_with_tag (begit, " ~ one object ~ ", titletag);
+    it = _mwi_browserbuf->insert_with_tag (begit, " ~ one object ~ ", titletag);
   else
-    it = _mwi_buf->insert_with_tag (begit, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob),
-                                    titletag);
-  _mwi_buf->move_mark(_mwi_endtitlemark, it);
+    it = _mwi_browserbuf->insert_with_tag (begit, Glib::ustring::compose(" ~ %1 objects ~ ", nbshownob),
+                                           titletag);
+  _mwi_browserbuf->move_mark(_mwi_endtitlemark, it);
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_update_title_banner end nbshownob=" << nbshownob);
 } // end MomMainWindow::browser_update_title_banner
 
@@ -1913,7 +1915,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
   if (shmbegit == shmendit)
     {
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object first object pob=" << MomShowObject(pob));
-      Gtk::TextIter txit = _mwi_buf->end();
+      Gtk::TextIter txit = _mwi_browserbuf->end();
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object empty txit="
                    << MomShowTextIter(txit));
       browser_insert_object_display(txit, pob, _SCROLL_TOP_VIEW_);
@@ -1931,7 +1933,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object redisplay pob=" << pob
                    << " oldstatxit=" << MomShowTextIter(oldstatxit, MomShowTextIter::_FULL_)
                    << " oldendtxit=" << MomShowTextIter(oldendtxit, MomShowTextIter::_FULL_));
-      _mwi_buf->erase(oldstatxit,oldendtxit);
+      _mwi_browserbuf->erase(oldstatxit,oldendtxit);
       Gtk::TextIter redisptxit = oldshowbob._sh_startmark->get_iter();
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object redisplay pob=" << pob
                    << " redisptxit="  << MomShowTextIter(redisptxit, MomShowTextIter::_FULL_));
@@ -1964,7 +1966,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object before begin txit="
                        << MomShowTextIter(txit, MomShowTextIter::_FULL_, 32)
                        << ", pob=" << MomShowObject(pob));
-          txit = _mwi_buf->insert(txit, "\n");
+          txit = _mwi_browserbuf->insert(txit, "\n");
           browser_insert_object_display(txit, pob);
         }
       else if (!beforend)
@@ -2070,9 +2072,9 @@ MomMainWindow::browser_hide_object(MomObject*pob)
       MOM_ASSERT(endtxit.get_offset() > statxit.get_offset(), "browser_hide_object"
                  << " statxit=" << MomShowTextIter(statxit, MomShowTextIter::_FULL_)
                  << " not before endtxit="  << MomShowTextIter(endtxit, MomShowTextIter::_FULL_));
-      _mwi_buf->erase(statxit,endtxit);
-      _mwi_buf->delete_mark(bob._sh_startmark);
-      _mwi_buf->delete_mark(bob._sh_endmark);
+      _mwi_browserbuf->erase(statxit,endtxit);
+      _mwi_browserbuf->delete_mark(bob._sh_startmark);
+      _mwi_browserbuf->delete_mark(bob._sh_endmark);
       _mwi_shownobmap.erase(shmit);
       browser_update_title_banner();
       std::string outmsg;
@@ -2107,12 +2109,12 @@ MomMainWindow::browser_set_focus_object(MomObject*pob)
           MOM_DEBUGLOG(gui, "browser_set_focus_object oldfocpob=" << MomShowObject(oldfocpob)
                        << " oldfocstatxit=" <<  MomShowTextIter(oldfocstatxit, MomShowTextIter::_FULL_,10)
                        << " oldfocendtxit=" <<  MomShowTextIter(oldfocendtxit, MomShowTextIter::_FULL_,10));
-          _mwi_buf->remove_tag_by_name("object_focus_tag", oldfocstatxit, oldfocendtxit);
+          _mwi_browserbuf->remove_tag_by_name("object_focus_tag", oldfocstatxit, oldfocendtxit);
           Gtk::TextIter oldfoceoltxit = oldfocstatxit;
           oldfoceoltxit.forward_line();
           MOM_DEBUGLOG(gui, "browser_set_focus_object oldfocpob=" << oldfocpob
                        << " oldfoceoltxit="  <<  MomShowTextIter(oldfoceoltxit, MomShowTextIter::_FULL_,10));
-          _mwi_buf->remove_tag_by_name("object_title_focus_tag", oldfocstatxit, oldfoceoltxit);
+          _mwi_browserbuf->remove_tag_by_name("object_title_focus_tag", oldfocstatxit, oldfoceoltxit);
         }
     };
   if (pob != nullptr)
@@ -2131,12 +2133,12 @@ MomMainWindow::browser_set_focus_object(MomObject*pob)
           MOM_DEBUGLOG(gui, "browser_set_focus_object pob=" << MomShowObject(pob)
                        << " newfocstatxit=" <<  MomShowTextIter(newfocstatxit, MomShowTextIter::_FULL_,10)
                        << " newfocendtxit=" <<  MomShowTextIter(newfocendtxit, MomShowTextIter::_FULL_,10));
-          _mwi_buf->apply_tag_by_name("object_focus_tag", newfocstatxit, newfocendtxit);
+          _mwi_browserbuf->apply_tag_by_name("object_focus_tag", newfocstatxit, newfocendtxit);
           Gtk::TextIter newfoceoltxit = newfocstatxit;
           newfoceoltxit.forward_line();
           MOM_DEBUGLOG(gui, "browser_set_focus_object pob=" << pob
                        << " newfoceoltxit="  <<  MomShowTextIter(newfoceoltxit, MomShowTextIter::_FULL_,10));
-          _mwi_buf->apply_tag_by_name("object_title_focus_tag", newfocstatxit, newfoceoltxit);
+          _mwi_browserbuf->apply_tag_by_name("object_title_focus_tag", newfocstatxit, newfoceoltxit);
         }
     }
   _mwi_focusobj = pob;
