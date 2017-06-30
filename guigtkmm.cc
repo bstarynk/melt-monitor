@@ -1711,6 +1711,8 @@ void
 MomMainWindow::do_txcmd_clear(void)
 {
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_clear");
+  _mwi_commandbuf->set_text("");
+  show_status_decisec("cleared command", 10);
 } // end MomMainWindow::do_txcmd_clear
 
 
@@ -1718,7 +1720,8 @@ void
 MomMainWindow::do_txcmd_run_but_keep(void)
 {
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_run_but_keep");
-} // end MomMainWindow::do_txcmd_clear
+  do_txcmd_prettify_parse(true);
+} // end MomMainWindow::do_txcmd_run_but_keep
 
 
 
@@ -1726,6 +1729,8 @@ void
 MomMainWindow::do_txcmd_run_then_clear(void)
 {
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_run_then_clear");
+  do_txcmd_prettify_parse(true);
+  _mwi_commandbuf->set_text("");
 } // end MomMainWindow::do_txcmd_clear
 
 
@@ -1871,7 +1876,7 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
       Glib::signal_timeout().connect_once
       ([=](void)
       {
-        if ( _mwi_cmdlastuseractim>cmduseractim)
+        if (!apply && _mwi_cmdlastuseractim>cmduseractim)
           return;
         MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse show error failmsg=" << MomShowString(failmsg));
         show_status_decisec(failmsg, _default_status_delay_deciseconds_);
@@ -1886,6 +1891,7 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
 void
 MomMainWindow::parse_command(MomParser*pars, bool apply)
 {
+  int nbmodif=0;
   MOM_ASSERT(pars != nullptr, "parse_command: null parser");
   pars->skip_spaces();
   MOM_DEBUGLOG(gui, "MomMainWindow::parse_command start @ " << pars->location_str()
@@ -1897,7 +1903,6 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
         break;
       MOM_DEBUGLOG(gui, "parse_command curbytes=" << MomShowString(pars->curbytes())
                    << " @" << pars->location_str());
-#warning MomMainWindow::parse_command should have a loop till eof
       if (pars->got_cstring("!"))
         {
           bool gotattr = false;
@@ -1914,6 +1919,8 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
             {
               std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
               _mwi_focusobj->unsync_put_phys_attr(pobattr, valattr);
+              browser_show_object(_mwi_focusobj);
+              nbmodif++;
             }
         }
       else if (pars->got_cstring("&"))
@@ -1928,10 +1935,30 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
             {
               std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
               _mwi_focusobj->unsync_append_comp(valcomp);
+              browser_show_object(_mwi_focusobj);
+              nbmodif++;
             }
         }
+      else if (pars->got_cstring("?"))
+        {
+          bool gotobj = false;
+          MomObject* pobfocus = pars->parse_objptr(&gotobj);
+          if (!gotobj)
+            MOM_PARSE_FAILURE(pars, "expect new focus object after ?");
+          browser_show_object(pobfocus);
+          browser_set_focus_object(pobfocus);
+        }
+
       else
         MOM_PARSE_FAILURE(pars, "bad command @" << pars->location_str());
+    }
+  MOM_DEBUGLOG(gui, "parse_command ending nbmodif=" << nbmodif);
+  if (apply)
+    {
+      char modifbuf[40];
+      memset (modifbuf, 0, sizeof(modifbuf));
+      snprintf(modifbuf, sizeof(modifbuf), "done %d modifications");
+      show_status_decisec(modifbuf, _default_status_delay_deciseconds_);
     }
 } // end MomMainWindow::parse_command
 
