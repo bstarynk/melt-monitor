@@ -1662,6 +1662,7 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
     em.out() << "@MAGIC!";
     em.emit_newline(0);
   }
+  MomObjptrSet setattrs;
   for (auto &p: _ob_attrs) {
     const MomObject*pobattr = p.first;
     if (!pobattr)
@@ -1671,8 +1672,13 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
     const MomValue valattr = p.second;
     if (!valattr || valattr.is_transient())
       continue;
+    setattrs.insert(pobattr);
+  }
+  for (auto pobcstattr: setattrs) {
+    auto pobattr = const_cast<MomObject*>(pobcstattr);
+    auto valattr = _ob_attrs.find(pobattr)->second;
     em.out() << "@: ";
-    em.emit_objptr(pobattr);
+    em.emit_objptr(pobcstattr);
     em.emit_space(1);
     em.emit_value(valattr);
     em.emit_newline(0);
