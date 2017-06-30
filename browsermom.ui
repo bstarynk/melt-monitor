@@ -293,6 +293,7 @@
           <object class='GtkTextTag'>
             <property name="name">error_cmdtag</property>
             <property name="foreground">darkred</property>
+            <property name="background">wheat</property>
 	  </object>
 	</child>
 	  <!-- null_cmdtag for prettification of null -->
@@ -330,7 +331,7 @@
         <child type="tag">
           <object class='GtkTextTag'>
             <property name="name">int_cmdtag</property>
-            <property name="foreground">dodgerblue4</property>
+            <property name="foreground">skyblue4</property>
 	    <property name="font">FreeMono Regular</property>
 	  </object>
 	</child>
