@@ -416,7 +416,7 @@ again:
       if (pgotval) *pgotval = true;
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " int:" << ll);
       if (_parsignalvalue)
-        parsed_value_int((intptr_t)ll, inioff, inilincnt, inicolpos, _parcolpos);
+        parsed_value_int((intptr_t)ll, inioff, inilincnt, inicolpos, _parcolpos+1);
       return _parnobuild?nullptr:MomValue((intptr_t)ll);
     }
   else if (isspace(pc))
@@ -603,7 +603,7 @@ again:
                 v.push_back(ll);
             }
           else
-            MOM_PARSE_FAILURE(this, "invalid integer sequence");
+            MOM_PARSE_FAILURE(this, "invalid integer sequence " << MomShowString(curbytes()));
         }
       if (pgotval)
         *pgotval = true;
