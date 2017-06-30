@@ -1686,11 +1686,35 @@ MomMainWindow::do_object_options(void)
 bool
 MomMainWindow::handle_txcmd_key_release(GdkEventKey*evk)
 {
+  // perhaps should also handle GDK_KEY_KP_Enter
   if (evk->keyval != GDK_KEY_Return)
     return false; // propagate the event
-  MOM_DEBUGLOG(gui, "handle_txcmd_key_release got return key");
+  auto modifiers = Gtk::AccelGroup::get_default_mod_mask();
+  bool withctrl = (evk->state & modifiers) == GDK_CONTROL_MASK;
+  bool withshift = (evk->state & modifiers) == GDK_SHIFT_MASK;
+  MOM_DEBUGLOG(gui, "handle_txcmd_key_release got return key"
+               << ' ' <<(withshift?"shifted":"unshifted")
+               << ' ' << (withctrl?"control":"nocontrol"));
+  if (withshift)
+    {
+      MOM_DEBUGLOG(gui, "handle_txcmd_key_release dealing with shift return");
+      do_txcmd_run_then_clear();
+      MOM_DEBUGLOG(gui, "handle_txcmd_key_release done with shift return");
+      return true;		// so retain, don't forward this event
+    }
+  else if (withctrl)
+    {
+      MOM_DEBUGLOG(gui, "handle_txcmd_key_release dealing with ctrl return");
+      do_txcmd_run_but_keep();
+      MOM_DEBUGLOG(gui, "handle_txcmd_key_release done with ctrl return");
+      return true;// so retain, don't forward this event
+    }
+  MOM_DEBUGLOG(gui, "handle_txcmd_key_release done & propagate plain return");
   return false; // propagate the event
-}
+}		// end MomMainWindow::handle_txcmd_key_release
+
+
+
 void
 MomMainWindow::do_txcmd_begin_user_action(void)
 {
@@ -1930,6 +1954,8 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
             {
               std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
               _mwi_focusobj->unsync_put_phys_attr(pobattr, valattr);
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command add into " << _mwi_focusobj
+                           << " pobattr=" << pobattr << " valattr=" << valattr);
               browser_show_object(_mwi_focusobj);
               nbmodif++;
             }
@@ -1946,6 +1972,8 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
             {
               std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
               _mwi_focusobj->unsync_append_comp(valcomp);
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command add into " << _mwi_focusobj
+                           << " valcomp=" << valcomp);
               browser_show_object(_mwi_focusobj);
               nbmodif++;
             }
@@ -1956,8 +1984,12 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
           MomObject* pobfocus = pars->parse_objptr(&gotobj);
           if (!gotobj)
             MOM_PARSE_FAILURE(pars, "expect new focus object after ?");
-          browser_show_object(pobfocus);
-          browser_set_focus_object(pobfocus);
+          if (apply)
+            {
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command show pobfocus=" << pobfocus);
+              browser_show_object(pobfocus);
+              browser_set_focus_object(pobfocus);
+            }
         }
 
       else
@@ -1968,7 +2000,8 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
     {
       char modifbuf[40];
       memset (modifbuf, 0, sizeof(modifbuf));
-      snprintf(modifbuf, sizeof(modifbuf), "done %d modifications");
+      snprintf(modifbuf, sizeof(modifbuf), "done %d modifications",
+               nbmodif);
       show_status_decisec(modifbuf, _default_status_delay_deciseconds_);
     }
 } // end MomMainWindow::parse_command
