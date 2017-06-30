@@ -933,8 +933,8 @@ MomMainWindow::browser_insert_object_components(Gtk::TextIter& txit, MomObject*p
   for (unsigned ix=0; ix<nbcomp; ix++)
     {
       snprintf(atitlebuf, sizeof(atitlebuf),
-               "%s #%u %s",
-               MomParser::_par_comment_start1_, nbcomp, MomParser::_par_comment_end1_);
+               "%s#%u%s",
+               MomParser::_par_comment_start1_, ix, MomParser::_par_comment_end1_);
       txit = _mwi_browserbuf->insert_with_tags_by_name
              (txit,atitlebuf, tagscompindex);
       browser_insert_space(txit, tagscomps, 1);
@@ -1809,7 +1809,13 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     }
   catch (MomParser::Mom_parse_failure pfail)
     {
-      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse  parse_command failed:" << pfail.what());
+      auto curlin = cmdpars.lineno();
+      auto colpos = cmdpars.colpos();
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse  parse_command failed:" << pfail.what()
+                   << std::endl << "... curlin=" << curlin << " colpos=" << colpos);
+      Gtk::TextIter errtxit = command_txiter_at_line_col(curlin, colpos);
+      Gtk::TextIter endtxit = _mwi_commandbuf->end();
+      cmdbuf->apply_tag_by_name("error_cmdtag",errtxit,endtxit);
     }
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse done");
 } // end MomMainWindow::do_txcmd_prettify_parse
