@@ -134,6 +134,7 @@ public:
   static constexpr const int _max_display_depth_ = 10;
   static constexpr const int _default_display_width_ = 72;
   static constexpr const int _default_status_delay_deciseconds_ = 33;
+  static constexpr const int _default_error_delay_milliseconds_ = 440;
   static constexpr const bool _SCROLL_TOP_VIEW_ = true;
   static constexpr const bool _DONT_SCROLL_TOP_VIEW_ = false;
   struct MomBrowsedObject
@@ -179,6 +180,9 @@ private:
   Gtk::MenuItem _mwi_mit_object_show_hide;
   Gtk::MenuItem _mwi_mit_object_refresh;
   Gtk::MenuItem _mwi_mit_object_options;
+  Gtk::MenuItem _mwi_mit_txcmd_clear;
+  Gtk::MenuItem _mwi_mit_txcmd_runclear;
+  Gtk::MenuItem _mwi_mit_txcmd_runkeep;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_browserbuf;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_commandbuf;
   // mark to end of title string, always followed by newline:
@@ -197,6 +201,7 @@ private:
   Gtk::Statusbar _mwi_statusbar;
   std::map<MomObject*,MomBrowsedObject,MomObjNameLess> _mwi_shownobmap;
   double _mwi_cmduseractim;
+  double _mwi_cmdlastuseractim;
   MomObject* _mwi_focusobj;
 public:
   MomMainWindow();
@@ -229,6 +234,10 @@ public:
   void do_txcmd_begin_user_action(void);
   void do_txcmd_changed(void);
   void do_txcmd_end_user_action(void);
+  void do_txcmd_populate_menu(Gtk::Menu*menu);
+  void do_txcmd_clear(void);
+  void do_txcmd_run_then_clear(void);
+  void do_txcmd_run_but_keep(void);
   void scan_gc(MomGC*);
   void do_txcmd_prettify_parse(bool apply=false);
   void parse_command(MomParser*, bool apply=false);
@@ -1394,6 +1403,9 @@ MomMainWindow::MomMainWindow()
     _mwi_mit_object_show_hide("_Show/hide",true),
     _mwi_mit_object_refresh("_Refresh",true),
     _mwi_mit_object_options("_Options",true),
+    _mwi_mit_txcmd_clear("_Clear",true),
+    _mwi_mit_txcmd_runclear("_Run then clear",true),
+    _mwi_mit_txcmd_runkeep("run but _Keep",true),
     _mwi_browserbuf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
     _mwi_commandbuf(Gtk::TextBuffer::create(MomApplication::itself()->command_tagtable())),
     _mwi_dispdepth(_default_display_depth_),
@@ -1407,6 +1419,7 @@ MomMainWindow::MomMainWindow()
     _mwi_statusbar(),
     _mwi_shownobmap(),
     _mwi_cmduseractim(0.0),
+    _mwi_cmdlastuseractim(0.0),
     _mwi_focusobj(nullptr)
 {
   {
@@ -1464,6 +1477,10 @@ MomMainWindow::MomMainWindow()
     cmdbuf->signal_changed().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_changed));
     cmdbuf->signal_end_user_action().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_end_user_action));
   }
+  _mwi_txvcmd.signal_populate_popup().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_populate_menu));
+  _mwi_mit_txcmd_clear.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_clear));
+  _mwi_mit_txcmd_runclear.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_run_then_clear));
+  _mwi_mit_txcmd_runkeep.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_run_but_keep));
   set_default_size(630,480);
   property_title().set_value(Glib::ustring::compose("mom window #%1", _mwi_winrank));
   display_full_browser();
@@ -1667,7 +1684,7 @@ void
 MomMainWindow::do_txcmd_begin_user_action(void)
 {
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_begin_user_action");
-  _mwi_cmduseractim = mom_clock_time(CLOCK_REALTIME);
+  _mwi_cmduseractim = _mwi_cmdlastuseractim = mom_clock_time(CLOCK_REALTIME);
 } // end MomMainWindow::do_txcmd_begin_user_action
 
 void
@@ -1678,6 +1695,39 @@ MomMainWindow::do_txcmd_changed(void)
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed start");
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_changed end");
 } // end MomMainWindow::do_txcmd_changed
+
+void
+MomMainWindow::do_txcmd_populate_menu(Gtk::Menu*menu)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_populate_menu start");
+  menu->prepend(_mwi_mit_txcmd_runkeep);
+  menu->prepend(_mwi_mit_txcmd_runclear);
+  menu->prepend(_mwi_mit_txcmd_clear);
+  menu->show_all_children();
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_populate_menu end");
+} // end MomMainWindow::do_txcmd_populate_menu
+
+void
+MomMainWindow::do_txcmd_clear(void)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_clear");
+} // end MomMainWindow::do_txcmd_clear
+
+
+void
+MomMainWindow::do_txcmd_run_but_keep(void)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_run_but_keep");
+} // end MomMainWindow::do_txcmd_clear
+
+
+
+void
+MomMainWindow::do_txcmd_run_then_clear(void)
+{
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_run_then_clear");
+} // end MomMainWindow::do_txcmd_clear
+
 
 void
 MomMainWindow::do_txcmd_end_user_action(void)
@@ -1811,11 +1861,22 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     {
       auto curlin = cmdpars.lineno();
       auto colpos = cmdpars.colpos();
-      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse  parse_command failed:" << pfail.what()
+      std::string failmsg = pfail.what();
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse  parse_command failed:" << failmsg
                    << std::endl << "... curlin=" << curlin << " colpos=" << colpos);
       Gtk::TextIter errtxit = command_txiter_at_line_col(curlin, colpos);
       Gtk::TextIter endtxit = _mwi_commandbuf->end();
       cmdbuf->apply_tag_by_name("error_cmdtag",errtxit,endtxit);
+      double cmduseractim = _mwi_cmduseractim;
+      Glib::signal_timeout().connect_once
+      ([=](void)
+      {
+        if ( _mwi_cmdlastuseractim>cmduseractim)
+          return;
+        MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse show error failmsg=" << MomShowString(failmsg));
+        show_status_decisec(failmsg, _default_status_delay_deciseconds_);
+      },
+      _default_error_delay_milliseconds_+3);
     }
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse done");
 } // end MomMainWindow::do_txcmd_prettify_parse
