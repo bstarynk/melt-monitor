@@ -240,6 +240,7 @@ public:
   void do_txcmd_run_but_keep(void);
   void scan_gc(MomGC*);
   void do_txcmd_prettify_parse(bool apply=false);
+  bool handle_txcmd_key_release(GdkEventKey*);
   void parse_command(MomParser*, bool apply=false);
 private:
   MomObject* browser_object_around(Gtk::TextIter txit);
@@ -1478,6 +1479,8 @@ MomMainWindow::MomMainWindow()
     cmdbuf->signal_end_user_action().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_end_user_action));
   }
   _mwi_txvcmd.signal_populate_popup().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_populate_menu));
+  _mwi_txvcmd.add_events(Gdk::KEY_RELEASE_MASK);
+  _mwi_txvcmd.signal_key_press_event().connect(sigc::mem_fun(this,&MomMainWindow::handle_txcmd_key_release), false);
   _mwi_mit_txcmd_clear.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_clear));
   _mwi_mit_txcmd_runclear.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_run_then_clear));
   _mwi_mit_txcmd_runkeep.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_run_but_keep));
@@ -1680,6 +1683,14 @@ MomMainWindow::do_object_options(void)
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_options end");
 } // end MomMainWindow::do_object_options
 
+bool
+MomMainWindow::handle_txcmd_key_release(GdkEventKey*evk)
+{
+  if (evk->keyval != GDK_KEY_Return)
+    return false; // propagate the event
+  MOM_DEBUGLOG(gui, "handle_txcmd_key_release got return key");
+  return false; // propagate the event
+}
 void
 MomMainWindow::do_txcmd_begin_user_action(void)
 {
