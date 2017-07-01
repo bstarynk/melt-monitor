@@ -76,6 +76,10 @@ public:
   {
     return lookup_command_tag (Glib::ustring(namestr));
   };
+  unsigned nb_command_tags() const
+  {
+    return _app_command_tagtable->get_size();
+  };
   void on_parsing_css_error(const Glib::RefPtr<const Gtk::CssSection>& section, const Glib::Error& error);
   void on_startup(void);
   void on_activate(void);
@@ -270,6 +274,7 @@ public:
   void do_txcmd_changed(void);
   void do_txcmd_end_user_action(void);
   void do_txcmd_populate_menu(Gtk::Menu*menu);
+  void do_txcmd_mark_set(const Gtk::TextIter& locit, const Glib::RefPtr<Gtk::TextMark>& mark);
   void do_txcmd_clear(void);
   void do_txcmd_run_then_clear(void);
   void do_txcmd_run_but_keep(void);
@@ -383,7 +388,7 @@ MomApplication::on_activate(void)
       }
     auto cmderrtag = lookup_command_tag("error_cmdtag");
     MOM_ASSERT(cmderrtag, "on_activate nil cmderrtag");
-    cmderrtag->set_priority(0);
+    cmderrtag->set_priority(MomApplication::itself()->nb_command_tags()-1);
   }
   auto mainwin = new MomMainWindow();
   add_window(*mainwin);
@@ -1582,12 +1587,20 @@ MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
     return;
   do_browser_unblink_insert();
   MomObject*pob = browser_object_around(locit);
-  MOM_DEBUGLOG(blinkgui, "do_browser_mark_set insertmark locit=" << MomShowTextIter(locit)
+  MOM_DEBUGLOG(gui, "do_browser_mark_set insertmark locit=" << MomShowTextIter(locit)
                << " around pob=" << pob);
   if (pob)
     do_browser_blink_insert();
 } // end MomMainWindow::do_browser_mark_set
 
+void
+MomMainWindow::do_txcmd_mark_set(const Gtk::TextIter& locit,
+                                   const Glib::RefPtr<Gtk::TextMark>& mark)
+{
+  if (mark != _mwi_browserbuf->get_insert())
+    return;
+  MOM_DEBUGLOG(gui, "do_txcmd_mark_set insertmark locit=" << MomShowTextIter(locit));
+} // end MomMainWindow::do_txcmd_mark_set
 
 bool
 MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomParenOffsets*&po,
@@ -1783,6 +1796,7 @@ MomMainWindow::MomMainWindow()
   _mwi_mit_txcmd_clear.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_clear));
   _mwi_mit_txcmd_runclear.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_run_then_clear));
   _mwi_mit_txcmd_runkeep.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_run_but_keep));
+  _mwi_commandbuf->signal_mark_set().connect(sigc::mem_fun(*this,&MomMainWindow::do_txcmd_mark_set));
   set_default_size(630,480);
   property_title().set_value(Glib::ustring::compose("mom window #%1", _mwi_winrank));
   Glib::signal_timeout().connect
