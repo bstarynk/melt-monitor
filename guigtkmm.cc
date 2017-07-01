@@ -1957,6 +1957,7 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
             {
               std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
               _mwi_focusobj->unsync_put_phys_attr(pobattr, valattr);
+              _mwi_focusobj->touch();
               MOM_DEBUGLOG(gui, "MomMainWindow::parse_command add into " << _mwi_focusobj
                            << " pobattr=" << pobattr << " valattr=" << valattr);
               browser_show_object(_mwi_focusobj);
@@ -1975,6 +1976,7 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
             {
               std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
               _mwi_focusobj->unsync_append_comp(valcomp);
+              _mwi_focusobj->touch();
               MOM_DEBUGLOG(gui, "MomMainWindow::parse_command add into " << _mwi_focusobj
                            << " valcomp=" << valcomp);
               browser_show_object(_mwi_focusobj);
