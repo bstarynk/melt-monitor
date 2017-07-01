@@ -135,6 +135,8 @@ public:
   static constexpr const int _default_display_width_ = 72;
   static constexpr const int _default_status_delay_deciseconds_ = 33;
   static constexpr const int _default_error_delay_milliseconds_ = 440;
+  static constexpr const int _blink_period_milliseconds = 666;
+  static constexpr const int _blink_delay_milliseconds = 300;
   static constexpr const bool _SCROLL_TOP_VIEW_ = true;
   static constexpr const bool _DONT_SCROLL_TOP_VIEW_ = false;
   struct MomParenOffsets
@@ -223,6 +225,9 @@ private:
   Gtk::TextView _mwi_txvcmd;
   Gtk::Statusbar _mwi_statusbar;
   std::map<MomObject*,MomBrowsedObject,MomObjNameLess> _mwi_browsedobmap;
+  Glib::RefPtr<Gtk::TextMark> _mwi_startblink;
+  Glib::RefPtr<Gtk::TextMark> _mwi_xtrablink;
+  Glib::RefPtr<Gtk::TextMark> _mwi_endblink;
   double _mwi_cmduseractim;
   double _mwi_cmdlastuseractim;
   MomObject* _mwi_focusobj;
@@ -255,7 +260,7 @@ public:
   void do_object_refresh(void);
   void do_object_options(void);
   void do_browser_mark_set(const Gtk::TextIter& locit, const Glib::RefPtr<Gtk::TextMark>& mark);
-  void do_browser_blink_insert(void);
+  bool do_browser_blink_insert(void);
   void do_browser_unblink_insert(void);
   void do_txcmd_begin_user_action(void);
   void do_txcmd_changed(void);
@@ -358,7 +363,8 @@ MomApplication::on_activate(void)
     auto obtitletag = lookup_browser_tag("object_title_tag");
     MOM_ASSERT(obtitletag, "on_activate nil obtitletag");
     obtitletag->set_priority(0);
-#warning should implement blink of matching open/close tags
+    auto blinktag = lookup_browser_tag("blink_tag");
+    blinktag->set_priority(1);
   }
   /// initialize the command tag table
   {
@@ -1462,7 +1468,7 @@ MomMainWindow::browser_object_around(Gtk::TextIter txit)
   return nullptr;
 } // end MomMainWindow::browser_object_around
 
-void
+bool
 MomMainWindow::do_browser_blink_insert(void)
 {
   MOM_DEBUGLOG(gui, "do_browser_blink_insert start");
@@ -1473,12 +1479,89 @@ MomMainWindow::do_browser_blink_insert(void)
   MOM_DEBUGLOG(gui, "do_browser_blink_insert end found=" << found
                << " pbob=" << pbob << " ppo=" << ppo
                << " opening=" << opening << " closing=" << closing);
+  if (found && ppo != nullptr && pbob != nullptr)
+    {
+      MomObject*pob = pbob->_sh_ob;
+      Gtk::TextIter startxit = pbob->_sh_startmark->get_iter();
+      Gtk::TextIter opentxit = startxit;
+      Gtk::TextIter closetxit = startxit;
+      Gtk::TextIter xtratxit = startxit;
+      int offopen = ppo->paroff_open;
+      int offclose = ppo->paroff_close;
+      int offxtra = ppo->paroff_xtra;
+      int openlen = ppo->paroff_openlen;
+      int closelen = ppo->paroff_closelen;
+      int xtralen = ppo->paroff_xtralen;
+      MOM_DEBUGLOG(gui, "do_browser_blink_insert in pob=" << pob << " offopen=" << offopen
+                   << " openlen=" << openlen
+                   << " offclose=" << offclose << " closelen=" << closelen
+                   << " offxtra=" << offxtra << " xtralen=" << xtralen);
+      opentxit.forward_chars(offopen);
+      closetxit.forward_chars(offclose);
+      _mwi_startblink = _mwi_browserbuf->create_mark("start_blink", opentxit);
+      if (openlen>0)
+        {
+          Gtk::TextIter endopentxit = opentxit;
+          endopentxit.forward_chars(openlen);
+          MOM_DEBUGLOG(gui, "do_browser_blink_insert in pob=" << pob << " opentxit=" << MomShowTextIter(opentxit)
+                       << " endopentxit=" << MomShowTextIter(endopentxit));
+          _mwi_browserbuf->apply_tag_by_name("blink_tag", opentxit, endopentxit);
+        }
+      _mwi_endblink = _mwi_browserbuf->create_mark("end_blink", closetxit);
+      if (closelen>0)
+        {
+          Gtk::TextIter begclosetxit = closetxit;
+          begclosetxit.backward_chars(closelen);
+          MOM_DEBUGLOG(gui, "do_browser_blink_insert in pob=" << pob << " begclosetxit=" << MomShowTextIter(begclosetxit)
+                       << " closetxit=" << MomShowTextIter(closetxit));
+          _mwi_browserbuf->apply_tag_by_name("blink_tag", begclosetxit, closetxit);
+        }
+      if (xtralen>0)
+        {
+          Gtk::TextIter xtratxit= startxit;
+          xtratxit.forward_chars(offxtra);
+          Gtk::TextIter endxtratxit = xtratxit;
+          endxtratxit.forward_chars(xtralen);
+          MOM_DEBUGLOG(gui, "do_browser_blink_insert in pob=" << pob << " xtratxit=" << MomShowTextIter(xtratxit)
+                       << " endxtratxit=" << MomShowTextIter(endxtratxit));
+          _mwi_browserbuf->apply_tag_by_name("blink_tag", xtratxit, endxtratxit);
+        }
+      Glib::signal_timeout().connect_once
+      (sigc::mem_fun(this,&MomMainWindow::do_browser_unblink_insert),
+       _blink_delay_milliseconds);
+    }
+  else
+    {
+      MOM_DEBUGLOG(gui, "do_browser_blink_insert outside");
+      _mwi_startblink.clear();
+      _mwi_xtrablink.clear();
+      _mwi_endblink.clear();
+    }
+  return true;
 } // end MomMainWindow::do_browser_blink_insert
 
 void
 MomMainWindow::do_browser_unblink_insert(void)
 {
   MOM_DEBUGLOG(gui, "do_browser_unblink_insert start");
+  if (_mwi_startblink && _mwi_endblink)
+    {
+      Gtk::TextIter startxit = _mwi_startblink->get_iter();
+      Gtk::TextIter endtxit = _mwi_endblink->get_iter();
+      MOM_DEBUGLOG(gui, "do_browser_unblink_insert startxit=" << MomShowTextIter(startxit)
+                   << " endtxit=" << MomShowTextIter(endtxit));
+      _mwi_browserbuf->remove_tag_by_name("blink_tag", startxit, endtxit);
+      if (_mwi_xtrablink)
+        {
+          Gtk::TextIter xtratxit = _mwi_xtrablink->get_iter();
+          MOM_DEBUGLOG(gui, "do_browser_unblink_insert xtraxit=" << MomShowTextIter(xtratxit)
+                       << " startxit=" << MomShowTextIter(startxit));
+          _mwi_browserbuf->remove_tag_by_name("blink_tag", xtratxit, startxit);
+        }
+    }
+  _mwi_startblink.clear();
+  _mwi_xtrablink.clear();
+  _mwi_endblink.clear();
 } // end MomMainWindow::do_browser_unblink_insert
 
 void
@@ -1487,13 +1570,12 @@ MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
 {
   if (mark != _mwi_browserbuf->get_insert())
     return;
+  do_browser_unblink_insert();
   MomObject*pob = browser_object_around(locit);
   MOM_DEBUGLOG(gui, "do_browser_mark_set insertmark locit=" << MomShowTextIter(locit)
                << " around pob=" << pob);
   if (pob)
     do_browser_blink_insert();
-  else
-    do_browser_unblink_insert();
 } // end MomMainWindow::do_browser_mark_set
 
 bool
@@ -1552,11 +1634,23 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
         return true;
       }
   }
-  // we should find first an closing paren after the mark
-#warning found_browsed_object_around_insert incomplete
-  MOM_WARNLOG("found_browsed_object_around_insert incomplete insertxit=" << MomShowTextIter(insertxit)
-              << " pob=" << pob << " markoff=" << markoff);
-  po = nullptr;
+  {
+    auto afterit = showbob._sh_closemap.lower_bound(markoff);
+    if (afterit != showbob._sh_closemap.end())
+      {
+        po = &afterit->second;
+        MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+                     << " after, pob=" << pob << std::endl
+                     << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
+                     << " close=" << (int)(po->paroff_close) << " closelen=" << (int)(po->paroff_closelen) << std::endl
+                     << ".. xtra=" << (int)(po->paroff_xtra) << " xtralen=" << (int)(po->paroff_xtralen)
+                     << " depth=" << (int)(po->paroff_depth)
+                    );
+        return true;
+      }
+  }
+  MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+               << " none, pob=" << pob);
   return true;
 } // end MomMainWindow::found_browsed_object_around_insert
 
@@ -1678,6 +1772,9 @@ MomMainWindow::MomMainWindow()
   _mwi_mit_txcmd_runkeep.signal_activate().connect(sigc::mem_fun(this,&MomMainWindow::do_txcmd_run_but_keep));
   set_default_size(630,480);
   property_title().set_value(Glib::ustring::compose("mom window #%1", _mwi_winrank));
+  Glib::signal_timeout().connect
+  (sigc::mem_fun(this,&MomMainWindow::do_browser_blink_insert),
+   _blink_period_milliseconds);
   display_full_browser();
   show_all_children();
 };				// end MomMainWindow::MomMainWindow
