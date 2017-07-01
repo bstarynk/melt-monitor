@@ -254,6 +254,7 @@ public:
   void do_object_show_hide(void);
   void do_object_refresh(void);
   void do_object_options(void);
+  void do_browser_mark_set(const Gtk::TextIter& locit, const Glib::RefPtr<Gtk::TextMark>& mark);
   void do_txcmd_begin_user_action(void);
   void do_txcmd_changed(void);
   void do_txcmd_end_user_action(void);
@@ -1439,6 +1440,15 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
     }
 } // end MomMainWindow::browser_insert_value
 
+void
+MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
+                                   const Glib::RefPtr<Gtk::TextMark>& mark)
+{
+  Glib::ustring markname=mark->get_name();
+  MOM_DEBUGLOG(gui, "do_browser_mark_set locit=" << MomShowTextIter(locit)
+               << " mark=" << (markname.empty()?(markname.c_str()):"*nil*"));
+} // end MomMainWindow::do_browser_mark_set
+
 MomObject*
 MomMainWindow::browser_object_around(Gtk::TextIter txit)
 {
@@ -1552,6 +1562,7 @@ MomMainWindow::MomMainWindow()
   _mwi_panedtx.add1(_mwi_scrwtop);
   _mwi_panedtx.add2(_mwi_scrwbot);
   _mwi_panedtx.set_wide_handle(true);
+  _mwi_browserbuf->signal_mark_set().connect(sigc::mem_fun(*this,&MomMainWindow::do_browser_mark_set));
   {
     _mwi_vbox.pack_start(_mwi_sepcmd,Gtk::PACK_SHRINK);
     _mwi_vbox.pack_start(_mwi_scrcmd,Gtk::PACK_SHRINK);
