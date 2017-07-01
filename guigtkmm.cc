@@ -1465,11 +1465,20 @@ MomMainWindow::browser_object_around(Gtk::TextIter txit)
 void
 MomMainWindow::do_browser_blink_insert(void)
 {
-}
+  MOM_DEBUGLOG(gui, "do_browser_blink_insert start");
+  MomBrowsedObject* pbob = nullptr;
+  MomParenOffsets* ppo=nullptr;
+  bool opening=false, closing=false;
+  bool found = found_browsed_object_around_insert(pbob, ppo,opening,closing);
+  MOM_DEBUGLOG(gui, "do_browser_blink_insert end found=" << found
+               << " pbob=" << pbob << " ppo=" << ppo
+               << " opening=" << opening << " closing=" << closing);
+} // end MomMainWindow::do_browser_blink_insert
 
 void
 MomMainWindow::do_browser_unblink_insert(void)
 {
+  MOM_DEBUGLOG(gui, "do_browser_unblink_insert start");
 } // end MomMainWindow::do_browser_unblink_insert
 
 void
@@ -1519,10 +1528,10 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
         opening = true;
         MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                      << " opening pob=" << pob << std::endl
-                     << ".. paroff: open=" << po->paroff_open << " openlen=" << po->paroff_openlen
-                     << " close=" << po->paroff_close << " closelen=" << po->paroff_closelen << std::endl
-                     << ".. xtra=" << po->paroff_xtra << " xtralen=" << po->paroff_xtralen
-                     << " depth=" << po->paroff_depth
+                     << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
+                     << " close=" << (int)(po->paroff_close) << " closelen=" << (int)(po->paroff_closelen) << std::endl
+                     << ".. xtra=" << (int)(po->paroff_xtra) << " xtralen=" << (int)(po->paroff_xtralen)
+                     << " depth=" << (int)(po->paroff_depth)
                     );
         return true;
       }
@@ -1535,10 +1544,10 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
         closing = true;
         MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                      << " closing pob=" << pob << std::endl
-                     << ".. paroff: open=" << po->paroff_open << " openlen=" << po->paroff_openlen
-                     << " close=" << po->paroff_close << " closelen=" << po->paroff_closelen << std::endl
-                     << ".. xtra=" << po->paroff_xtra << " xtralen=" << po->paroff_xtralen
-                     << " depth=" << po->paroff_depth
+                     << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
+                     << " close=" << (int)(po->paroff_close) << " closelen=" << (int)(po->paroff_closelen) << std::endl
+                     << ".. xtra=" << (int)(po->paroff_xtra) << " xtralen=" << (int)(po->paroff_xtralen)
+                     << " depth=" << (int)(po->paroff_depth)
                     );
         return true;
       }
@@ -1546,7 +1555,7 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
   // we should find first an closing paren after the mark
 #warning found_browsed_object_around_insert incomplete
   MOM_WARNLOG("found_browsed_object_around_insert incomplete insertxit=" << MomShowTextIter(insertxit)
-              << " pob=" << pob);
+              << " pob=" << pob << " markoff=" << markoff);
   po = nullptr;
   return true;
 } // end MomMainWindow::found_browsed_object_around_insert
