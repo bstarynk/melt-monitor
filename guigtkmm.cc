@@ -345,6 +345,9 @@ MomApplication::on_activate(void)
         _app_command_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("open%1_cmdtag", d)));
         _app_command_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("close%1_cmdtag", d)));
       }
+    auto cmderrtag = lookup_command_tag("error_cmdtag");
+    MOM_ASSERT(cmderrtag, "on_activate nil cmderrtag");
+    cmderrtag->set_priority(0);
   }
   auto mainwin = new MomMainWindow();
   add_window(*mainwin);
