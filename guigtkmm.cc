@@ -222,7 +222,7 @@ private:
   Gtk::ScrolledWindow _mwi_scrcmd;
   Gtk::TextView _mwi_txvcmd;
   Gtk::Statusbar _mwi_statusbar;
-  std::map<MomObject*,MomBrowsedObject,MomObjNameLess> _mwi_shownobmap;
+  std::map<MomObject*,MomBrowsedObject,MomObjNameLess> _mwi_browsedobmap;
   double _mwi_cmduseractim;
   double _mwi_cmdlastuseractim;
   MomObject* _mwi_focusobj;
@@ -626,7 +626,7 @@ int MomMainWindow::_mwi_wincount;
 void
 MomMainWindow::display_full_browser(void)
 {
-  int nbshownob = _mwi_shownobmap.size();
+  int nbshownob = _mwi_browsedobmap.size();
   _mwi_browserbuf->set_text("");
   auto it = _mwi_browserbuf->begin();
   if (nbshownob == 0)
@@ -645,7 +645,7 @@ MomMainWindow::display_full_browser(void)
     }
   it = _mwi_browserbuf->insert(it, "\n");
   it = _mwi_browserbuf->insert(it, "\n");
-  for (auto itob : _mwi_shownobmap)
+  for (auto itob : _mwi_browsedobmap)
     {
       browser_insert_object_display(it, itob.first);
       it = _mwi_browserbuf->insert(it, "\n");
@@ -694,12 +694,12 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   pob->id().to_cbuf32(obidbuf);
   std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
   std::string obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
-  auto itm = _mwi_shownobmap.find(pob);
+  auto itm = _mwi_browsedobmap.find(pob);
   bool found = false;
-  if (itm == _mwi_shownobmap.end())
+  if (itm == _mwi_browsedobmap.end())
     {
       auto begmark = _mwi_browserbuf->create_mark(Glib::ustring::compose("begmarkob_%1", obidbuf), txit, /*left_gravity:*/ true);
-      auto pairitb = _mwi_shownobmap.emplace(pob,MomBrowsedObject(pob,begmark));
+      auto pairitb = _mwi_browsedobmap.emplace(pob,MomBrowsedObject(pob,begmark));
       itm = pairitb.first;
       found = false;
     }
@@ -1157,7 +1157,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       MOM_ASSERT(closeoff>=openoff, "browser_insert_value intsq bad closeoff");
       MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
                           .paroff_xtra= -1, .paroff_openlen=2, .paroff_closelen=2,
-                          .paroff_xtralen= 0, .paroff_depth=depth};
+                          .paroff_xtralen= 0, .paroff_depth=(uint8_t)depth};
       dcx->_dx_shob->add_parens(po);
     }
     break;
@@ -1201,7 +1201,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       MOM_ASSERT(closeoff>=openoff, "browser_insert_value doublesq bad closeoff");
       MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
                           .paroff_xtra= -1, .paroff_openlen=2, .paroff_closelen=2,
-                          .paroff_xtralen= 0, .paroff_depth=depth};
+                          .paroff_xtralen= 0, .paroff_depth=(uint8_t)depth};
       dcx->_dx_shob->add_parens(po);
     }
     break;
@@ -1427,7 +1427,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       MOM_ASSERT(closeoff>openoff, "browser_insert_value sequence bad closeoff");
       MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
                           .paroff_xtra= staroff, .paroff_openlen=1, .paroff_closelen=1,
-                          .paroff_xtralen= 1, .paroff_depth=depth};
+                          .paroff_xtralen= 1, .paroff_depth=(uint8_t)depth};
       dcx->_dx_shob->add_parens(po);
     }
     break;
@@ -1440,20 +1440,11 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
     }
 } // end MomMainWindow::browser_insert_value
 
-void
-MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
-                                   const Glib::RefPtr<Gtk::TextMark>& mark)
-{
-  Glib::ustring markname=mark->get_name();
-  MOM_DEBUGLOG(gui, "do_browser_mark_set locit=" << MomShowTextIter(locit)
-               << " mark=" << (markname.empty()?(markname.c_str()):"*nil*"));
-} // end MomMainWindow::do_browser_mark_set
-
 MomObject*
 MomMainWindow::browser_object_around(Gtk::TextIter txit)
 {
   // perhaps should use std::binary_search
-  for (auto it:  _mwi_shownobmap)
+  for (auto it:  _mwi_browsedobmap)
     {
       MomObject* curpob = it.first;
       MomBrowsedObject& curbob = it.second;
@@ -1467,6 +1458,59 @@ MomMainWindow::browser_object_around(Gtk::TextIter txit)
     }
   return nullptr;
 } // end MomMainWindow::browser_object_around
+
+void
+MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
+                                   const Glib::RefPtr<Gtk::TextMark>& mark)
+{
+  if (mark != _mwi_browserbuf->get_insert())
+    return;
+  MomObject*pob = browser_object_around(locit);
+  MOM_DEBUGLOG(gui, "do_browser_mark_set insertmark locit=" << MomShowTextIter(locit)
+               << " around pob=" << pob);
+  if (!pob)
+    return;
+  auto showit = _mwi_browsedobmap.find(pob);
+  MOM_ASSERT(showit != _mwi_browsedobmap.end(), "do_browser_mark_set bad showit");
+  MomBrowsedObject& showbob = showit->second;
+  int markoff = locit.get_offset() - showbob._sh_startmark->get_iter().get_offset();
+  int openoff= -1, closeoff= -1, xtraoff= -1, depth= -1, openlen=0, closelen=0, xtralen=0;
+  bool foundopen=false, foundclose=false;
+  {
+    auto openit = showbob._sh_openmap.find(markoff);
+    if (openit != showbob._sh_openmap.end())
+      {
+        openoff = openit->second.paroff_open;
+        closeoff = openit->second.paroff_close;
+        xtraoff = openit->second.paroff_xtra;
+        openlen= openit->second.paroff_openlen;
+        closelen= openit->second.paroff_closelen;
+        xtralen= openit->second.paroff_xtralen;
+        depth= openit->second.paroff_depth;
+        foundopen=true;
+      }
+  }
+  {
+    auto closeit = showbob._sh_closemap.find(markoff);
+    if (closeit != showbob._sh_closemap.end())
+      {
+        openoff = closeit->second.paroff_open;
+        closeoff = closeit->second.paroff_close;
+        xtraoff = closeit->second.paroff_xtra;
+        openlen= closeit->second.paroff_openlen;
+        closelen= closeit->second.paroff_closelen;
+        xtralen= closeit->second.paroff_xtralen;
+        depth= closeit->second.paroff_depth;
+        foundclose=true;
+      }
+  }
+  MOM_DEBUGLOG(gui, "do_browser_mark_set insertmark markoff=" << markoff
+               << " foundopen=" << (foundopen?"true":"false")
+               << " foundclose=" << (foundclose?"true":"false")
+               << " openoff=" << openoff << " closeoff=" << closeoff << " xtraoff=" << xtraoff
+               << " openlen=" << openlen << " closelen=" << closelen << " xtralen=" << xtralen
+              );
+} // end MomMainWindow::do_browser_mark_set
 
 
 void
@@ -1517,7 +1561,7 @@ MomMainWindow::MomMainWindow()
     _mwi_scrcmd(),
     _mwi_txvcmd(_mwi_commandbuf),
     _mwi_statusbar(),
-    _mwi_shownobmap(),
+    _mwi_browsedobmap(),
     _mwi_cmduseractim(0.0),
     _mwi_cmdlastuseractim(0.0),
     _mwi_focusobj(nullptr)
@@ -1593,7 +1637,7 @@ MomMainWindow::MomMainWindow()
 
 MomMainWindow::~MomMainWindow()
 {
-  _mwi_shownobmap.clear();
+  _mwi_browsedobmap.clear();
 };				// end MomMainWindow::~MomMainWindow
 
 void
@@ -1665,7 +1709,7 @@ MomMainWindow::do_object_show_hide(void)
     MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide showcombox changed pob=" << pob);
     if (pob)
       {
-        if (_mwi_shownobmap.find(pob) != _mwi_shownobmap.end())
+        if (_mwi_browsedobmap.find(pob) != _mwi_browsedobmap.end())
           showdialog.set_default_response(HideOb);
         else
           showdialog.set_default_response(ShowOb);
@@ -2123,7 +2167,7 @@ MomMainWindow::browser_update_title_banner(void)
                << ", endit=" << MomShowTextIter(endit));
   _mwi_browserbuf->erase(begit,endit);
   begit =  _mwi_browserbuf->begin();
-  int nbshownob = _mwi_shownobmap.size();
+  int nbshownob = _mwi_browsedobmap.size();
   if (nbshownob == 0)
     it = _mwi_browserbuf->insert_with_tag (begit, " ~ no objects ~ ", titletag);
   else if (nbshownob == 1)
@@ -2141,7 +2185,7 @@ MomMainWindow::do_object_refresh(void)
 {
   MOM_DEBUGLOG(gui, "MomMainWindow::do_object_refresh start");
   display_full_browser();
-  int nbshownob = _mwi_shownobmap.size();
+  int nbshownob = _mwi_browsedobmap.size();
   char msg[40];
   memset(msg, 0, sizeof(msg));
   if (nbshownob == 0)
@@ -2162,10 +2206,10 @@ MomMainWindow::browser_show_object(MomObject*pob)
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start pob.id=" << pob->id());
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start shown pob=" << MomShowObject(pob));
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start raw pob=" << (pob));
-  MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start nbshown=" << _mwi_shownobmap.size());
-  auto shmbegit = _mwi_shownobmap.begin();
-  auto shmendit = _mwi_shownobmap.end();
-  auto oldshowit = _mwi_shownobmap.find(pob);
+  MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object start nbshown=" << _mwi_browsedobmap.size());
+  auto shmbegit = _mwi_browsedobmap.begin();
+  auto shmendit = _mwi_browsedobmap.end();
+  auto oldshowit = _mwi_browsedobmap.find(pob);
   MomObject*begpob = nullptr;
   MomObject*endpob = nullptr;
   if (shmbegit == shmendit)
@@ -2178,7 +2222,7 @@ MomMainWindow::browser_show_object(MomObject*pob)
       browser_update_title_banner();
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object after first object pob=" << MomShowObject(pob));
     }
-  else if (oldshowit != _mwi_shownobmap.end())
+  else if (oldshowit != _mwi_browsedobmap.end())
     {
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object redisplay object pob=" << MomShowObject(pob));
       MomBrowsedObject& oldshowbob = oldshowit->second;
@@ -2241,33 +2285,33 @@ MomMainWindow::browser_show_object(MomObject*pob)
           MomObject* upperpob = nullptr;
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle pob="
                        << MomShowObject(pob));
-          auto shmlowit = _mwi_shownobmap.lower_bound(pob);
-          if (shmlowit == _mwi_shownobmap.end())
+          auto shmlowit = _mwi_browsedobmap.lower_bound(pob);
+          if (shmlowit == _mwi_browsedobmap.end())
             MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmlowit at end");
           else
             {
               MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmlowit /" << MomShowObject(shmlowit->first));
               shmlowit--;
-              if (shmlowit == _mwi_shownobmap.end())
+              if (shmlowit == _mwi_browsedobmap.end())
                 MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmlowit now at end");
               else
                 MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle now shmlowit /" << MomShowObject(shmlowit->first));
             }
-          auto shmuppit = _mwi_shownobmap.upper_bound(pob);
-          if (shmuppit == _mwi_shownobmap.end())
+          auto shmuppit = _mwi_browsedobmap.upper_bound(pob);
+          if (shmuppit == _mwi_browsedobmap.end())
             MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmuppit at end");
           else
             MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object middle shmuppit /" << MomShowObject(shmuppit->first));
-          lowerpob = (shmlowit!=_mwi_shownobmap.end())?(shmlowit->first):nullptr;
-          upperpob = (shmuppit!=_mwi_shownobmap.end())?(shmuppit->first):nullptr;
+          lowerpob = (shmlowit!=_mwi_browsedobmap.end())?(shmlowit->first):nullptr;
+          upperpob = (shmuppit!=_mwi_browsedobmap.end())?(shmuppit->first):nullptr;
           MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object inside"
                        << " lowerpob=" << MomShowObject(lowerpob)
                        << ", pob=" << MomShowObject(pob)
                        << ", upperpob=" << MomShowObject(upperpob));
           if (lowerpob && upperpob
               && MomObjNameLess{} (lowerpob, pob) && MomObjNameLess{} (pob, upperpob)
-              && shmlowit != _mwi_shownobmap.end()
-              && shmuppit != _mwi_shownobmap.end())
+              && shmlowit != _mwi_browsedobmap.end()
+              && shmuppit != _mwi_browsedobmap.end())
             {
               MomBrowsedObject& lowerbob = shmlowit->second;
               Gtk::TextIter lowendtxit = lowerbob._sh_endmark->get_iter();
@@ -2286,12 +2330,12 @@ MomMainWindow::browser_show_object(MomObject*pob)
             }
           else
             MOM_WARNLOG("MomMainWindow::browser_show_object non empty unimplemented for pob="  << pob
-                        << " nbshown=" << _mwi_shownobmap.size());
+                        << " nbshown=" << _mwi_browsedobmap.size());
         }
     }
   browser_update_title_banner();
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_show_object end pob=" << pob
-               << " nbshown=" << _mwi_shownobmap.size());
+               << " nbshown=" << _mwi_browsedobmap.size());
 } // end MomMainWindow::browser_show_object
 
 
@@ -2303,8 +2347,8 @@ MomMainWindow::browser_hide_object(MomObject*pob)
   MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object start pob=" << MomShowObject(pob));
   if (pob == _mwi_focusobj)
     _mwi_focusobj = nullptr;
-  auto shmit = _mwi_shownobmap.find(pob);
-  if (shmit == _mwi_shownobmap.end())
+  auto shmit = _mwi_browsedobmap.find(pob);
+  if (shmit == _mwi_browsedobmap.end())
     {
       MOM_DEBUGLOG(gui, "MomMainWindow::browser_hide_object did not find pob=" << MomShowObject(pob));
       MOM_WARNLOG("MomMainWindow::browser_hide_object cannot hide undisplayed pob=" << MomShowObject(pob));
@@ -2331,7 +2375,7 @@ MomMainWindow::browser_hide_object(MomObject*pob)
       _mwi_browserbuf->erase(statxit,endtxit);
       _mwi_browserbuf->delete_mark(bob._sh_startmark);
       _mwi_browserbuf->delete_mark(bob._sh_endmark);
-      _mwi_shownobmap.erase(shmit);
+      _mwi_browsedobmap.erase(shmit);
       browser_update_title_banner();
       std::string outmsg;
       std::ostringstream out (outmsg);
@@ -2351,8 +2395,8 @@ MomMainWindow::browser_set_focus_object(MomObject*pob)
                << " pob=" << pob);
   if (oldfocpob != nullptr)
     {
-      auto oldfocshowit = _mwi_shownobmap.find(oldfocpob);
-      if (oldfocshowit == _mwi_shownobmap.end())
+      auto oldfocshowit = _mwi_browsedobmap.find(oldfocpob);
+      if (oldfocshowit == _mwi_browsedobmap.end())
         {
           MOM_WARNLOG("browser_set_focus_object old focus " << _mwi_focusobj
                       << " was hidden " << MOM_SHOW_BACKTRACE("browser_set_focus_object old"));
@@ -2375,8 +2419,8 @@ MomMainWindow::browser_set_focus_object(MomObject*pob)
     };
   if (pob != nullptr)
     {
-      auto newfocshowit = _mwi_shownobmap.find(pob);
-      if (newfocshowit == _mwi_shownobmap.end())
+      auto newfocshowit = _mwi_browsedobmap.find(pob);
+      if (newfocshowit == _mwi_browsedobmap.end())
         {
           MOM_WARNLOG("browser_set_focus_object new focus " << pob
                       << " is hidden " << MOM_SHOW_BACKTRACE("browser_set_focus_object new"));
@@ -2406,7 +2450,7 @@ MomMainWindow::browser_set_focus_object(MomObject*pob)
 void
 MomMainWindow::scan_gc(MomGC*gc)
 {
-  for (auto it: _mwi_shownobmap)
+  for (auto it: _mwi_browsedobmap)
     {
       gc->scan_object(it.first);
     }
