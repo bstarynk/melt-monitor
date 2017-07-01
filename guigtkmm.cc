@@ -1,6 +1,6 @@
 // file guigtkmm.cc - GtkMM based GUI
 
-/**   Copyright (C)  2015 - 2017  Basile Starynkevitch and later the FSF
+/**   Copyright (C)  2017  Basile Starynkevitch and later the FSF
     MONIMELT is a monitor for MELT - see http://gcc-melt.org/
     This file is part of GCC.
 
@@ -137,21 +137,44 @@ public:
   static constexpr const int _default_error_delay_milliseconds_ = 440;
   static constexpr const bool _SCROLL_TOP_VIEW_ = true;
   static constexpr const bool _DONT_SCROLL_TOP_VIEW_ = false;
+  struct MomParenOffsets
+  {
+    int paroff_open; // relative offset before open parenthesis-like
+    int paroff_close; // relative offset after close parenthesis-like
+    int paroff_xtra;  // relative offset of xtra sign, such as the *, or -1
+    uint8_t paroff_openlen; // length in UTF-8 chars of opening sign
+    uint8_t paroff_closelen; // length in UTF-8 chars of closing sign
+    uint8_t paroff_xtralen; // length in UTF-8 chars of xtra sign
+    uint8_t paroff_depth;   // depth
+  };
   struct MomBrowsedObject
   {
     MomObject*_sh_ob;
     Glib::RefPtr<Gtk::TextMark> _sh_startmark;
     Glib::RefPtr<Gtk::TextMark> _sh_endmark;
+    std::map<int,MomParenOffsets> _sh_openmap;
+    std::map<int,MomParenOffsets> _sh_closemap;
     MomBrowsedObject(MomObject*ob,
                      Glib::RefPtr<Gtk::TextMark> startmk=Glib::RefPtr<Gtk::TextMark>(),
                      Glib::RefPtr<Gtk::TextMark> endmk=Glib::RefPtr<Gtk::TextMark>())
-      : _sh_ob(ob), _sh_startmark(startmk), _sh_endmark(endmk) {};
+      : _sh_ob(ob), _sh_startmark(startmk), _sh_endmark(endmk),
+        _sh_openmap(), _sh_closemap() {};
     ~MomBrowsedObject()
     {
       _sh_ob=nullptr;
       _sh_startmark.clear();
       _sh_endmark.clear();
     };
+    void add_parens(const MomParenOffsets& po)
+    {
+      _sh_openmap.insert({po.paroff_open, po});
+      _sh_closemap.insert({po.paroff_close, po});
+    }
+    void clear_parens(void)
+    {
+      _sh_openmap.clear();
+      _sh_closemap.clear();
+    }
   };
   struct MomDisplayCtx
   {
@@ -324,6 +347,7 @@ MomApplication::on_activate(void)
       MOM_FATAPRINTF("failed to use UI file %s, %s is not a TextTagTable", browserui_path, browsertagtable_id);
     for (int d = 0; d<=_max_depth_; d++)
       {
+        _app_browser_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("star%1_tag", d)));
         _app_browser_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("open%1_tag", d)));
         _app_browser_tagtable->add(Gtk::TextTag::create(Glib::ustring::compose("close%1_tag", d)));
       }
@@ -687,6 +711,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
                << " found=" << (found?"true":"false")
                << ", txit=" << MomShowTextIter(txit, MomShowTextIter::_FULL_,7));
   MomBrowsedObject& shob = itm->second;
+  shob.clear_parens();
   if (found)
     _mwi_browserbuf->move_mark(shob._sh_startmark, txit);
   /// the title bar
@@ -1034,6 +1059,8 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisp
 } // end MomMainWindow::browser_insert_objptr
 
 
+
+
 void
 MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDisplayCtx*dcx, const std::vector<Glib::ustring>& tags,  int depth)
 {
@@ -1085,13 +1112,18 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
     //////
     case MomKind::TagIntSqK:  /// integer sequence
     {
+      int openoff = -1, closeoff = -1;
       std::vector<Glib::ustring> tagsindex = tags;
       auto isv = reinterpret_cast<const MomIntSq*>(vv);
       unsigned sz = isv->sizew();
       tagscopy.push_back("value_numberseq_tag");
       tagsindex.push_back("index_comment_tag");
+      std::vector<Glib::ustring> tagspairing = tagscopy;
+      tagspairing.push_back("open_tag");
+      tagspairing.push_back(Glib::ustring::compose("open%1_tag", depth));
+      openoff = (txit.get_offset() - dcx->_dx_shob->_sh_startmark->get_iter().get_offset());
       txit =
-        _mwi_browserbuf->insert_with_tags_by_name (txit, "(#", tagscopy);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, "(#", tagspairing);
       for (unsigned ix=0; ix<sz; ix++)
         {
           char numbuf[32];
@@ -1111,18 +1143,33 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
           txit =
             _mwi_browserbuf->insert_with_tags_by_name  (txit,  numbuf, tagscopy);
         }
+      tagspairing.pop_back();
+      tagspairing.pop_back();
+      tagspairing.push_back("close_tag");
+      tagspairing.push_back(Glib::ustring::compose("close%1_tag", depth));
       txit =
-        _mwi_browserbuf->insert_with_tags_by_name (txit,   "#)", tagscopy);
+        _mwi_browserbuf->insert_with_tags_by_name (txit,   "#)", tagspairing);
+      closeoff = (txit.get_offset() - dcx->_dx_shob->_sh_startmark->get_iter().get_offset());
+      MOM_DEBUGLOG(gui, "browser_insert_value intsq=" << val << " openoff=" << openoff
+                   << " closeoff=" << closeoff);
+      MOM_ASSERT(openoff>=0, "browser_insert_value intsq no openoff");
+      MOM_ASSERT(closeoff>=openoff, "browser_insert_value intsq bad closeoff");
+      MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
+                          .paroff_xtra= -1, .paroff_openlen=2, .paroff_closelen=2,
+                          .paroff_xtralen= 0, .paroff_depth=depth};
+      dcx->_dx_shob->add_parens(po);
     }
     break;
     //////
     case MomKind::TagDoubleSqK:  /// double sequence
     {
+      int openoff = -1, closeoff = -1;
       std::vector<Glib::ustring> tagsindex = tags;
       auto dsv = reinterpret_cast<const MomDoubleSq*>(vv);
       unsigned sz = dsv->sizew();
       tagscopy.push_back("value_numberseq_tag");
       tagsindex.push_back("index_comment_tag");
+      openoff = (txit.get_offset() - dcx->_dx_shob->_sh_startmark->get_iter().get_offset());
       txit =
         _mwi_browserbuf->insert_with_tags_by_name (txit, "(:", tagscopy);
       for (unsigned ix=0; ix<sz; ix++)
@@ -1146,6 +1193,15 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
         }
       txit =
         _mwi_browserbuf->insert_with_tags_by_name (txit, ":)",  tagscopy);
+      closeoff = (txit.get_offset() - dcx->_dx_shob->_sh_startmark->get_iter().get_offset());
+      MOM_DEBUGLOG(gui, "browser_insert_value doublesq=" << val << " openoff=" << openoff
+                   << " closeoff=" << closeoff);
+      MOM_ASSERT(openoff>=0, "browser_insert_value doublesq no openoff");
+      MOM_ASSERT(closeoff>=openoff, "browser_insert_value doublesq bad closeoff");
+      MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
+                          .paroff_xtra= -1, .paroff_openlen=2, .paroff_closelen=2,
+                          .paroff_xtralen= 0, .paroff_depth=depth};
+      dcx->_dx_shob->add_parens(po);
     }
     break;
     ////
@@ -1254,6 +1310,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
     case MomKind::TagTupleK:
     {
       auto seqv = reinterpret_cast<const MomAnyObjSeq*>(vv);
+      int openoff= -1, closeoff= -1;
       bool istuple = (vv->vkind() == MomKind::TagTupleK);
       unsigned sz = seqv->sizew();
       std::vector<Glib::ustring> tagsindex = tags;
@@ -1262,6 +1319,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       tagsindex.push_back("index_comment_tag");
       tagspairing.push_back("open_tag");
       tagspairing.push_back(Glib::ustring::compose("open%1_tag", depth));
+      openoff = (txit.get_offset() - dcx->_dx_shob->_sh_startmark->get_iter().get_offset());
       txit =
         _mwi_browserbuf->insert_with_tags_by_name (txit, (istuple?"[":"{"), tagspairing);
       for (unsigned ix=0; ix<sz; ix++)
@@ -1288,23 +1346,39 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       tagspairing.push_back(Glib::ustring::compose("close%1_tag", depth));
       txit =
         _mwi_browserbuf->insert_with_tags_by_name (txit, (istuple?"]":"}"), tagspairing);
+      closeoff = (txit.get_offset() - dcx->_dx_shob->_sh_startmark->get_iter().get_offset());
+      MOM_DEBUGLOG(gui, "browser_insert_value sequence=" << val << " openoff=" << openoff
+                   << " closeoff=" << closeoff);
+      MOM_ASSERT(openoff>=0, "browser_insert_value sequence no openoff");
+      MOM_ASSERT(closeoff>=openoff, "browser_insert_value sequence bad closeoff");
+      MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
+                          .paroff_xtra= -1, .paroff_openlen=1, .paroff_closelen=1,
+                          .paroff_xtralen= 0, .paroff_depth=depth};
+      dcx->_dx_shob->add_parens(po);
     }
     break;
     //////
     case MomKind::TagNodeK:  /// node value
     {
+      int staroff= -1, openoff= -1, closeoff= -1;
       auto nodv = reinterpret_cast<const MomNode*>(vv);
       unsigned sz = nodv->sizew();
       std::vector<Glib::ustring> tagsindex = tags;
       tagscopy.push_back("value_node_tag");
       std::vector<Glib::ustring> tagspairing = tagscopy;
       tagsindex.push_back("index_comment_tag");
+      tagspairing.push_back("star_tag");
+      tagspairing.push_back(Glib::ustring::compose("star%1_tag", depth));
+      staroff = (txit.get_offset() - dcx->_dx_shob->_sh_startmark->get_iter().get_offset());
       txit =
-        _mwi_browserbuf->insert_with_tags_by_name (txit, "*", tagscopy);
+        _mwi_browserbuf->insert_with_tags_by_name (txit, "*", tagspairing);
+      tagspairing.pop_back();
+      tagspairing.pop_back();
       browser_insert_objptr(txit, nodv->conn(), dcx, tagscopy, depth);
       browser_insert_space(txit, tagscopy, depth);
       tagspairing.push_back("open_tag");
       tagspairing.push_back(Glib::ustring::compose("open%1_tag", depth));
+      openoff = (txit.get_offset() - dcx->_dx_shob->_sh_startmark->get_iter().get_offset());
       txit =
         _mwi_browserbuf->insert_with_tags_by_name (txit, "(", tagspairing);
       if (depth >= _mwi_dispdepth)
@@ -1342,6 +1416,18 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       tagspairing.push_back(Glib::ustring::compose("close%1_tag", depth));
       txit =
         _mwi_browserbuf->insert_with_tags_by_name (txit, ")", tagspairing);
+      closeoff = (txit.get_offset() - dcx->_dx_shob->_sh_startmark->get_iter().get_offset());
+      MOM_DEBUGLOG(gui, "browser_insert_value node=" << val
+                   << " staroff=" << staroff
+                   << " openoff=" << openoff
+                   << " closeoff=" << closeoff);
+      MOM_ASSERT(staroff>=0, "browser_insert_value sequence no openoff");
+      MOM_ASSERT(openoff>staroff, "browser_insert_value sequence no openoff");
+      MOM_ASSERT(closeoff>openoff, "browser_insert_value sequence bad closeoff");
+      MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
+                          .paroff_xtra= staroff, .paroff_openlen=1, .paroff_closelen=1,
+                          .paroff_xtralen= 1, .paroff_depth=depth};
+      dcx->_dx_shob->add_parens(po);
     }
     break;
     //////
