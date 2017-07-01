@@ -1,4 +1,4 @@
--- dump 2017 Jun 30 from mom_user dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jul 01 from mom_user dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -175,7 +175,9 @@ INSERT INTO t_objects VALUES('_5duwaaKJiRS_6cHHv0uehF0',1498798000.0,'
 &: "some-string"
 &: (#1 2 3#)
 &: (:3.14159 2.71828:)
-&: *_7D8xcWnEiys_8oqOVSkCxkA(_7QeFDN33m7B_3dQv2OqqbH6 "node-child")
+&: *_7D8xcWnEiys_8oqOVSkCxkA(_7QeFDN33m7B_3dQv2OqqbH6 "node-child" *_0V1qVtBdVnE_750Mr6HYEv2(
+  _4ioux9ZO1CL_1rL5zUwbrDz [_3ojMJ5jyD6s_3i5kM0DDFDT _3r6zyliGEa1_4VuvVlsYGiH] {_0h6QnlLjipB_7LjgRYcUBIx
+   _0uAMtAmkP34_1BhIutSjPN9} *_3r6zyliGEa1_4VuvVlsYGiH("inside")))
 
 ','','','');
 INSERT INTO t_objects VALUES('_5rqDmMLjBIY_2r8FY6iLxv4',1497676631.33,'
