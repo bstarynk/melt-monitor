@@ -255,6 +255,8 @@ public:
   void do_object_refresh(void);
   void do_object_options(void);
   void do_browser_mark_set(const Gtk::TextIter& locit, const Glib::RefPtr<Gtk::TextMark>& mark);
+  void do_browser_blink_insert(void);
+  void do_browser_unblink_insert(void);
   void do_txcmd_begin_user_action(void);
   void do_txcmd_changed(void);
   void do_txcmd_end_user_action(void);
@@ -268,6 +270,7 @@ public:
   void parse_command(MomParser*, bool apply=false);
 private:
   MomObject* browser_object_around(Gtk::TextIter txit);
+  bool found_browsed_object_around_insert(MomBrowsedObject*&bob, MomParenOffsets*&po, bool&opening, bool&closing);
   Gtk::TextIter command_txiter_at_line_col(int lineno, int col)
   {
     auto cmdbuf = _mwi_txvcmd.get_buffer();
@@ -1354,7 +1357,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
       MOM_ASSERT(closeoff>=openoff, "browser_insert_value sequence bad closeoff");
       MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
                           .paroff_xtra= -1, .paroff_openlen=1, .paroff_closelen=1,
-                          .paroff_xtralen= 0, .paroff_depth=depth};
+                          .paroff_xtralen= 0, .paroff_depth=(uint8_t)depth};
       dcx->_dx_shob->add_parens(po);
     }
     break;
@@ -1460,6 +1463,16 @@ MomMainWindow::browser_object_around(Gtk::TextIter txit)
 } // end MomMainWindow::browser_object_around
 
 void
+MomMainWindow::do_browser_blink_insert(void)
+{
+}
+
+void
+MomMainWindow::do_browser_unblink_insert(void)
+{
+} // end MomMainWindow::do_browser_unblink_insert
+
+void
 MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
                                    const Glib::RefPtr<Gtk::TextMark>& mark)
 {
@@ -1468,49 +1481,75 @@ MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
   MomObject*pob = browser_object_around(locit);
   MOM_DEBUGLOG(gui, "do_browser_mark_set insertmark locit=" << MomShowTextIter(locit)
                << " around pob=" << pob);
+  if (pob)
+    do_browser_blink_insert();
+  else
+    do_browser_unblink_insert();
+} // end MomMainWindow::do_browser_mark_set
+
+bool
+MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomParenOffsets*&po,
+    bool&opening, bool&closing)
+{
+  Gtk::TextIter insertxit = _mwi_browserbuf->get_insert()->get_iter();
+  MomObject* pob = browser_object_around(insertxit);
+  opening = false;
+  closing = false;
   if (!pob)
-    return;
+    {
+      pbob = nullptr;
+      po = nullptr;
+      MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+                   << " outside of object");
+      return false;
+    }
   auto showit = _mwi_browsedobmap.find(pob);
-  MOM_ASSERT(showit != _mwi_browsedobmap.end(), "do_browser_mark_set bad showit");
+  MOM_ASSERT(showit != _mwi_browsedobmap.end(), "found_browsed_object_at_insert bad showit");
   MomBrowsedObject& showbob = showit->second;
-  int markoff = locit.get_offset() - showbob._sh_startmark->get_iter().get_offset();
-  int openoff= -1, closeoff= -1, xtraoff= -1, depth= -1, openlen=0, closelen=0, xtralen=0;
-  bool foundopen=false, foundclose=false;
+  pbob = &showbob;
+  po = nullptr;
+  int markoff = insertxit.get_offset() - showbob._sh_startmark->get_iter().get_offset();
+  MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+               << " inside pob=" << pob << " markoff=" << markoff);
   {
     auto openit = showbob._sh_openmap.find(markoff);
     if (openit != showbob._sh_openmap.end())
       {
-        openoff = openit->second.paroff_open;
-        closeoff = openit->second.paroff_close;
-        xtraoff = openit->second.paroff_xtra;
-        openlen= openit->second.paroff_openlen;
-        closelen= openit->second.paroff_closelen;
-        xtralen= openit->second.paroff_xtralen;
-        depth= openit->second.paroff_depth;
-        foundopen=true;
+        po = &openit->second;
+        opening = true;
+        MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+                     << " opening pob=" << pob << std::endl
+                     << ".. paroff: open=" << po->paroff_open << " openlen=" << po->paroff_openlen
+                     << " close=" << po->paroff_close << " closelen=" << po->paroff_closelen << std::endl
+                     << ".. xtra=" << po->paroff_xtra << " xtralen=" << po->paroff_xtralen
+                     << " depth=" << po->paroff_depth
+                    );
+        return true;
       }
   }
   {
     auto closeit = showbob._sh_closemap.find(markoff);
     if (closeit != showbob._sh_closemap.end())
       {
-        openoff = closeit->second.paroff_open;
-        closeoff = closeit->second.paroff_close;
-        xtraoff = closeit->second.paroff_xtra;
-        openlen= closeit->second.paroff_openlen;
-        closelen= closeit->second.paroff_closelen;
-        xtralen= closeit->second.paroff_xtralen;
-        depth= closeit->second.paroff_depth;
-        foundclose=true;
+        po = &closeit->second;
+        closing = true;
+        MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+                     << " closing pob=" << pob << std::endl
+                     << ".. paroff: open=" << po->paroff_open << " openlen=" << po->paroff_openlen
+                     << " close=" << po->paroff_close << " closelen=" << po->paroff_closelen << std::endl
+                     << ".. xtra=" << po->paroff_xtra << " xtralen=" << po->paroff_xtralen
+                     << " depth=" << po->paroff_depth
+                    );
+        return true;
       }
   }
-  MOM_DEBUGLOG(gui, "do_browser_mark_set insertmark markoff=" << markoff
-               << " foundopen=" << (foundopen?"true":"false")
-               << " foundclose=" << (foundclose?"true":"false")
-               << " openoff=" << openoff << " closeoff=" << closeoff << " xtraoff=" << xtraoff
-               << " openlen=" << openlen << " closelen=" << closelen << " xtralen=" << xtralen
-              );
-} // end MomMainWindow::do_browser_mark_set
+  // we should find first an closing paren after the mark
+#warning found_browsed_object_around_insert incomplete
+  MOM_WARNLOG("found_browsed_object_around_insert incomplete insertxit=" << MomShowTextIter(insertxit)
+              << " pob=" << pob);
+  po = nullptr;
+  return true;
+} // end MomMainWindow::found_browsed_object_around_insert
 
 
 void
