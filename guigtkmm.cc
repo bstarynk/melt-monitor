@@ -1595,7 +1595,7 @@ MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
 
 void
 MomMainWindow::do_txcmd_mark_set(const Gtk::TextIter& locit,
-                                   const Glib::RefPtr<Gtk::TextMark>& mark)
+                                 const Glib::RefPtr<Gtk::TextMark>& mark)
 {
   if (mark != _mwi_browserbuf->get_insert())
     return;
@@ -1673,6 +1673,22 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
                      << " depth=" << (int)(po->paroff_depth)
                     );
         return true;
+      }
+    else
+      {
+        auto beforeit = showbob._sh_closemap.upper_bound(markoff);
+        if (beforeit != showbob._sh_closemap.end())
+          {
+            po = &beforeit->second;
+            MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+                         << " before, pob=" << pob << std::endl
+                         << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
+                         << " close=" << (int)(po->paroff_close) << " closelen=" << (int)(po->paroff_closelen) << std::endl
+                         << ".. xtra=" << (int)(po->paroff_xtra) << " xtralen=" << (int)(po->paroff_xtralen)
+                         << " depth=" << (int)(po->paroff_depth)
+                        );
+            return true;
+          }
       }
   }
   MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
@@ -2254,7 +2270,26 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
         break;
       MOM_DEBUGLOG(gui, "parse_command curbytes=" << MomShowString(pars->curbytes())
                    << " @" << pars->location_str());
-      if (pars->got_cstring("!"))
+      if (pars->got_cstring("!-"))
+        {
+          bool gotattr = false;
+          MomObject* pobattr = pars->parse_objptr(&gotattr);
+          if (!gotattr)
+            MOM_PARSE_FAILURE(pars, "expect object attribute after !-");
+          if (!_mwi_focusobj)
+            MOM_PARSE_FAILURE(pars, "expect focus object for !-");
+          if (apply)
+            {
+              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());;
+              _mwi_focusobj->unsync_remove_phys_attr(pobattr);
+              _mwi_focusobj->touch();
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command remove into " << _mwi_focusobj
+                           " pobattr=" << pobattr);
+              browser_show_object(_mwi_focusobj);
+              nbmodif++;
+            }
+        }
+      else if (pars->got_cstring("!"))
         {
           bool gotattr = false;
           MomObject* pobattr = pars->parse_objptr(&gotattr);
