@@ -281,6 +281,7 @@ extern "C" void mom_failure_backtrace_at(const char*fil, int lin, const std::str
   Dbg(misc)					\
   Dbg(gencod)					\
   Dbg(gui)					\
+  Dbg(blinkgui)					\
   Dbg(blue)					\
   Dbg(green)					\
   Dbg(red)					\

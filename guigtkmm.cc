@@ -1476,7 +1476,7 @@ MomMainWindow::do_browser_blink_insert(void)
   MomParenOffsets* ppo=nullptr;
   bool opening=false, closing=false;
   bool found = found_browsed_object_around_insert(pbob, ppo,opening,closing);
-  MOM_DEBUGLOG(gui, "do_browser_blink_insert end found=" << found
+  MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert end found=" << found
                << " pbob=" << pbob << " ppo=" << ppo
                << " opening=" << opening << " closing=" << closing);
   if (found && ppo != nullptr && pbob != nullptr)
@@ -1492,7 +1492,7 @@ MomMainWindow::do_browser_blink_insert(void)
       int openlen = ppo->paroff_openlen;
       int closelen = ppo->paroff_closelen;
       int xtralen = ppo->paroff_xtralen;
-      MOM_DEBUGLOG(gui, "do_browser_blink_insert in pob=" << pob << " offopen=" << offopen
+      MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert in pob=" << pob << " offopen=" << offopen
                    << " openlen=" << openlen
                    << " offclose=" << offclose << " closelen=" << closelen
                    << " offxtra=" << offxtra << " xtralen=" << xtralen);
@@ -1503,7 +1503,7 @@ MomMainWindow::do_browser_blink_insert(void)
         {
           Gtk::TextIter endopentxit = opentxit;
           endopentxit.forward_chars(openlen);
-          MOM_DEBUGLOG(gui, "do_browser_blink_insert in pob=" << pob << " opentxit=" << MomShowTextIter(opentxit)
+          MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert in pob=" << pob << " opentxit=" << MomShowTextIter(opentxit)
                        << " endopentxit=" << MomShowTextIter(endopentxit));
           _mwi_browserbuf->apply_tag_by_name("blink_tag", opentxit, endopentxit);
         }
@@ -1512,7 +1512,7 @@ MomMainWindow::do_browser_blink_insert(void)
         {
           Gtk::TextIter begclosetxit = closetxit;
           begclosetxit.backward_chars(closelen);
-          MOM_DEBUGLOG(gui, "do_browser_blink_insert in pob=" << pob << " begclosetxit=" << MomShowTextIter(begclosetxit)
+          MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert in pob=" << pob << " begclosetxit=" << MomShowTextIter(begclosetxit)
                        << " closetxit=" << MomShowTextIter(closetxit));
           _mwi_browserbuf->apply_tag_by_name("blink_tag", begclosetxit, closetxit);
         }
@@ -1522,7 +1522,7 @@ MomMainWindow::do_browser_blink_insert(void)
           xtratxit.forward_chars(offxtra);
           Gtk::TextIter endxtratxit = xtratxit;
           endxtratxit.forward_chars(xtralen);
-          MOM_DEBUGLOG(gui, "do_browser_blink_insert in pob=" << pob << " xtratxit=" << MomShowTextIter(xtratxit)
+          MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert in pob=" << pob << " xtratxit=" << MomShowTextIter(xtratxit)
                        << " endxtratxit=" << MomShowTextIter(endxtratxit));
           _mwi_browserbuf->apply_tag_by_name("blink_tag", xtratxit, endxtratxit);
         }
@@ -1532,7 +1532,7 @@ MomMainWindow::do_browser_blink_insert(void)
     }
   else
     {
-      MOM_DEBUGLOG(gui, "do_browser_blink_insert outside");
+      MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert outside");
       _mwi_startblink.clear();
       _mwi_xtrablink.clear();
       _mwi_endblink.clear();
@@ -1543,18 +1543,18 @@ MomMainWindow::do_browser_blink_insert(void)
 void
 MomMainWindow::do_browser_unblink_insert(void)
 {
-  MOM_DEBUGLOG(gui, "do_browser_unblink_insert start");
+  MOM_DEBUGLOG(blinkgui, "do_browser_unblink_insert start");
   if (_mwi_startblink && _mwi_endblink)
     {
       Gtk::TextIter startxit = _mwi_startblink->get_iter();
       Gtk::TextIter endtxit = _mwi_endblink->get_iter();
-      MOM_DEBUGLOG(gui, "do_browser_unblink_insert startxit=" << MomShowTextIter(startxit)
+      MOM_DEBUGLOG(blinkgui, "do_browser_unblink_insert startxit=" << MomShowTextIter(startxit)
                    << " endtxit=" << MomShowTextIter(endtxit));
       _mwi_browserbuf->remove_tag_by_name("blink_tag", startxit, endtxit);
       if (_mwi_xtrablink)
         {
           Gtk::TextIter xtratxit = _mwi_xtrablink->get_iter();
-          MOM_DEBUGLOG(gui, "do_browser_unblink_insert xtraxit=" << MomShowTextIter(xtratxit)
+          MOM_DEBUGLOG(blinkgui, "do_browser_unblink_insert xtraxit=" << MomShowTextIter(xtratxit)
                        << " startxit=" << MomShowTextIter(startxit));
           _mwi_browserbuf->remove_tag_by_name("blink_tag", xtratxit, startxit);
         }
