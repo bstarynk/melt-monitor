@@ -60,6 +60,10 @@ public:
   {
     return _app_browser_tagtable->lookup(name);
   };
+  unsigned nb_browser_tags() const
+  {
+    return _app_browser_tagtable->get_size();
+  };
   Glib::RefPtr<Gtk::TextTag> lookup_browser_tag (const char*namestr)
   {
     return lookup_browser_tag (Glib::ustring(namestr));
@@ -362,9 +366,7 @@ MomApplication::on_activate(void)
       }
     auto obtitletag = lookup_browser_tag("object_title_tag");
     MOM_ASSERT(obtitletag, "on_activate nil obtitletag");
-    obtitletag->set_priority(0);
-    auto blinktag = lookup_browser_tag("blink_tag");
-    blinktag->set_priority(1);
+    obtitletag->set_priority(3*_max_depth_);
   }
   /// initialize the command tag table
   {
@@ -1471,7 +1473,9 @@ MomMainWindow::browser_object_around(Gtk::TextIter txit)
 bool
 MomMainWindow::do_browser_blink_insert(void)
 {
-  MOM_DEBUGLOG(gui, "do_browser_blink_insert start");
+  MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert start");
+  auto blinktag = MomApplication::itself()->lookup_browser_tag("blink_tag");
+  blinktag->set_priority(MomApplication::itself()->nb_browser_tags()-1);
   MomBrowsedObject* pbob = nullptr;
   MomParenOffsets* ppo=nullptr;
   bool opening=false, closing=false;
@@ -1505,7 +1509,7 @@ MomMainWindow::do_browser_blink_insert(void)
           endopentxit.forward_chars(openlen);
           MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert in pob=" << pob << " opentxit=" << MomShowTextIter(opentxit)
                        << " endopentxit=" << MomShowTextIter(endopentxit));
-          _mwi_browserbuf->apply_tag_by_name("blink_tag", opentxit, endopentxit);
+          _mwi_browserbuf->apply_tag(blinktag, opentxit, endopentxit);
         }
       _mwi_endblink = _mwi_browserbuf->create_mark("end_blink", closetxit);
       if (closelen>0)
@@ -1514,7 +1518,7 @@ MomMainWindow::do_browser_blink_insert(void)
           begclosetxit.backward_chars(closelen);
           MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert in pob=" << pob << " begclosetxit=" << MomShowTextIter(begclosetxit)
                        << " closetxit=" << MomShowTextIter(closetxit));
-          _mwi_browserbuf->apply_tag_by_name("blink_tag", begclosetxit, closetxit);
+          _mwi_browserbuf->apply_tag(blinktag, begclosetxit, closetxit);
         }
       if (xtralen>0)
         {
@@ -1524,7 +1528,8 @@ MomMainWindow::do_browser_blink_insert(void)
           endxtratxit.forward_chars(xtralen);
           MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert in pob=" << pob << " xtratxit=" << MomShowTextIter(xtratxit)
                        << " endxtratxit=" << MomShowTextIter(endxtratxit));
-          _mwi_browserbuf->apply_tag_by_name("blink_tag", xtratxit, endxtratxit);
+          _mwi_browserbuf->apply_tag(blinktag, xtratxit, endxtratxit);
+          _mwi_xtrablink = _mwi_browserbuf->create_mark("xtra_blink", xtratxit);
         }
       Glib::signal_timeout().connect_once
       (sigc::mem_fun(this,&MomMainWindow::do_browser_unblink_insert),
@@ -1544,20 +1549,25 @@ void
 MomMainWindow::do_browser_unblink_insert(void)
 {
   MOM_DEBUGLOG(blinkgui, "do_browser_unblink_insert start");
+  auto blinktag = MomApplication::itself()->lookup_browser_tag("blink_tag");
   if (_mwi_startblink && _mwi_endblink)
     {
       Gtk::TextIter startxit = _mwi_startblink->get_iter();
       Gtk::TextIter endtxit = _mwi_endblink->get_iter();
       MOM_DEBUGLOG(blinkgui, "do_browser_unblink_insert startxit=" << MomShowTextIter(startxit)
                    << " endtxit=" << MomShowTextIter(endtxit));
-      _mwi_browserbuf->remove_tag_by_name("blink_tag", startxit, endtxit);
-      if (_mwi_xtrablink)
-        {
-          Gtk::TextIter xtratxit = _mwi_xtrablink->get_iter();
-          MOM_DEBUGLOG(blinkgui, "do_browser_unblink_insert xtraxit=" << MomShowTextIter(xtratxit)
-                       << " startxit=" << MomShowTextIter(startxit));
-          _mwi_browserbuf->remove_tag_by_name("blink_tag", xtratxit, startxit);
-        }
+      _mwi_browserbuf->remove_tag(blinktag, startxit, endtxit);
+    }
+  if (_mwi_xtrablink)
+    {
+      Gtk::TextIter xtratxit = _mwi_xtrablink->get_iter();
+      Gtk::TextIter bolxtratxit = xtratxit;
+      bolxtratxit.backward_line();
+      xtratxit.forward_line();
+      xtratxit.forward_char();
+      MOM_DEBUGLOG(blinkgui, "do_browser_unblink_insert xtraxit=" << MomShowTextIter(xtratxit)
+                   << " bolxtratxit=" << MomShowTextIter(bolxtratxit));
+      _mwi_browserbuf->remove_tag(blinktag, bolxtratxit, xtratxit);
     }
   _mwi_startblink.clear();
   _mwi_xtrablink.clear();
@@ -1572,11 +1582,12 @@ MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
     return;
   do_browser_unblink_insert();
   MomObject*pob = browser_object_around(locit);
-  MOM_DEBUGLOG(gui, "do_browser_mark_set insertmark locit=" << MomShowTextIter(locit)
+  MOM_DEBUGLOG(blinkgui, "do_browser_mark_set insertmark locit=" << MomShowTextIter(locit)
                << " around pob=" << pob);
   if (pob)
     do_browser_blink_insert();
 } // end MomMainWindow::do_browser_mark_set
+
 
 bool
 MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomParenOffsets*&po,
@@ -1590,7 +1601,7 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
     {
       pbob = nullptr;
       po = nullptr;
-      MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+      MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                    << " outside of object");
       return false;
     }
@@ -1600,7 +1611,7 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
   pbob = &showbob;
   po = nullptr;
   int markoff = insertxit.get_offset() - showbob._sh_startmark->get_iter().get_offset();
-  MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+  MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                << " inside pob=" << pob << " markoff=" << markoff);
   {
     auto openit = showbob._sh_openmap.find(markoff);
@@ -1608,7 +1619,7 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
       {
         po = &openit->second;
         opening = true;
-        MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+        MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                      << " opening pob=" << pob << std::endl
                      << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
                      << " close=" << (int)(po->paroff_close) << " closelen=" << (int)(po->paroff_closelen) << std::endl
@@ -1624,7 +1635,7 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
       {
         po = &closeit->second;
         closing = true;
-        MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+        MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                      << " closing pob=" << pob << std::endl
                      << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
                      << " close=" << (int)(po->paroff_close) << " closelen=" << (int)(po->paroff_closelen) << std::endl
@@ -1635,11 +1646,13 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
       }
   }
   {
-    auto afterit = showbob._sh_closemap.lower_bound(markoff);
-    if (afterit != showbob._sh_closemap.end())
+    auto afterit = showbob._sh_openmap.lower_bound(markoff);
+    if (afterit != showbob._sh_openmap.end())
+      --afterit;
+    if (afterit != showbob._sh_openmap.end())
       {
         po = &afterit->second;
-        MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+        MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                      << " after, pob=" << pob << std::endl
                      << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
                      << " close=" << (int)(po->paroff_close) << " closelen=" << (int)(po->paroff_closelen) << std::endl
@@ -1649,7 +1662,7 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
         return true;
       }
   }
-  MOM_DEBUGLOG(gui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+  MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                << " none, pob=" << pob);
   return true;
 } // end MomMainWindow::found_browsed_object_around_insert
