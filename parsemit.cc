@@ -742,7 +742,7 @@ again:
       else
         goto failure;
     }
-  else if (pc=='$' && nc=='(' && _parhaschunk)
+  else if (pc=='#' && nc=='{' && _parhaschunk)
     {
       consume_utf8(2);
       bool gotvchunk = false;
@@ -795,7 +795,7 @@ MomParser::parse_chunk(bool *pgotchunk, int depth)
     {
       // do nothing
     };
-  if (peek_utf8(0) == ')' && peek_utf8(1) == '$')
+  if (peek_utf8(0) == '}' && peek_utf8(1) == '#')
     {
       consume_utf8(2);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "endchunk/"
@@ -842,8 +842,8 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
   MomIdent id;
   const char* endid = nullptr;
   peek_prevcurr_utf8(pc,nc,1);
-  /* in chunks, )$ is ending the chunk */
-  if (pc == ')' && nc == '$')
+  /* in chunks, }# is ending the chunk */
+  if (pc == '}' && nc == '#')
     return false;
   if (eof())
     return false;
@@ -990,6 +990,8 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
       while ((pc = peek_utf8(0))>0 && !eol() && !(isalpha(pc) || isspace(pc)))
         {
           nc = peek_utf8(1);
+	  if (pc=='}' && nc=='#')
+	    break;
           if (pc=='$')
             {
               if (nc == '$')
@@ -1002,7 +1004,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
         }
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem other " << MomShowString(str));
-      if (!_parnobuild)
+      if (!_parnobuild && !str.empty())
         vecelem.push_back(MomString::make_from_string(str));
       return true;
     }
