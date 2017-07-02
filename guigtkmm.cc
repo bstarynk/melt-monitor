@@ -2312,6 +2312,49 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
               nbmodif++;
             }
         }
+      else if (pars->got_cstring("&@"))
+        {
+          bool gotpos = false;
+          bool gotval = false;
+          intptr_t pos = pars->parse_int(&gotpos);
+          if (!gotpos)
+            MOM_PARSE_FAILURE(pars, "expect integer insertion position of component after &@");
+          MomValue valcomp = pars->parse_value(&gotval);;
+          if (!gotval)
+            MOM_PARSE_FAILURE(pars, "expect value of inserted component after &@");
+          if (!_mwi_focusobj)
+            MOM_PARSE_FAILURE(pars, "expect focus object for insertion with &@");
+          if (apply)
+            {
+              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
+              _mwi_focusobj->unsync_insert_comp((int)pos, valcomp);
+              _mwi_focusobj->touch();
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command insert into " << _mwi_focusobj
+                           << " pos=" << pos
+                           << " valcomp=" << valcomp);
+              browser_show_object(_mwi_focusobj);
+              nbmodif++;
+            }
+        }
+      else if (pars->got_cstring("&-"))
+        {
+          bool gotpos = false;
+          intptr_t pos = pars->parse_int(&gotpos);
+          if (!gotpos)
+            MOM_PARSE_FAILURE(pars, "expect integer removal position of component after &@");
+          if (!_mwi_focusobj)
+            MOM_PARSE_FAILURE(pars, "expect focus object for insertion with &@");
+          if (apply)
+            {
+              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
+              _mwi_focusobj->unsync_remove_comp((int)pos);
+              _mwi_focusobj->touch();
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command remove into " << _mwi_focusobj
+                           << " pos=" << pos);
+              browser_show_object(_mwi_focusobj);
+              nbmodif++;
+            }
+        }
       else if (pars->got_cstring("&"))
         {
           bool gotval = false;
