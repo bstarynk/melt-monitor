@@ -701,7 +701,7 @@ again:
           curval = parse_value(&gotcurval, depth+1);
           if ((!_parnobuild && !curval) || !gotcurval)
             MOM_PARSE_FAILURE(this, "missing son#" << sonvec.size()
-			      << " in node of " << MomShowObject(connob));
+                              << " in node of " << MomShowObject(connob));
           if (!_parnobuild)
             sonvec.push_back(curval);
           cnt++;
@@ -990,8 +990,8 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
       while ((pc = peek_utf8(0))>0 && !eol() && !(isalpha(pc) || isspace(pc)))
         {
           nc = peek_utf8(1);
-	  if (pc=='}' && nc=='#')
-	    break;
+          if (pc=='}' && nc=='#')
+            break;
           if (pc=='$')
             {
               if (nc == '$')
@@ -1533,6 +1533,15 @@ MomSimpleParser::fetch_named_object(const std::string&nam)
 } // end MomSimpleParser::fetch_named_object
 
 MomValue
+MomSimpleParser::simple_chunk_name(const std::string&name)
+{
+  auto pob = mom_find_named(name.c_str());
+  if (pob)
+    return pob;
+  return MomString::make_from_string(name);
+} // end MomSimpleParser::simple_chunk_name
+
+MomValue
 MomSimpleParser::chunk_embedded_value(const MomValue val)
 {
   MomValue res = nullptr;
@@ -1542,6 +1551,17 @@ MomSimpleParser::chunk_embedded_value(const MomValue val)
     res = simple_chunk_embedded_value(val);
   return res;
 } // end MomSimpleParser::chunk_embedded_value
+
+MomValue
+MomSimpleParser::chunk_name(const std::string&name)
+{
+  MomValue res;
+  if (_spar_chunknamefun)
+    res = _spar_chunknamefun(this,name);
+  if (!res)
+    res = simple_chunk_name(name);
+  return res;
+} // end MomSimpleParser::simple_chunk_name
 
 MomValue
 MomSimpleParser::chunk_dollarobj(MomObject*pob)

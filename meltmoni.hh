@@ -2641,13 +2641,16 @@ public:
   public:
     Mom_parse_failure(const MomParser* pa, const char*fil, int lin, const std::string&msg)
       : Mom_runtime_failure(fil,lin,msg+" @"+pa->location_str()),
-	_pars(pa), _msg(msg) {}
+        _pars(pa), _msg(msg) {}
     ~Mom_parse_failure() = default;
     const MomParser* parser() const
     {
       return _pars;
     };
-    std::string msg() const { return _msg; };
+    std::string msg() const
+    {
+      return _msg;
+    };
   };
   MomParser(std::istream&inp, unsigned lincount=0)
     : _parinp(inp),  _parlinstr{}, _parlincount(lincount),
@@ -3022,6 +3025,7 @@ class MomSimpleParser : public MomParser
   std::function<MomObject*(MomSimpleParser*, const std::string&)> _spar_namedfetchfun;
   std::function<MomValue(MomSimpleParser*, const MomIdent)> _spar_chunkidfun;
   std::function<MomValue(MomSimpleParser*, const MomValue)> _spar_chunkvalfun;
+  std::function<MomValue(MomSimpleParser*, const std::string&)> _spar_chunknamefun;
   std::function<MomValue(MomSimpleParser*, MomObject*)> _spar_chunkdollarobjfun;
   std::function<MomValue(MomSimpleParser*, const std::vector<MomValue>&)>
   _spar_chunknodefun;
@@ -3067,6 +3071,7 @@ public:
       _spar_namedfetchfun(),
       _spar_chunkidfun(),
       _spar_chunkvalfun(),
+      _spar_chunknamefun(),
       _spar_chunkdollarobjfun(),
       _spar_chunknodefun(),
       _spar_parsedvalnullfun(),
@@ -3084,6 +3089,13 @@ public:
                       const std::string&)> fun=nullptr)
   {
     _spar_namedfetchfun = fun;
+    return *this;
+  };
+  MomSimpleParser&
+  set_chunk_name_fun(std::function<MomValue(MomSimpleParser*,
+                     const std::string&)> fun=nullptr)
+  {
+    _spar_chunknamefun = fun;
     return *this;
   };
   MomSimpleParser&
@@ -3116,11 +3128,13 @@ public:
   }
   MomObject*simple_named_object(const std::string&);
   MomValue simple_chunk_embedded_value(const MomValue);
+  MomValue simple_chunk_name(const std::string&);
   MomValue simple_chunk_dollarobj(MomObject*);
   MomValue simple_chunk_value(const std::vector<MomValue>&);
   /// given some name, fetch the corresponding named object
   virtual MomObject* fetch_named_object(const std::string&);
   virtual MomValue chunk_embedded_value(const MomValue);
+  virtual MomValue chunk_name(const std::string&);
   virtual MomValue chunk_dollarobj(MomObject*);
   virtual MomValue chunk_value(const std::vector<MomValue>&);
   //
