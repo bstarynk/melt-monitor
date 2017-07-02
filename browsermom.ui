@@ -172,6 +172,21 @@
                 <property name="background">lightcyan2</property>
             </object>
         </child>
+      <!-- value_numberseq_tag for sequence (set or tuple) value -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">value_numberseq_tag</property>
+                <property name="foreground">darkolivegreen4</property>
+                <property name="font">DejaVu Sans Mono</property>
+            </object>
+        </child>
+      <!-- value_node_tag for node value -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+                <property name="name">value_node_tag</property>
+                <property name="background">ivory2</property>
+            </object>
+        </child>
 	<!-- open_tag for opening paren, etc.. -->
         <child type="tag">
             <object class='GtkTextTag'>
