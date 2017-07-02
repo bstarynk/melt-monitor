@@ -2284,7 +2284,7 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
               _mwi_focusobj->unsync_remove_phys_attr(pobattr);
               _mwi_focusobj->touch();
               MOM_DEBUGLOG(gui, "MomMainWindow::parse_command remove into " << _mwi_focusobj
-                           " pobattr=" << pobattr);
+                           << " pobattr=" << pobattr);
               browser_show_object(_mwi_focusobj);
               nbmodif++;
             }
