@@ -2637,14 +2637,17 @@ public:
   class Mom_parse_failure : public Mom_runtime_failure
   {
     const MomParser *_pars;
+    std::string _msg;
   public:
     Mom_parse_failure(const MomParser* pa, const char*fil, int lin, const std::string&msg)
-      : Mom_runtime_failure(fil,lin,msg+" @"+pa->location_str()), _pars(pa) {}
+      : Mom_runtime_failure(fil,lin,msg+" @"+pa->location_str()),
+	_pars(pa), _msg(msg) {}
     ~Mom_parse_failure() = default;
     const MomParser* parser() const
     {
       return _pars;
     };
+    std::string msg() const { return _msg; };
   };
   MomParser(std::istream&inp, unsigned lincount=0)
     : _parinp(inp),  _parlinstr{}, _parlincount(lincount),
