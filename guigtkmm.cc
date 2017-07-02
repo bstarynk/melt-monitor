@@ -1558,7 +1558,6 @@ MomMainWindow::do_browser_blink_insert(void)
       Gtk::TextIter startxit = pbob->_sh_startmark->get_iter();
       Gtk::TextIter opentxit = startxit;
       Gtk::TextIter closetxit = startxit;
-      Gtk::TextIter xtratxit = startxit;
       int offopen = ppo->paroff_open;
       int offclose = ppo->paroff_close;
       int offxtra = ppo->paroff_xtra;
@@ -2066,7 +2065,7 @@ MomMainWindow::do_object_options(void)
   if (res ==  Gtk::RESPONSE_APPLY)
     {
       double depthval = depthscale.get_value();
-      int newdepth = newdepth;
+      int newdepth = depthval;
       if (newdepth<_min_display_depth_)
         newdepth = _min_display_depth_;
       else if (newdepth>_max_display_depth_)
