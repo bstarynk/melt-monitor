@@ -21,8 +21,6 @@
 #include "meltmoni.hh"
 
 
-std::mutex MomRegisterGlobData::_gd_mtx_;
-std::map<std::string,std::atomic<MomObject*>*> MomRegisterGlobData::_gd_dict_;
 
 #define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) MomObject*MOM_PREDEF(Id);
 #include "_mom_predef.h"

@@ -22,9 +22,6 @@
 
 bool mom_with_gui;
 
-std::mutex  MomRegisterPayload::_pd_mtx_;
-std::map<std::string,const MomVtablePayload_st*>  MomRegisterPayload::_pd_dict_;
-
 // libbacktrace from GCC, i.e. libgcc-6-dev package
 #include <backtrace.h>
 #include <cxxabi.h>
@@ -36,9 +33,6 @@ std::map<std::string,const MomVtablePayload_st*>  MomRegisterPayload::_pd_dict_;
 
 static struct backtrace_state *btstate_mom;
 static bool syslogging_mom;
-const char* mom_dump_dir;
-const char* mom_web_option;
-const char*mom_load_dir = ".";
 static bool sequential_load_mom = false;
 thread_local MomRandom MomRandom::_rand_thr_;
 
