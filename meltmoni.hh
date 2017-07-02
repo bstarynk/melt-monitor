@@ -2322,6 +2322,22 @@ public:
   {
     _ob_comps.push_back(vcomp);
   }
+  void unsync_insert_comp(int pos, const MomValue vcomp)
+  {
+    int nbcomps = _ob_comps.size();
+    if (pos<0)
+      pos+=nbcomps;
+    if (pos>=0 && pos<=nbcomps)
+      _ob_comps.insert(_ob_comps.begin()+pos, vcomp);
+  }
+  void unsync_remove_comp(int pos)
+  {
+    int nbcomps = _ob_comps.size();
+    if (pos<0)
+      pos+=nbcomps;
+    if (pos>=0 && pos<=nbcomps)
+      _ob_comps.erase(_ob_comps.begin()+pos);
+  }
   void unsync_reserve_more_comp(unsigned n)
   {
     _ob_comps.reserve(_ob_comps.size()+n);
