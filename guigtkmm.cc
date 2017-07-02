@@ -24,6 +24,9 @@
 #include <gtkmm.h>
 
 class MomMainWindow;
+
+class MomPaylMainWindow;
+
 class MomApplication : public Gtk::Application
 {
   static MomApplication* _itself_;
@@ -134,8 +137,64 @@ public:
 const long MomComboBoxObjptrText::_nb_named_threshold_;
 
 
+extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(main_window) __attribute__((section(".rodata")));
+
+
+MomRegisterPayload mompy_main_window(MOM_PAYLOADVTBL(main_window));
+
+class MomPaylMainWindow : public MomPayload
+{
+public:
+  friend struct MomVtablePayload_st;
+  friend class MomObject;
+  friend class MomMainWindow;
+private:
+  MomMainWindow* _pymw_win;
+  MomObject* _pymw_proxy;
+public:
+  MomPaylMainWindow(MomObject*owner, MomMainWindow*win)
+    : MomPayload(&MOM_PAYLOADVTBL(main_window),owner),
+      _pymw_win(win), _pymw_proxy(nullptr) {};
+  virtual ~MomPaylMainWindow();
+  MomMainWindow* main_win() const
+  {
+    return _pymw_win;
+  };
+  MomObject* proxy() const
+  {
+    return _pymw_proxy;
+  };
+  static MomPyv_destr_sig Destroy;
+  static MomPyv_scangc_sig Scangc;
+  static MomPyv_getmagic_sig Getmagic;
+};				// end MomPaylMainWindow
+
+
+const struct MomVtablePayload_st MOM_PAYLOADVTBL(main_window) __attribute__((section(".rodata"))) =
+{
+  /**   .pyv_magic=      */       MOM_PAYLOADVTBL_MAGIC,
+  /**   .pyv_size=       */       sizeof(MomPaylMainWindow),
+  /**   .pyv_name=       */       "main_window",
+  /**   .pyv_module=     */       (const char*)nullptr,
+  /**   .pyv_destroy=    */       MomPaylMainWindow::Destroy,
+  /**   .pyv_scangc=     */       MomPaylMainWindow::Scangc,
+  /**   .pyv_scandump=   */       nullptr,
+  /**   .pyv_emitdump=   */       nullptr,
+  /**   .pyv_initload=   */       nullptr,
+  /**   .pyv_loadfill=   */       nullptr,
+  /**   .pyv_getmagic=   */       MomPaylMainWindow::Getmagic,
+  /**   .pyv_fetch=      */       nullptr,
+  /**   .pyv_update=     */       nullptr,
+  /**   .pyv_step=       */       nullptr,
+  /**   .pyv_spare1=     */       nullptr,
+  /**   .pyv_spare2=     */       nullptr,
+  /**   .pyv_spare3=     */       nullptr,
+};
+
+
 class MomMainWindow : public Gtk::Window
 {
+  friend class MomPaylMainWindow;
 public:
   static constexpr const int _default_display_depth_ = 5;
   static constexpr const int _min_display_depth_ = 2;
@@ -239,7 +298,12 @@ private:
   double _mwi_cmduseractim;
   double _mwi_cmdlastuseractim;
   MomObject* _mwi_focusobj;
+  MomObject* _mwi_winobj;
 public:
+  int rank() const
+  {
+    return _mwi_winrank;
+  };
   MomMainWindow();
   ~MomMainWindow();
   void browser_show_object(MomObject*pob);
@@ -1748,7 +1812,8 @@ MomMainWindow::MomMainWindow()
     _mwi_browsedobmap(),
     _mwi_cmduseractim(0.0),
     _mwi_cmdlastuseractim(0.0),
-    _mwi_focusobj(nullptr)
+    _mwi_focusobj(nullptr),
+    _mwi_winobj(nullptr)
 {
   {
     auto screen = Gdk::Screen::get_default();
@@ -1815,6 +1880,8 @@ MomMainWindow::MomMainWindow()
   _mwi_commandbuf->signal_mark_set().connect(sigc::mem_fun(*this,&MomMainWindow::do_txcmd_mark_set));
   set_default_size(630,480);
   property_title().set_value(Glib::ustring::compose("mom window #%1", _mwi_winrank));
+  _mwi_winobj = MomObject::make_object();
+  _mwi_winobj->unsync_make_payload<MomPaylMainWindow>(this);
   Glib::signal_timeout().connect
   (sigc::mem_fun(this,&MomMainWindow::do_browser_blink_insert),
    _blink_period_milliseconds);
@@ -2700,6 +2767,8 @@ MomMainWindow::browser_set_focus_object(MomObject*pob)
 void
 MomMainWindow::scan_gc(MomGC*gc)
 {
+  if (_mwi_winobj)
+    gc->scan_object(_mwi_winobj);
   for (auto it: _mwi_browsedobmap)
     {
       gc->scan_object(it.first);
@@ -2771,6 +2840,54 @@ MomShowTextIter::output(std::ostream&outs) const
 } // end MomShowTextIter::output
 
 
+
+////////////////////////////////////////////////////////////////
+
+MomPaylMainWindow::~MomPaylMainWindow()
+{
+  if (_pymw_win) _pymw_win->_mwi_winobj = nullptr;
+} // end MomPaylMainWindow::~MomPaylMainWindow
+
+void
+MomPaylMainWindow::Destroy(struct MomPayload*payl,MomObject*own)
+{
+  auto py = static_cast<MomPaylMainWindow*>(payl);
+  delete py;
+} // end MomPaylMainWindow::Destroy
+
+
+MomValue
+MomPaylMainWindow::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
+{
+  auto py = static_cast<const MomPaylMainWindow*>(payl);
+  MomObject*proxob = nullptr;
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(main_window),
+             "MomPaylMainWindow::Getmagic invalid main_win payload for own=" << own);
+  if (attrob == MOMP_int)
+    return py->_pymw_win?py->_pymw_win->rank():0;
+  else if (attrob == MOMP_proxy)
+    return py->_pymw_proxy;
+  else if ((proxob=py->_pymw_proxy) != nullptr)
+    {
+      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      return proxob->unsync_get_magic_attr(attrob);
+    }
+  return nullptr;
+} // end of MomPaylMainWindow::Getmagic
+
+void
+MomPaylMainWindow::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
+{
+  auto py = static_cast<const MomPaylMainWindow*>(payl);
+  MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(main_window),
+             "invalid main_win payload for own=" << own);
+  if (py->_pymw_win)
+    py->_pymw_win->scan_gc(gc);
+  if (py->_pymw_proxy)
+    gc->scan_object(py->_pymw_proxy);
+} // end MomPaylMainWindow::Scangc
+
+////////////////////////////////////////////////////////////////
 extern "C"
 void
 mom_gtk_error_handler (const gchar *log_domain,
