@@ -599,7 +599,7 @@ MomComboBoxObjptrText::upgrade_for_string(const char*str)
            [&](const std::string& curnam,MomObject*)
           {
             namesvec.push_back(curnam);
-            MOM_DEBUGLOG(gui, "upgrade_for_string str=" << MomShowString(str)
+            MOM_DEBUGLOG(gui, "upgrade_for_string name str=" << MomShowString(str)
                          << " curnam=" << MomShowString(curnam));
             return false;
           });
@@ -618,10 +618,18 @@ MomComboBoxObjptrText::upgrade_for_string(const char*str)
            [&](MomObject*curpob)
           {
             idsvec.push_back(curpob->id());
-            MOM_DEBUGLOG(gui, "upgrade_for_string str=" << str
+            MOM_DEBUGLOG(gui, "upgrade_for_string id str=" << str
                          << " curpob=" << curpob);
             return false;
           });
+          remove_all();
+          for (auto curid: idsvec)
+            {
+              char idbuf[32];
+              memset (idbuf, 0, sizeof(idbuf));
+              curid.to_cbuf32(idbuf);
+              append(idbuf);
+            };
         }
       else if (str[0] == '@')
         {
@@ -631,17 +639,22 @@ MomComboBoxObjptrText::upgrade_for_string(const char*str)
           ([&](const std::string&glonam, std::atomic<MomObject*>*)
           {
             if (glonam.size() >= slen-1
-                && strncmp(glonam.c_str(), str, slen-1)==0)
+                && strncmp(glonam.c_str(), str+1, slen-1)==0)
               {
                 globdatavec.push_back(glonam);
-                MOM_DEBUGLOG(gui, "upgrade_for_string str=" << str
+                MOM_DEBUGLOG(gui, "upgrade_for_string global str=" << str
                              << " glonam=" << glonam << ".");
               }
             return false;
           });
+          remove_all();
+          for (std::string glonam: globdatavec)
+            {
+              std::string strgl = std::string{"@"} + glonam;
+              append(strgl.c_str());
+            }
         }
     }
-#warning MomComboBoxObjptrText::upgrade_for_string incomplete
   MOM_DEBUGLOG(gui, "MomComboBoxObjptrText::upgrade_for_string end");
 } // end MomComboBoxObjptrText::upgrade_for_string
 
