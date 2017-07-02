@@ -30,3 +30,9 @@ std::map<std::string,const MomVtablePayload_st*>  MomRegisterPayload::_pd_dict_;
 const char* mom_dump_dir;
 const char* mom_web_option;
 const char*mom_load_dir = ".";
+
+MomObject::MomBucketObj MomObject::_ob_bucketarr_[MomObject::_obmaxbucket_];
+std::atomic<unsigned> MomObject::_ob_nbclearedbuckets_;
+std::atomic<unsigned> MomObject::_ob_nbsweepedbuckets_;
+std::mutex MomObject::_predefmtx_;
+MomObjptrSet MomObject::_predefset_;
