@@ -1493,6 +1493,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
             .set_name(pstr)
             .set_make_from_id(true)
             .set_debug(MOM_IS_DEBUGGING(parse))
+	    .set_has_chunk(true)
             .disable_exhaustion();
             pars.skip_spaces();
             MOM_DEBUGLOG(parse, "start of parse-file @"
