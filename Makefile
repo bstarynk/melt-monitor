@@ -52,7 +52,7 @@ GENERATED_HEADERS= $(sort $(wildcard _mom*.h) $(wildcard MOM_*.h))
 MODULES=  $(patsubst %.cc,%.so,$(MODULE_SOURCES))
 
 CSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.c)))
-CXXSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.cc)))
+CXXSOURCES= $(wildcard [0-9]*.cc) $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.cc)))
 SHSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.sh)))
 
 OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES))
