@@ -1664,7 +1664,7 @@ MomMainWindow::do_browser_mark_set(const Gtk::TextIter& locit,
   do_browser_unblink_insert();
   MomObject*pob = browser_object_around(locit);
   MOM_DEBUGLOG(gui, "do_browser_mark_set insertmark locit=" << MomShowTextIter(locit)
-               << " around pob=" << pob);
+               << " around pob=" << MomShowObject(pob));
   if (pob)
     do_browser_blink_insert();
 } // end MomMainWindow::do_browser_mark_set
@@ -1977,9 +1977,16 @@ MomMainWindow::do_object_show_hide(void)
     if (pob)
       {
         if (_mwi_browsedobmap.find(pob) != _mwi_browsedobmap.end())
-          showdialog.set_default_response(HideOb);
+          {
+            MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide showcombox default hiding pob=" << MomShowObject(pob));
+            showdialog.set_default_response(HideOb);
+          }
         else
-          showdialog.set_default_response(ShowOb);
+          {
+            MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide showcombox default showing pob=" << MomShowObject(pob));
+            showdialog.set_default_response(ShowOb);
+          }
+        showdialog.show_all_children();
       };
   });
   showdialog.show_all_children();
@@ -2208,6 +2215,7 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   .set_no_build(!apply)
   .set_debug(MOM_IS_DEBUGGING(gui))
   .set_signal_value(true)
+  .set_has_chunk(true)
   ;
   cmdpars
   .set_named_fetch_fun([&](MomSimpleParser*thisparser,
