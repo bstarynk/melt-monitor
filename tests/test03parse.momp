@@ -1,0 +1,3 @@
+#!./monimelt --parse-file
+// test parsing of chunks
+*node($(int foo;))

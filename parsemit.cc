@@ -700,7 +700,8 @@ again:
             }
           curval = parse_value(&gotcurval, depth+1);
           if ((!_parnobuild && !curval) || !gotcurval)
-            MOM_PARSE_FAILURE(this, "missing son#" << sonvec.size() << " in node of " << connob);
+            MOM_PARSE_FAILURE(this, "missing son#" << sonvec.size()
+			      << " in node of " << MomShowObject(connob));
           if (!_parnobuild)
             sonvec.push_back(curval);
           cnt++;
