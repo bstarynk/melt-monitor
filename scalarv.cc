@@ -360,7 +360,7 @@ MomString::make_from_cstr(const char*cstr)
   std::lock_guard<std::mutex> gu(curbag._bag_mtx);
   return curbag.unsync_bag_make_from_hash
          (h,
-          mom_align(sizeof(MomString)-bylen-MOM_FLEXIBLE_DIM),
+          mom_align(sizeof(MomString)-bylen-MOM_FLEXIBLE_DIM+1),
           cstr, sz, bylen);
 } // end MomString::make_from_cstr
 
