@@ -221,6 +221,8 @@ public:
     MomObject*_sh_ob;
     Glib::RefPtr<Gtk::TextMark> _sh_startmark;
     Glib::RefPtr<Gtk::TextMark> _sh_endmark;
+    // the keys of these maps are UTF-8 char (not byte) offsets
+    // relative to start of objects
     std::map<int,MomParenOffsets> _sh_openmap;
     std::map<int,MomParenOffsets> _sh_closemap;
     MomBrowsedObject(MomObject*ob,
@@ -299,6 +301,9 @@ private:
   double _mwi_cmdlastuseractim;
   MomObject* _mwi_focusobj;
   MomObject* _mwi_winobj;
+  // the key is an UTF-8 character (not byte) offset in the _mwi_commandbuf
+  std::map<int,MomParenOffsets> _mwi_txcmd_openmap;
+  std::map<int,MomParenOffsets> _mwi_txcmd_closemap;
 public:
   int rank() const
   {
@@ -359,6 +364,16 @@ private:
       txit.forward_chars(col);
     return txit;
   };
+  void add_txcmd_parens(const MomParenOffsets& po)
+  {
+    _mwi_txcmd_openmap.insert({po.paroff_open, po});
+    _mwi_txcmd_closemap.insert({po.paroff_close, po});
+  }
+  void clear_txcmd_parens(void)
+  {
+    _mwi_txcmd_openmap.clear();
+    _mwi_txcmd_closemap.clear();
+  }
   void browser_insert_object_mtim_space(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
   void browser_insert_object_attributes(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
   void browser_insert_object_components(Gtk::TextIter& txit, MomObject*pob, MomBrowsedObject& shob);
@@ -1736,11 +1751,16 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
   }
   {
     auto afterit = showbob._sh_openmap.lower_bound(markoff);
+    MomParenOffsets*afterpo = nullptr;
     if (afterit != showbob._sh_openmap.end())
       --afterit;
-    if (afterit != showbob._sh_openmap.end())
+    if (afterit != showbob._sh_openmap.end()
+        && ((afterpo=&afterit->second),
+            (((int)(afterpo->paroff_open) <= markoff && markoff <= (int)(afterpo->paroff_close))
+             || ((int)(afterpo->paroff_xtra) >= 0
+                 && (int)(afterpo->paroff_xtra) <= markoff && markoff <= (int)(afterpo->paroff_close)))))
       {
-        po = &afterit->second;
+        po = afterpo;
         MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                      << " after, pob=" << pob << std::endl
                      << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
@@ -1753,9 +1773,14 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
     else
       {
         auto beforeit = showbob._sh_closemap.upper_bound(markoff);
-        if (beforeit != showbob._sh_closemap.end())
+        MomParenOffsets*beforepo = nullptr;
+        if (beforeit != showbob._sh_closemap.end()
+            && ((beforepo=&afterit->second),
+                (((int)(beforepo->paroff_open) <= markoff && markoff <= (int)(beforepo->paroff_close))
+                 || ((int)(beforepo->paroff_xtra) >= 0
+                     && (int)(beforepo->paroff_xtra) <= markoff && markoff <= (int)(beforepo->paroff_close)))))
           {
-            po = &beforeit->second;
+            po = beforepo;
             MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                          << " before, pob=" << pob << std::endl
                          << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
