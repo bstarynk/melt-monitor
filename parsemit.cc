@@ -937,6 +937,9 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
     {
       std::string dollstr;
       consume_utf8(1);
+      auto inicolpos = _parcolpos;
+      auto inilincnt = _parlincount;
+      auto inioff = _parlinoffset + _parcolidx;
       while ((pc=peek_utf8(0))>0 && pc<127 && (isalnum(pc) || pc=='_'))
         {
           dollstr += (char)pc;
@@ -948,7 +951,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
                              << " chunkelem dollarname nobuild dollstr=$" << dollstr);
           return true;
         }
-      auto pob = fetch_named_object(dollstr);
+      auto pob = fetch_named_object(dollstr, inioff, inilincnt, inicolpos);
       MomValue v = pob?chunk_dollarobj(pob):nullptr;
       if (v)
         {
@@ -1150,12 +1153,15 @@ again:
     }
   else if (isalpha(pc))
     {
+      auto namcolpos = _parcolpos;
+      auto namlincnt = _parlincount;
+      auto namoff = _parlinoffset + _parcolidx;
       const char*begnamp = curbytes();
       const char*endnamp = begnamp;
       while (*endnamp<127 && (isalnum(*endnamp) || (*endnamp == '_' && isalnum(endnamp[-1]))))
         endnamp++;
       std::string namstr(begnamp, endnamp-begnamp);
-      MomObject* ob = fetch_named_object(namstr);
+      MomObject* ob = fetch_named_object(namstr,namoff,namlincnt,namcolpos);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " namstr=" << MomShowString(namstr)
                          << " NAMEDOB=" << MomShowObject(ob));
@@ -1480,7 +1486,7 @@ MomValue::output(std::ostream& out) const
 
 
 MomObject*
-MomSimpleParser::simple_named_object(const std::string&nam)
+MomSimpleParser::simple_named_object(const std::string&nam, long inioff, unsigned inilincnt, int inicolpos)
 {
   auto pob = mom_find_named(nam.c_str());
   if (!pob)
@@ -1524,11 +1530,13 @@ MomSimpleParser::simple_chunk_value(const std::vector<MomValue>&vec)
 
 
 MomObject*
-MomSimpleParser::fetch_named_object(const std::string&nam)
+MomSimpleParser::fetch_named_object(const std::string&nam, long inioff, unsigned inilincnt, int inicolpos)
 {
   MomObject* pob = nullptr;
-  if (_spar_namedfetchfun) pob = _spar_namedfetchfun(this,nam);
-  if (!pob) pob = simple_named_object(nam);
+  if (_spar_namedfetchfun)
+    pob = _spar_namedfetchfun(this,nam,inioff,inilincnt,inicolpos);
+  if (!pob)
+    pob = simple_named_object(nam,inioff,inilincnt,inicolpos);
   return pob;
 } // end MomSimpleParser::fetch_named_object
 

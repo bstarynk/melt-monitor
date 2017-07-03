@@ -2219,11 +2219,10 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   ;
   cmdpars
   .set_named_fetch_fun([&](MomSimpleParser*thisparser,
-                           const std::string&namstr)
+                           const std::string&namstr, long namoff, unsigned namlincnt, int namcolpos)
   {
-    MomObject* ob = thisparser->simple_named_object(namstr);
-    Gtk::TextIter txit = command_txiter_at_line_col(thisparser->lineno(),
-                         thisparser->colpos());
+    MomObject* ob = thisparser->simple_named_object(namstr, namoff, namlincnt, namcolpos);
+    Gtk::TextIter txit = command_txiter_at_line_col(namlincnt, namcolpos);
     Gtk::TextIter endtxit = txit;
     endtxit.forward_chars(namstr.size()+1);
     if (ob)
