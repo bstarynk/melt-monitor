@@ -836,7 +836,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
 {
   gunichar pc=0, nc=0;
   check_exhaustion();
-  //auto inioff = _parlinoffset;
+  auto inioff = _parlinoffset + _parcolidx;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   MomIdent id;
@@ -888,7 +888,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
           consume_utf8(1);
           pc = peek_utf8(0);
         }
-      auto namv = _parnobuild?nullptr:chunk_name(namestr);
+      auto namv = _parnobuild?nullptr:chunk_name(namestr, inioff, inilincnt, inicolpos);
       if (namv)
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
@@ -1541,7 +1541,7 @@ MomSimpleParser::fetch_named_object(const std::string&nam, long inioff, unsigned
 } // end MomSimpleParser::fetch_named_object
 
 MomValue
-MomSimpleParser::simple_chunk_name(const std::string&name)
+MomSimpleParser::simple_chunk_name(const std::string&name, long inioff MOM_UNUSED, unsigned inilincnt MOM_UNUSED, int inicolpos MOM_UNUSED)
 {
   auto pob = mom_find_named(name.c_str());
   if (pob)
@@ -1561,13 +1561,13 @@ MomSimpleParser::chunk_embedded_value(const MomValue val)
 } // end MomSimpleParser::chunk_embedded_value
 
 MomValue
-MomSimpleParser::chunk_name(const std::string&name)
+MomSimpleParser::chunk_name(const std::string&name, long inioff, unsigned inilincnt, int inicolpos)
 {
   MomValue res;
   if (_spar_chunknamefun)
-    res = _spar_chunknamefun(this,name);
+    res = _spar_chunknamefun(this,name, inioff, inilincnt, inicolpos);
   if (!res)
-    res = simple_chunk_name(name);
+    res = simple_chunk_name(name, inioff, inilincnt, inicolpos);
   return res;
 } // end MomSimpleParser::simple_chunk_name
 
