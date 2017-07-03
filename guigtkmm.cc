@@ -219,11 +219,11 @@ public:
     {
       /// when ( ^ ) or [ ^ ] or { ^ }
       if (paroff_open <= off && off <= paroff_close)
-	return true;
-      /// when * conn ^ ( ... ) 
+        return true;
+      /// when * conn ^ ( ... )
       if (paroff_xtra >= 0 && paroff_xtra <= off
-	  && off <= paroff_open && paroff_xtra < paroff_open)
-	return true;
+          && off <= paroff_open && paroff_xtra < paroff_open)
+        return true;
       return false;
     }
   };
@@ -288,6 +288,7 @@ private:
   Gtk::MenuItem _mwi_mit_txcmd_clear;
   Gtk::MenuItem _mwi_mit_txcmd_runclear;
   Gtk::MenuItem _mwi_mit_txcmd_runkeep;
+  Gtk::MenuItem _mwi_mit_txcmd_cursorloc;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_browserbuf;
   Glib::RefPtr<Gtk::TextBuffer> _mwi_commandbuf;
   // mark to end of title string, always followed by newline:
@@ -1847,6 +1848,7 @@ MomMainWindow::MomMainWindow()
     _mwi_mit_txcmd_clear("_Clear",true),
     _mwi_mit_txcmd_runclear("_Run then clear",true),
     _mwi_mit_txcmd_runkeep("run but _Keep",true),
+    _mwi_mit_txcmd_cursorloc("@"),
     _mwi_browserbuf(Gtk::TextBuffer::create(MomApplication::itself()->browser_tagtable())),
     _mwi_commandbuf(Gtk::TextBuffer::create(MomApplication::itself()->command_tagtable())),
     _mwi_dispdepth(_default_display_depth_),
@@ -2193,6 +2195,15 @@ MomMainWindow::do_txcmd_populate_menu(Gtk::Menu*menu)
   menu->prepend(_mwi_mit_txcmd_runkeep);
   menu->prepend(_mwi_mit_txcmd_runclear);
   menu->prepend(_mwi_mit_txcmd_clear);
+  Gtk::TextIter insertxit = _mwi_commandbuf->get_insert()->get_iter();
+  int lineno=insertxit.get_line();
+  int colno=insertxit.get_line_offset();
+  int offset=insertxit.get_offset();
+  _mwi_mit_txcmd_cursorloc.set_label
+  (Glib::ustring::compose("@L%1C%2o%3", lineno, colno, offset));
+  _mwi_mit_txcmd_cursorloc.set_sensitive(false);
+  _mwi_mit_txcmd_cursorloc.set_right_justified();
+  menu->append(_mwi_mit_txcmd_cursorloc);
   menu->show_all_children();
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_populate_menu end");
 } // end MomMainWindow::do_txcmd_populate_menu
@@ -2285,7 +2296,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                                   txit, endtxit);
       }
     return ob;
-  })
+  } /*end named_fetch λ */)
+  //
   .set_parsedval_nullfun ([&](MomSimpleParser*thisparser MOM_UNUSED,
                               long offset MOM_UNUSED, unsigned linecnt, int colpos)
   {
@@ -2296,7 +2308,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                  << " endtxit=" << MomShowTextIter(endtxit));
     cmdbuf->apply_tag_by_name("null_cmdtag",
                               txit, endtxit);
-  })
+  }/* end parsedval_null λ*/)
+  //
   .set_parsedval_strfun([&](MomSimpleParser*, const std::string&str,
                             long inioffset MOM_UNUSED, unsigned inilinecnt, int inicolpos,
                             long endoffset MOM_UNUSED, unsigned endlinecnt, int endcolpos)
@@ -2314,7 +2327,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                  << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10));
     cmdbuf->apply_tag_by_name("string_cmdtag",
                               initxit, endtxit);
-  })
+  }/*end parsedval_str λ*/)
+  //
   .set_parsedval_intfun([&](MomSimpleParser*, intptr_t num MOM_UNUSED,
                             long offset, unsigned linecnt, int colpos, int endcolpos)
   {
@@ -2328,7 +2342,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                  << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10));
     cmdbuf->apply_tag_by_name("int_cmdtag",
                               initxit, endtxit);
-  })
+  }/*end parsedval_int λ*/)
+  //
   .set_parsedval_seqfun([&](MomSimpleParser*,
                             const MomAnyObjSeq*seq, bool istuple,
                             long inioffset, unsigned inilinecnt, int inicolpos,
@@ -2343,7 +2358,22 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                  << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10));
     cmdbuf->apply_tag_by_name(istuple?"tuple_cmdtag":"set_cmdtag",
                               initxit, endtxit);
-  })
+  }/*end parsedval_seq λ*/ )
+  //
+  .set_parsedval_valnodefun([&](MomSimpleParser*,const MomNode *nod,
+                                long inioffset, unsigned inilinecnt, int inicolpos,
+                                long leftoffset, unsigned leftlinecnt, int leftcolpos,
+                                long endoffset, unsigned endlinecnt, int endcolpos, int depth
+                               )
+  {
+    Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos+1);
+    Gtk::TextIter leftxit = command_txiter_at_line_col(leftlinecnt, leftcolpos+1);
+    Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos+1);
+    MOM_DEBUGLOG(gui, "prettify cmd node "
+                 << " initxit=" << MomShowTextIter(initxit, MomShowTextIter::_FULL_,10)
+                 << " leftxit=" << MomShowTextIter(leftxit, MomShowTextIter::_FULL_,10)
+                 << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10));
+  }/*end parsedval_valnode λ*/ )
   ;
 #warning should set a lot of prettification functions via set_parseval_* functions
   try
