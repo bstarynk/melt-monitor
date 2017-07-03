@@ -788,7 +788,7 @@ MomParser::parse_chunk(bool *pgotchunk, int depth)
 {
   check_exhaustion();
   std::vector<MomValue> vecelem;
-  //auto inioff = _parlinoffset;
+  auto inioff = _parlinoffset + _parcolidx;
   auto inicolpos = _parcolpos;
   auto inilincnt = _parlincount;
   while (parse_chunk_element(vecelem, depth))
@@ -817,7 +817,7 @@ MomParser::parse_chunk(bool *pgotchunk, int depth)
         return nullptr;
       else
         {
-          auto vch = chunk_value(vecelem);
+          auto vch = chunk_value(vecelem, inioff, inilincnt, inicolpos);
           if (!vch)
             MOM_PARSE_FAILURE(this, "failed to build chunk started at line#" << inilincnt << " column:" << inicolpos);
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "endchunk=" << vch);
@@ -1519,7 +1519,7 @@ MomSimpleParser::simple_chunk_dollarobj(MomObject*pob, long inioff MOM_UNUSED, u
 } // end MomSimpleParser::simple_chunk_dollarobj
 
 MomValue
-MomSimpleParser::simple_chunk_value(const std::vector<MomValue>&vec)
+MomSimpleParser::simple_chunk_value(const std::vector<MomValue>&vec, long inioff MOM_UNUSED, unsigned inilincnt MOM_UNUSED, int inicolpos MOM_UNUSED)
 {
   MomValue res = MomNode::make_from_vector(MOMP_chunk, vec);
   MOM_DEBUGLOG(parse, "simple_chunk_value vec/" << vec.size()
@@ -1583,11 +1583,13 @@ MomSimpleParser::chunk_dollarobj(MomObject*pob, long inioff, unsigned inilincnt,
 } // end MomSimpleParser::chunk_dollarobj
 
 MomValue
-MomSimpleParser::chunk_value(const std::vector<MomValue>&vec)
+MomSimpleParser::chunk_value(const std::vector<MomValue>&vec, long inioff, unsigned inilincnt, int inicolpos)
 {
   MomValue res=nullptr;
-  if (_spar_chunknodefun) res = _spar_chunknodefun(this,vec);
-  if (!res) res = simple_chunk_value(vec);
+  if (_spar_chunknodefun)
+    res = _spar_chunknodefun(this,vec,inioff,inilincnt,inicolpos);
+  if (!res)
+    res = simple_chunk_value(vec,inioff,inilincnt,inicolpos);
   return res;
 } // end MomSimpleParser::chunk_value
 
