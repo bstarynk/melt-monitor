@@ -952,7 +952,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
           return true;
         }
       auto pob = fetch_named_object(dollstr, inioff, inilincnt, inicolpos);
-      MomValue v = pob?chunk_dollarobj(pob):nullptr;
+      MomValue v = pob?chunk_dollarobj(pob, inioff, inilincnt, inicolpos):nullptr;
       if (v)
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
@@ -1506,7 +1506,7 @@ MomSimpleParser::simple_chunk_embedded_value(const MomValue v, long inioff MOM_U
 } // end MomSimpleParser::simple_chunk_embedded_value
 
 MomValue
-MomSimpleParser::simple_chunk_dollarobj(MomObject*pob)
+MomSimpleParser::simple_chunk_dollarobj(MomObject*pob, long inioff MOM_UNUSED, unsigned inilincnt MOM_UNUSED, int inicolpos MOM_UNUSED)
 {
   MomValue res;
   MOM_ASSERT(pob != nullptr && pob->vkind() == MomKind::TagObjectK, "simple_chunk_dollarobj bad pob");
@@ -1572,13 +1572,13 @@ MomSimpleParser::chunk_name(const std::string&name, long inioff, unsigned inilin
 } // end MomSimpleParser::simple_chunk_name
 
 MomValue
-MomSimpleParser::chunk_dollarobj(MomObject*pob)
+MomSimpleParser::chunk_dollarobj(MomObject*pob, long inioff, unsigned inilincnt, int inicolpos)
 {
   MomValue res = nullptr;
   if (_spar_chunkdollarobjfun)
-    res = _spar_chunkdollarobjfun(this,pob);
+    res = _spar_chunkdollarobjfun(this,pob,inioff,inilincnt,inicolpos);
   if (!res)
-    res = simple_chunk_dollarobj(pob);
+    res = simple_chunk_dollarobj(pob,inioff,inilincnt,inicolpos);
   return res;
 } // end MomSimpleParser::chunk_dollarobj
 
