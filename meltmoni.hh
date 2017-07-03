@@ -2953,7 +2953,10 @@ public:
     return nullptr;
   };
   /// from some id in a code chunk, gives a value
-  virtual MomValue chunk_id(MomIdent)
+  virtual MomValue chunk_id(MomIdent id MOM_UNUSED,
+                            long inioff MOM_UNUSED,
+                            unsigned inilincnt MOM_UNUSED,
+                            int inicolpos MOM_UNUSED)
   {
     return nullptr;
   };
@@ -3024,7 +3027,9 @@ class MomSimpleParser : public MomParser
 {
   std::function<MomObject*(MomSimpleParser*, const std::string&nam,
                            long namoff, unsigned namlincnt, int namcolpos)> _spar_namedfetchfun;
-  std::function<MomValue(MomSimpleParser*, const MomIdent)> _spar_chunkidfun;
+  std::function<MomValue(MomSimpleParser*, const MomIdent id,
+                         long idoff, unsigned idlincnt, int idcolpos
+                        )> _spar_chunkidfun;
   std::function<MomValue(MomSimpleParser*, const MomValue)> _spar_chunkvalfun;
   std::function<MomValue(MomSimpleParser*, const std::string&chnam, long inioff, unsigned inilincnt, int inicolpos)> _spar_chunknamefun;
   std::function<MomValue(MomSimpleParser*, MomObject*)> _spar_chunkdollarobjfun;
@@ -3101,7 +3106,7 @@ public:
   };
   MomSimpleParser&
   set_chunk_id_fun(std::function<MomValue(MomSimpleParser*,
-                                          const MomIdent)> fun=nullptr)
+                                          const MomIdent id, long inioff, unsigned inilincnt, int inicolpos)> fun=nullptr)
   {
     _spar_chunkidfun = fun;
     return *this;

@@ -910,7 +910,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
     {
       std::string idstr(curbytes(), endid - curbytes());
       consume_bytes(endid - curbytes());
-      auto vid = _parnobuild?nullptr:chunk_id(id);
+      auto vid = _parnobuild?nullptr:chunk_id(id, inioff, inilincnt, inicolpos);
       if (vid)
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
