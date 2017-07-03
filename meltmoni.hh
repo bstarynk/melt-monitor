@@ -2961,7 +2961,7 @@ public:
     return nullptr;
   };
   /// from some embedded value in a code chunk with $% gives a non-nil value
-  virtual MomValue chunk_embedded_value(const MomValue)
+  virtual MomValue chunk_embedded_value(const MomValue, long inioff MOM_UNUSED, unsigned inilincnt MOM_UNUSED, int inicolpos MOM_UNUSED)
   {
     return nullptr;
   };
@@ -3030,7 +3030,8 @@ class MomSimpleParser : public MomParser
   std::function<MomValue(MomSimpleParser*, const MomIdent id,
                          long idoff, unsigned idlincnt, int idcolpos
                         )> _spar_chunkidfun;
-  std::function<MomValue(MomSimpleParser*, const MomValue)> _spar_chunkvalfun;
+  std::function<MomValue(MomSimpleParser*, const MomValue val,
+                         long valoff, unsigned vallincnt, int valcolpos)> _spar_chunkvalfun;
   std::function<MomValue(MomSimpleParser*, const std::string&chnam, long inioff, unsigned inilincnt, int inicolpos)> _spar_chunknamefun;
   std::function<MomValue(MomSimpleParser*, MomObject*)> _spar_chunkdollarobjfun;
   std::function<MomValue(MomSimpleParser*, const std::vector<MomValue>&)>
@@ -3113,7 +3114,7 @@ public:
   };
   MomSimpleParser&
   set_chunk_val_fun(std::function<MomValue(MomSimpleParser*,
-                    const MomValue)> fun=nullptr)
+                    const MomValue, long inioff, unsigned inilincnt, int inicolpos)> fun=nullptr)
   {
     _spar_chunkvalfun = fun;
     return *this;
@@ -3133,13 +3134,13 @@ public:
     return *this;
   }
   MomObject*simple_named_object(const std::string&namstr, long inioff, unsigned inilincnt, int inicolpos);
-  MomValue simple_chunk_embedded_value(const MomValue);
+  MomValue simple_chunk_embedded_value(const MomValue val, long inioff, unsigned inilincnt, int inicolpos);
   MomValue simple_chunk_name(const std::string&chnam, long inioff, unsigned inilincnt, int inicolpos);
   MomValue simple_chunk_dollarobj(MomObject*);
   MomValue simple_chunk_value(const std::vector<MomValue>&);
   /// given some name, fetch the corresponding named object
   virtual MomObject* fetch_named_object(const std::string&namstr, long inioff, unsigned inilincnt, int inicolpos);
-  virtual MomValue chunk_embedded_value(const MomValue);
+  virtual MomValue chunk_embedded_value(const MomValue val, long inioff, unsigned inilincnt, int inicolpos);
   virtual MomValue chunk_name(const std::string&, long inioff, unsigned inilincnt, int inicolpos);
   virtual MomValue chunk_dollarobj(MomObject*);
   virtual MomValue chunk_value(const std::vector<MomValue>&);

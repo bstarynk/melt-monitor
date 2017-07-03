@@ -977,7 +977,7 @@ MomParser::parse_chunk_element(std::vector<MomValue>& vecelem, int depth)
       auto embv = parse_value(&gotval, depth+1);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem got embedded value" <<(_parnobuild?"!":" ") << embv);
-      auto v = _parnobuild?nullptr:chunk_embedded_value(embv);
+      auto v = _parnobuild?nullptr:chunk_embedded_value(embv, inioff, inilincnt, inicolpos);
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos
                          << " chunkelem embedding value" <<(_parnobuild?"!":" ") << v);
       if (!_parnobuild)
@@ -1495,7 +1495,7 @@ MomSimpleParser::simple_named_object(const std::string&nam, long inioff, unsigne
 } // end MomSimpleParser::simple_named_object
 
 MomValue
-MomSimpleParser::simple_chunk_embedded_value(const MomValue v)
+MomSimpleParser::simple_chunk_embedded_value(const MomValue v, long inioff MOM_UNUSED, unsigned inilincnt MOM_UNUSED, int inicolpos MOM_UNUSED)
 {
   ///  make an *embed(v) node
   MomValue res = MomNode::make_from_values(MOMP_embed, v);
@@ -1550,13 +1550,13 @@ MomSimpleParser::simple_chunk_name(const std::string&name, long inioff MOM_UNUSE
 } // end MomSimpleParser::simple_chunk_name
 
 MomValue
-MomSimpleParser::chunk_embedded_value(const MomValue val)
+MomSimpleParser::chunk_embedded_value(const MomValue val, long inioff, unsigned inilincnt, int inicolpos)
 {
   MomValue res = nullptr;
   if (_spar_chunkvalfun)
-    res = _spar_chunkvalfun(this,val);
+    res = _spar_chunkvalfun(this,val, inioff, inilincnt, inicolpos);
   if (!res)
-    res = simple_chunk_embedded_value(val);
+    res = simple_chunk_embedded_value(val, inioff, inilincnt, inicolpos);
   return res;
 } // end MomSimpleParser::chunk_embedded_value
 
