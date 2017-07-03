@@ -3018,6 +3018,11 @@ public:
                                  long leftoffset MOM_UNUSED, unsigned leftlinecnt MOM_UNUSED, int leftcolpos MOM_UNUSED,
                                  long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED,
                                  int depth MOM_UNUSED) {};
+  /// signal parsing of chunk
+  virtual void parsed_value_chunk(const MomValue chkval MOM_UNUSED,
+                                  long inioffset MOM_UNUSED, unsigned inilinecnt MOM_UNUSED, int inicolpos MOM_UNUSED,
+                                  long endoffset MOM_UNUSED, unsigned endlinecnt MOM_UNUSED, int endcolpos MOM_UNUSED,
+                                  int depth MOM_UNUSED) {};
 };				// end class MomParser
 
 
@@ -3072,6 +3077,11 @@ class MomSimpleParser : public MomParser
                      long endoffset, unsigned endlinecnt, int endcolpos,
                      int depth
                     )> _spar_parsedvalnodefun;
+  std::function<void(MomSimpleParser*, const MomValue valchk,
+                     long inioffset, unsigned inilinecnt, int inicolpos,
+                     long endoffset, unsigned endlinecnt, int endcolpos,
+                     int depth
+                    )> _spar_parsedvalchunkfun;
 public:
   MomSimpleParser(std::istream&inp, unsigned lincount=0)
     : MomParser(inp,lincount),
@@ -3088,7 +3098,8 @@ public:
       _spar_parsedvaldoublesqfun(),
       _spar_parsedvalsequencefun(),
       _spar_parsedvalobjptrfun(),
-      _spar_parsedvalnodefun()
+      _spar_parsedvalnodefun(),
+      _spar_parsedvalchunkfun()
   {};
   virtual ~MomSimpleParser() {};
   MomSimpleParser&
@@ -3276,7 +3287,16 @@ public:
                                endoffset, endlinecnt,  endcolpos, depth);
   };
   //
-  virtual void parsed_value_node(const MomNode* nod,
+  MomSimpleParser&
+  set_parseval_valnodefun( std::function<void(MomSimpleParser*,const MomNode *nod,
+                           long inioffset, unsigned inilinecnt, int inicolpos,
+                           long leftoffset, unsigned leftlinecnt, int leftcolpos,
+                           long endoffset, unsigned endlinecnt, int endcolpos, int depth)> fun=nullptr)
+  {
+    _spar_parsedvalnodefun = fun;
+    return *this;
+  };
+  virtual void parsed_value_node(const MomNode *nod,
                                  long inioffset, unsigned inilinecnt, int inicolpos,
                                  long leftoffset, unsigned leftlinecnt, int leftcolpos,
                                  long endoffset, unsigned endlinecnt, int endcolpos, int depth)
@@ -3287,6 +3307,25 @@ public:
                              leftoffset,  leftlinecnt,  leftcolpos,
                              endoffset, endlinecnt,  endcolpos, depth);
   };
+  //
+  MomSimpleParser&
+  set_parseval_valchunkfun( std::function<void(MomSimpleParser*,const MomValue chkval,
+                            long inioffset, unsigned inilinecnt, int inicolpos,
+                            long endoffset, unsigned endlinecnt, int endcolpos, int depth)> fun=nullptr)
+  {
+    _spar_parsedvalchunkfun = fun;
+    return *this;
+  }
+  virtual void parsed_value_chunk(const MomValue chkval,
+                                  long inioffset, unsigned inilinecnt, int inicolpos,
+                                  long endoffset, unsigned endlinecnt, int endcolpos,
+                                  int depth)
+  {
+    if (_spar_parsedvalchunkfun)
+      _spar_parsedvalchunkfun(this, chkval,
+                              inioffset, inilinecnt,  inicolpos,
+                              endoffset, endlinecnt,  endcolpos, depth);
+  }
 };				// end class MomSimpleParser
 
 
