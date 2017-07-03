@@ -3288,10 +3288,10 @@ public:
   };
   //
   MomSimpleParser&
-  set_parseval_valnodefun( std::function<void(MomSimpleParser*,const MomNode *nod,
-                           long inioffset, unsigned inilinecnt, int inicolpos,
-                           long leftoffset, unsigned leftlinecnt, int leftcolpos,
-                           long endoffset, unsigned endlinecnt, int endcolpos, int depth)> fun=nullptr)
+  set_parsedval_valnodefun( std::function<void(MomSimpleParser*,const MomNode *nod,
+                            long inioffset, unsigned inilinecnt, int inicolpos,
+                            long leftoffset, unsigned leftlinecnt, int leftcolpos,
+                            long endoffset, unsigned endlinecnt, int endcolpos, int depth)> fun=nullptr)
   {
     _spar_parsedvalnodefun = fun;
     return *this;
