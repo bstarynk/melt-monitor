@@ -215,6 +215,17 @@ public:
     uint8_t paroff_closelen; // length in UTF-8 chars of closing sign
     uint8_t paroff_xtralen; // length in UTF-8 chars of xtra sign
     uint8_t paroff_depth;   // depth
+    bool surrounds(int off)
+    {
+      /// when ( ^ ) or [ ^ ] or { ^ }
+      if (paroff_open <= off && off <= paroff_close)
+	return true;
+      /// when * conn ^ ( ... ) 
+      if (paroff_xtra >= 0 && paroff_xtra <= off
+	  && off <= paroff_open && paroff_xtra < paroff_open)
+	return true;
+      return false;
+    }
   };
   struct MomBrowsedObject
   {
@@ -1757,9 +1768,7 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
       MomParenOffsets*afterpo = nullptr;
       if (afterit != showbob._sh_openmap.end()
           && ((afterpo=&afterit->second),
-              (((int)(afterpo->paroff_open) <= markoff && markoff <= (int)(afterpo->paroff_close))
-               || ((int)(afterpo->paroff_xtra) >= 0
-                   && (int)(afterpo->paroff_xtra) <= markoff && markoff <= (int)(afterpo->paroff_close)))))
+              (afterpo->surrounds(markoff))))
         {
           po = afterpo;
           MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
@@ -1771,29 +1780,29 @@ MomMainWindow::found_browsed_object_around_insert(MomBrowsedObject*&pbob, MomPar
                       );
           return true;
         }
-      else
-        {
-          auto beforeit = showbob._sh_closemap.upper_bound(markoff);
-          MomParenOffsets*beforepo = nullptr;
-          if (beforeit != showbob._sh_closemap.end()
-              && ((beforepo=&afterit->second),
-                  (((int)(beforepo->paroff_open) <= markoff && markoff <= (int)(beforepo->paroff_close))
-                   || ((int)(beforepo->paroff_xtra) >= 0
-                       && (int)(beforepo->paroff_xtra) <= markoff && markoff <= (int)(beforepo->paroff_close)))))
-            {
-              po = beforepo;
-              MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
-                           << " before, pob=" << pob << std::endl
-                           << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
-                           << " close=" << (int)(po->paroff_close) << " closelen=" << (int)(po->paroff_closelen) << std::endl
-                           << ".. xtra=" << (int)(po->paroff_xtra) << " xtralen=" << (int)(po->paroff_xtralen)
-                           << " depth=" << (int)(po->paroff_depth)
-                          );
-              return true;
-            }
-        }
       if (afterit == showbob._sh_openmap.begin())
         break;
+    };
+  //
+  for (auto beforeit = showbob._sh_closemap.upper_bound(markoff);
+       beforeit != showbob._sh_closemap.end();
+       beforeit ++)
+    {
+      MomParenOffsets*beforepo = nullptr;
+      if (beforeit != showbob._sh_closemap.end()
+          && ((beforepo=&beforeit->second),
+              (beforepo->surrounds(markoff))))
+        {
+          po = beforepo;
+          MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
+                       << " before, pob=" << pob << std::endl
+                       << ".. paroff: open=" << (int)(po->paroff_open) << " openlen=" << (int)(po->paroff_openlen)
+                       << " close=" << (int)(po->paroff_close) << " closelen=" << (int)(po->paroff_closelen) << std::endl
+                       << ".. xtra=" << (int)(po->paroff_xtra) << " xtralen=" << (int)(po->paroff_xtralen)
+                       << " depth=" << (int)(po->paroff_depth)
+                      );
+          return true;
+        }
     }
   MOM_DEBUGLOG(blinkgui, "found_browsed_object_around_insert insertxit=" << MomShowTextIter(insertxit)
                << " none, pob=" << pob);
