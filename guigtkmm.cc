@@ -2586,6 +2586,8 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     {
       cmdpars.next_line().skip_spaces();
       parse_command(&cmdpars, apply);
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse before parse_command");
+      parse_command(&cmdpars, apply);
       MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse parse_command done");
     }
   catch (MomParser::Mom_parse_failure pfail)
