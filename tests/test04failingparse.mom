@@ -1,0 +1,3 @@
+#!./monimelt --parse-file
+// failing test parsing file test04failingparse.mom
+*node("a

@@ -1,3 +1,4 @@
 #!./monimelt --parse-file
+// file test03parse.momp
 // test parsing of chunks
 *node(#{int foo;}# int)
