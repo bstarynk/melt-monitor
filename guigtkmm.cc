@@ -2191,21 +2191,63 @@ MomMainWindow::do_txcmd_changed(void)
 void
 MomMainWindow::do_txcmd_populate_menu(Gtk::Menu*menu)
 {
-  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_populate_menu start");
   menu->prepend(_mwi_mit_txcmd_runkeep);
   menu->prepend(_mwi_mit_txcmd_runclear);
   menu->prepend(_mwi_mit_txcmd_clear);
   Gtk::TextIter insertxit = _mwi_commandbuf->get_insert()->get_iter();
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_populate_menu start insertxit=" << MomShowTextIter(insertxit));
   int lineno=insertxit.get_line();
   int colno=insertxit.get_line_offset();
   int offset=insertxit.get_offset();
+  auto tagsvec = insertxit.get_tags();
   _mwi_mit_txcmd_cursorloc.set_label
   (Glib::ustring::compose("@L%1C%2o%3", lineno, colno, offset));
+  Gtk::Menu* cursorsubmenu = Gtk::manage(new Gtk::Menu);
+  _mwi_mit_txcmd_cursorloc.set_submenu(*cursorsubmenu);
+  _mwi_mit_txcmd_cursorloc.signal_deselect().connect
+  ([=]
+  {
+    MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_populate_menu cursorloc deselect");
+    delete cursorsubmenu;
+  });
+  cursorsubmenu->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
+  int startnb=0, endnb=0, gotnb=0;
+  for (auto tagref : tagsvec)
+    {
+      if (!tagref) continue;
+      auto tagnamprop = tagref->property_name();
+      auto tagnamustr = tagnamprop.get_value();
+      if (tagnamustr.empty()) continue;
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_populate_menu curtag=" << tagnamustr);
+      if (insertxit.starts_tag(tagref))
+        {
+          auto startmit = Gtk::manage(new Gtk::MenuItem(Glib::ustring::compose("+%1", tagnamustr)));
+          startmit->set_sensitive(false);
+          cursorsubmenu->append(*startmit);
+          startnb++;
+        }
+      else if (insertxit.ends_tag(tagref))
+        {
+          auto endmit = Gtk::manage(new Gtk::MenuItem(Glib::ustring::compose("-%1", tagnamustr)));
+          endmit->set_sensitive(false);
+          cursorsubmenu->append(*endmit);
+          endnb++;
+        }
+      else
+        {
+          auto gotmit = Gtk::manage(new Gtk::MenuItem(Glib::ustring::compose("|%1", tagnamustr)));
+          gotmit->set_sensitive(false);
+          cursorsubmenu->append(*gotmit);
+          gotnb++;
+        }
+    }
   _mwi_mit_txcmd_cursorloc.set_sensitive(false);
   _mwi_mit_txcmd_cursorloc.set_right_justified();
   menu->append(_mwi_mit_txcmd_cursorloc);
   menu->show_all_children();
-  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_populate_menu end");
+  MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_populate_menu end startnb=" << startnb
+               << " endnb=" << endnb << " gotnb=" << gotnb
+               << " insertxit=" << MomShowTextIter(insertxit));
 } // end MomMainWindow::do_txcmd_populate_menu
 
 void
