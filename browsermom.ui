@@ -191,21 +191,21 @@
         <child type="tag">
             <object class='GtkTextTag'>
               <property name="name">open_tag</property>
-              <property name="font">Bold</property>
+              <property name="font">Cabin Bold</property>
             </object>
         </child>
 	<!-- star_tag for star of nodes, etc.. -->
         <child type="tag">
             <object class='GtkTextTag'>
               <property name="name">star_tag</property>
-              <property name="font">Bold</property>
+              <property name="font">Cabin Bold</property>
             </object>
         </child>
 	<!-- close_tag for closing paren, etc.. -->
         <child type="tag">
             <object class='GtkTextTag'>
               <property name="name">close_tag</property>
-              <property name="font">Bold</property>
+              <property name="font">Cabin Bold</property>
             </object>
         </child>
 	<!-- blink_tag to blink matching parenthesis -->
@@ -378,6 +378,27 @@
             <property name="background">lavenderblush1</property>
 	  </object>
 	</child>
+	<!-- open_cmdtag for opening paren, etc.. -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+              <property name="name">open_cmdtag</property>
+              <property name="font">Cabin Bold</property>
+            </object>
+        </child>
+	<!-- star_cmdtag for star of nodes, etc.. -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+              <property name="name">star_cmdtag</property>
+              <property name="font">Cabin Bold</property>
+            </object>
+        </child>
+	<!-- close_cmdtag for closing paren, etc.. -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+              <property name="name">close_cmdtag</property>
+              <property name="font">Cabin Bold</property>
+            </object>
+        </child>
 	<!-- ===== -->
       </object>
       <!-- end of commandtagtable_id -->

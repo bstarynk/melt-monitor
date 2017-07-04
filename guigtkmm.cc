@@ -2257,6 +2257,7 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   char cmdnambuf[24];
   memset (cmdnambuf, 0, sizeof(cmdnambuf));
   snprintf(cmdnambuf, sizeof(cmdnambuf), "*cmd#%d*", _mwi_winrank);
+  clear_txcmd_parens();
   cmdpars
   .set_name(cmdnambuf)
   .disable_exhaustion(true)
@@ -2357,6 +2358,10 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   {
     Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos);
     Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
+    Gtk::TextIter inipartxit = initxit;
+    inipartxit.forward_chars(2);
+    Gtk::TextIter endpartxit = endtxit;
+    endpartxit.backward_chars(2);
     MOM_DEBUGLOG(gui, "prettify intsq=" << MomValue(intsq)
                  << " inioffset=" << inioffset
                  << " inilinecnt=" << inilinecnt
@@ -2369,6 +2374,20 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                  << " depth=" << depth);
     cmdbuf->apply_tag_by_name("numseq_cmdtag",
                               initxit, endtxit);
+    cmdbuf->apply_tag_by_name("open_cmdtag",
+			      initxit, inipartxit);
+    cmdbuf->apply_tag_by_name("close_cmdtag",
+			      endpartxit, endtxit);
+    cmdbuf->apply_tag_by_name(Glib::ustring::compose("open%1_cmdtag", depth),
+			      initxit, inipartxit);
+    cmdbuf->apply_tag_by_name(Glib::ustring::compose("close%1_cmdtag", depth),
+			      endpartxit, endtxit);
+    int openoff=initxit.get_offset();
+    int closeoff=endtxit.get_offset();
+    MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
+			.paroff_xtra= -1, .paroff_openlen=2, .paroff_closelen=2,
+			.paroff_xtralen= 0, .paroff_depth=(uint8_t)depth};
+    add_txcmd_parens(po);
   } /*end parsedval_intsq  λ*/)
   //
   .set_parsedval_doublesqfun
@@ -2380,6 +2399,10 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   {
     Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos);
     Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
+    Gtk::TextIter inipartxit = initxit;
+    inipartxit.forward_chars(2);
+    Gtk::TextIter endpartxit = endtxit;
+    endpartxit.backward_chars(2);
     MOM_DEBUGLOG(gui, "prettify doublesq=" << MomValue(dblsq)
                  << " inioffset=" << inioffset
                  << " inilinecnt=" << inilinecnt
@@ -2392,6 +2415,20 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                  << " depth=" << depth);
     cmdbuf->apply_tag_by_name("numseq_cmdtag",
                               initxit, endtxit);
+    cmdbuf->apply_tag_by_name("open_cmdtag",
+			      initxit, inipartxit);
+    cmdbuf->apply_tag_by_name("close_cmdtag",
+			      endpartxit, endtxit);
+    cmdbuf->apply_tag_by_name(Glib::ustring::compose("open%1_cmdtag", depth),
+			      initxit, inipartxit);
+    cmdbuf->apply_tag_by_name(Glib::ustring::compose("close%1_cmdtag", depth),
+			      endpartxit, endtxit);
+    int openoff=initxit.get_offset();
+    int closeoff=endtxit.get_offset();
+    MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
+			.paroff_xtra= -1, .paroff_openlen=2, .paroff_closelen=2,
+			.paroff_xtralen= 0, .paroff_depth=(uint8_t)depth};
+    add_txcmd_parens(po);
   } /*end parsedval_doublesq  λ*/)
   //
   .set_parsedval_seqfun
@@ -2404,11 +2441,29 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   {
     Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos+1);
     Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos+1);
+    Gtk::TextIter inipartxit = initxit;
+    inipartxit.forward_chars(1);
+    Gtk::TextIter endpartxit = endtxit;
+    endpartxit.backward_chars(1);
     MOM_DEBUGLOG(gui, "prettify cmd " << (istuple?"tuple":"set")
                  << " initxit=" << MomShowTextIter(initxit, MomShowTextIter::_FULL_,10)
                  << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10));
     cmdbuf->apply_tag_by_name(istuple?"tuple_cmdtag":"set_cmdtag",
                               initxit, endtxit);
+    cmdbuf->apply_tag_by_name("open_cmdtag",
+			      initxit, inipartxit);
+    cmdbuf->apply_tag_by_name("close_cmdtag",
+			      endpartxit, endtxit);
+    cmdbuf->apply_tag_by_name(Glib::ustring::compose("open%1_cmdtag", depth),
+			      initxit, inipartxit);
+    cmdbuf->apply_tag_by_name(Glib::ustring::compose("close%1_cmdtag", depth),
+			      endpartxit, endtxit);
+    int openoff=initxit.get_offset();
+    int closeoff=endtxit.get_offset();
+    MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
+			.paroff_xtra= -1, .paroff_openlen=1, .paroff_closelen=1,
+			.paroff_xtralen= 0, .paroff_depth=(uint8_t)depth};
+    add_txcmd_parens(po);
   }/*end parsedval_seq λ*/ )
   //
   .set_parsedval_valnodefun
