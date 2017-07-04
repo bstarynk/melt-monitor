@@ -2506,7 +2506,38 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                         .paroff_xtralen= 1, .paroff_depth=(uint8_t)depth};
     add_txcmd_parens(po);
   }/*end parsedval_valnode λ*/ )
-  /// should add decoration of chunks
+  //
+  .set_parsedval_valchunkfun
+  ([&](MomSimpleParser*,const MomValue chkval,
+       long inioffset, unsigned inilinecnt, int inicolpos,
+       long endoffset, unsigned endlinecnt, int endcolpos, int depth)
+  {
+    Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos+1);
+    Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos+1);
+    MOM_DEBUGLOG(gui, "prettify cmd chunk "
+                 << " initxit=" << MomShowTextIter(initxit, MomShowTextIter::_FULL_,10)
+                 << " endtxit=" << MomShowTextIter(endtxit, MomShowTextIter::_FULL_,10));
+    Gtk::TextIter iniparfintxit = initxit;
+    iniparfintxit.forward_chars(2);
+    Gtk::TextIter endparbegtxit = endtxit;
+    endparbegtxit.backward_chars(2);
+    cmdbuf->apply_tag_by_name("chunk_cmdtag",
+                              initxit, endtxit);
+    cmdbuf->apply_tag_by_name("open_cmdtag",
+                              initxit, iniparfintxit);
+    cmdbuf->apply_tag_by_name("close_cmdtag",
+                              endparbegtxit, endtxit);
+    cmdbuf->apply_tag_by_name(Glib::ustring::compose("open%1_cmdtag", depth),
+                              initxit, iniparfintxit);
+    cmdbuf->apply_tag_by_name(Glib::ustring::compose("close%1_cmdtag", depth),
+                              endparbegtxit, endtxit);
+    int openoff=initxit.get_offset();
+    int closeoff=endtxit.get_offset();
+    MomParenOffsets po {.paroff_open=openoff, .paroff_close= closeoff,
+                        .paroff_xtra= -1, .paroff_openlen=2, .paroff_closelen=2,
+                        .paroff_xtralen= 0, .paroff_depth=(uint8_t)depth};
+    add_txcmd_parens(po);
+  } /*end parsedval_valchunk  λ*/ )
   ;
 #warning should set a lot of prettification functions via set_parseval_* functions
   try

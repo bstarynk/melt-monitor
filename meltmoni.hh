@@ -3309,9 +3309,9 @@ public:
   };
   //
   MomSimpleParser&
-  set_parseval_valchunkfun( std::function<void(MomSimpleParser*,const MomValue chkval,
-                            long inioffset, unsigned inilinecnt, int inicolpos,
-                            long endoffset, unsigned endlinecnt, int endcolpos, int depth)> fun=nullptr)
+  set_parsedval_valchunkfun( std::function<void(MomSimpleParser*,const MomValue chkval,
+                             long inioffset, unsigned inilinecnt, int inicolpos,
+                             long endoffset, unsigned endlinecnt, int endcolpos, int depth)> fun=nullptr)
   {
     _spar_parsedvalchunkfun = fun;
     return *this;

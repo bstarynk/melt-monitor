@@ -385,6 +385,13 @@
             <property name="background">lemonchiffon2</property>
 	  </object>
 	</child>
+	  <!-- chunk_cmdtag for prettification of chunks -->
+        <child type="tag">
+          <object class='GtkTextTag'>
+            <property name="name">chunk_cmdtag</property>
+            <property name="background">mistyrose2</property>
+	  </object>
+	</child>
 	<!-- open_cmdtag for opening paren, etc.. -->
         <child type="tag">
             <object class='GtkTextTag'>
