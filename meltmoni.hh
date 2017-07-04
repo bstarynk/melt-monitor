@@ -469,7 +469,7 @@ class MomShowString
   std::string _shstr;
   bool _shnil;
 public:
-  explicit MomShowString(const std::string& str) : _shstr(str), _shnil(false) {};
+  explicit MomShowString(const std::string& str) : _shstr(str), _shnil(str.c_str()==nullptr) {};
   explicit MomShowString(const char*cstr) : _shstr(cstr?cstr:""), _shnil(cstr==nullptr) {};
   MomShowString(const MomShowString&) = default;
   MomShowString(MomShowString&&) = default;
