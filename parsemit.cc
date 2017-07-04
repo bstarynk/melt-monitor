@@ -164,7 +164,7 @@ MomParser::parse_string(bool *pgotstr)
     {
       MOM_DEBUGLOG(parse, "parse_string parsing " << MomShowString(curbytes()));
       consume_utf8(1);
-      std::string restinline{curbytes()};
+      std::string restinline{curbytes()?:""};
       std::istringstream ins{restinline};
       auto str = mom_input_quoted_utf8_string(ins);
       MOM_DEBUGLOG(parse, "parse_string got str=" << MomShowString(str)
@@ -529,14 +529,14 @@ again:
     /// however, a string may be continued with &+& (it is a literal string catenation operator)
     /// eg "abc" &+& "def"  is the same as "abcdef"
     {
-      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << "start of string");
+      MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " start of string");
       bool gotstr = false;
       bool again = false;
       std::string fullstr;
       do
         {
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " fullstr="
-                             << MomShowString(fullstr) << " @" << location_str());
+                             << MomShowString(fullstr) << " @" << location_str() << " curbytes=" << MomShowString(curbytes()) << " before parse_string");
           again = false;
           std::string str = parse_string(&gotstr);
           if (!gotstr)
