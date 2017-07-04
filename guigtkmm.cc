@@ -2266,8 +2266,9 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   .set_has_chunk(true)
   ;
   cmdpars
-  .set_named_fetch_fun([&](MomSimpleParser*thisparser,
-                           const std::string&namstr, long namoff, unsigned namlincnt, int namcolpos)
+  .set_named_fetch_fun
+  ([&](MomSimpleParser*thisparser,
+       const std::string&namstr, long namoff, unsigned namlincnt, int namcolpos)
   {
     MomObject* ob = thisparser->simple_named_object(namstr, namoff, namlincnt, namcolpos);
     Gtk::TextIter txit = command_txiter_at_line_col(namlincnt, namcolpos);
@@ -2298,8 +2299,9 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
     return ob;
   } /*end named_fetch λ */)
   //
-  .set_parsedval_nullfun ([&](MomSimpleParser*thisparser MOM_UNUSED,
-                              long offset MOM_UNUSED, unsigned linecnt, int colpos)
+  .set_parsedval_nullfun
+  ([&](MomSimpleParser*thisparser MOM_UNUSED,
+       long offset MOM_UNUSED, unsigned linecnt, int colpos)
   {
     Gtk::TextIter txit = command_txiter_at_line_col(linecnt, colpos);
     Gtk::TextIter endtxit = txit;
@@ -2310,9 +2312,10 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                               txit, endtxit);
   }/* end parsedval_null λ*/)
   //
-  .set_parsedval_strfun([&](MomSimpleParser*, const std::string&str,
-                            long inioffset MOM_UNUSED, unsigned inilinecnt, int inicolpos,
-                            long endoffset MOM_UNUSED, unsigned endlinecnt, int endcolpos)
+  .set_parsedval_strfun
+  ([&]  (MomSimpleParser*, const std::string&str,
+         long inioffset MOM_UNUSED, unsigned inilinecnt, int inicolpos,
+         long endoffset MOM_UNUSED, unsigned endlinecnt, int endcolpos)
   {
     Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos);
     Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
@@ -2329,8 +2332,9 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                               initxit, endtxit);
   }/*end parsedval_str λ*/)
   //
-  .set_parsedval_intfun([&](MomSimpleParser*, intptr_t num MOM_UNUSED,
-                            long offset, unsigned linecnt, int colpos, int endcolpos)
+  .set_parsedval_intfun
+  ([&](MomSimpleParser*, intptr_t num MOM_UNUSED,
+       long offset, unsigned linecnt, int colpos, int endcolpos)
   {
     Gtk::TextIter initxit = command_txiter_at_line_col(linecnt, colpos);
     Gtk::TextIter endtxit = initxit;
@@ -2344,12 +2348,59 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                               initxit, endtxit);
   }/*end parsedval_int λ*/)
   //
-  .set_parsedval_seqfun([&](MomSimpleParser*,
-                            const MomAnyObjSeq*seq, bool istuple,
-                            long inioffset, unsigned inilinecnt, int inicolpos,
-                            long endoffset, unsigned endlinecnt, int endcolpos,
-                            int depth
-                           )
+  .set_parsedval_intsqfun
+  ([&](MomSimpleParser*, const MomIntSq*intsq,
+       long inioffset, unsigned inilinecnt, int inicolpos,
+       long endoffset, unsigned endlinecnt, int endcolpos,
+       int depth
+      )
+  {
+    Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos);
+    Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
+    MOM_DEBUGLOG(gui, "prettify intsq=" << MomValue(intsq)
+                 << " inioffset=" << inioffset
+                 << " inilinecnt=" << inilinecnt
+                 << " inicolpos=" << inicolpos
+                 << " initxit=" << MomShowTextIter(initxit)
+                 << " endoffset=" << endoffset
+                 << " endlinecnt=" << endlinecnt
+                 << " endcolpos=" << endcolpos
+                 << " endtxit=" << MomShowTextIter(endtxit)
+                 << " depth=" << depth);
+    cmdbuf->apply_tag_by_name("numseq_cmdtag",
+                              initxit, endtxit);
+  } /*end parsedval_intsq  λ*/)
+  //
+  .set_parsedval_doublesqfun
+  ([&](MomSimpleParser*, const MomDoubleSq*dblsq,
+       long inioffset, unsigned inilinecnt, int inicolpos,
+       long endoffset, unsigned endlinecnt, int endcolpos,
+       int depth
+      )
+  {
+    Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos);
+    Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos);
+    MOM_DEBUGLOG(gui, "prettify doublesq=" << MomValue(dblsq)
+                 << " inioffset=" << inioffset
+                 << " inilinecnt=" << inilinecnt
+                 << " inicolpos=" << inicolpos
+                 << " initxit=" << MomShowTextIter(initxit)
+                 << " endoffset=" << endoffset
+                 << " endlinecnt=" << endlinecnt
+                 << " endcolpos=" << endcolpos
+                 << " endtxit=" << MomShowTextIter(endtxit)
+                 << " depth=" << depth);
+    cmdbuf->apply_tag_by_name("numseq_cmdtag",
+                              initxit, endtxit);
+  } /*end parsedval_doublesq  λ*/)
+  //
+  .set_parsedval_seqfun
+  ([&](MomSimpleParser*,
+       const MomAnyObjSeq*seq, bool istuple,
+       long inioffset, unsigned inilinecnt, int inicolpos,
+       long endoffset, unsigned endlinecnt, int endcolpos,
+       int depth
+      )
   {
     Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos+1);
     Gtk::TextIter endtxit = command_txiter_at_line_col(endlinecnt, endcolpos+1);
@@ -2360,11 +2411,12 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
                               initxit, endtxit);
   }/*end parsedval_seq λ*/ )
   //
-  .set_parsedval_valnodefun([&](MomSimpleParser*,const MomNode *nod,
-                                long inioffset, unsigned inilinecnt, int inicolpos,
-                                long leftoffset, unsigned leftlinecnt, int leftcolpos,
-                                long endoffset, unsigned endlinecnt, int endcolpos, int depth
-                               )
+  .set_parsedval_valnodefun
+  ([&](MomSimpleParser*,const MomNode *nod,
+       long inioffset, unsigned inilinecnt, int inicolpos,
+       long leftoffset, unsigned leftlinecnt, int leftcolpos,
+       long endoffset, unsigned endlinecnt, int endcolpos, int depth
+      )
   {
     Gtk::TextIter initxit = command_txiter_at_line_col(inilinecnt, inicolpos+1);
     Gtk::TextIter leftxit = command_txiter_at_line_col(leftlinecnt, leftcolpos+1);

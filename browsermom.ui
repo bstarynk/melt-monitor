@@ -356,6 +356,14 @@
 	    <property name="font">FreeMono Regular</property>
 	  </object>
 	</child>
+	  <!-- numseq_cmdtag for prettification of number sequences -->
+        <child type="tag">
+          <object class='GtkTextTag'>
+            <property name="name">numseq_cmdtag</property>
+            <property name="background">steelblue4</property>
+	    <property name="font">FreeMono Regular</property>
+	  </object>
+	</child>
 	  <!-- tuple_cmdtag for prettification of tuples -->
         <child type="tag">
           <object class='GtkTextTag'>
