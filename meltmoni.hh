@@ -2756,7 +2756,8 @@ public:
   };
   const char*curbytes(void) const
   {
-    if (eol()) return nullptr;
+    if (eol())
+      return "";
     return _parlinstr.c_str()+ _parcolidx;
   }
   const char*eolptr(void) const
