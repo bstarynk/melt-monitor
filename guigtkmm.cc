@@ -2241,7 +2241,7 @@ MomMainWindow::do_txcmd_populate_menu(Gtk::Menu*menu)
           gotnb++;
         }
     }
-  _mwi_mit_txcmd_cursorloc.set_sensitive(false);
+  // _mwi_mit_txcmd_cursorloc.set_sensitive(false);
   _mwi_mit_txcmd_cursorloc.set_right_justified();
   menu->append(_mwi_mit_txcmd_cursorloc);
   menu->show_all_children();

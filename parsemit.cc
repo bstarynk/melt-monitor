@@ -162,10 +162,13 @@ MomParser::parse_string(bool *pgotstr)
   peek_prevcurr_utf8(pc,nc,1);
   if (pc=='"')   // JSON encoded UTF8 string, on the same line
     {
+      MOM_DEBUGLOG(parse, "parse_string parsing " << MomShowString(curbytes()));
       consume_utf8(1);
       std::string restinline{curbytes()};
       std::istringstream ins{restinline};
       auto str = mom_input_quoted_utf8_string(ins);
+      MOM_DEBUGLOG(parse, "parse_string got str=" << MomShowString(str)
+                   << " delta=" << ins.tellg());
       consume_bytes(ins.tellg());
       pc = peek_utf8(0);
       if (pc != '"')
@@ -537,7 +540,10 @@ again:
           again = false;
           std::string str = parse_string(&gotstr);
           if (!gotstr)
-            MOM_PARSE_FAILURE(this, "failed to parse string");
+            {
+              MOM_DEBUGLOG(parse, "failing to parse string @" << location_str());
+              MOM_PARSE_FAILURE(this, "failed to parse string");
+            }
           MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " got string "
                              << MomShowString(str));
           skip_spaces();
