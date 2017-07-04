@@ -474,13 +474,21 @@ mom_output_utf8_encoded (FILE *f, const char *str, int len)
 {
   if (!f)
     return;
-
+  if (!str)
+    {
+      fputs("*nullstring*", f);
+      MOM_WARNLOG("nil string to mom_output_utf8_encoded with len=" << len
+                  << MOM_SHOW_BACKTRACE("nil mom_output_utf8_encoded"));
+      return;
+    };
   if (len < 0)
     len = strlen (str);
   const char *end = str + len;
   gunichar uc = 0;
   const char *s = str;
-  assert (s && g_utf8_validate (s, len, nullptr));
+  MOM_ASSERT (s && g_utf8_validate (s, len, nullptr),
+              "mom_output_utf8_encoded invalid str=" << (void*)str
+              << "::" << (s?s:""));
   for (const char *pc = s; pc < end; pc = g_utf8_next_char (pc), uc = 0)
     {
       /// notice that the single quote should not be escaped, e.g. for JSON
@@ -659,7 +667,7 @@ std::string
 mom_input_quoted_utf8_string(std::istream&ins)
 {
   if (!ins)
-    return std::string{nullptr};
+    return std::string{""};
   std::string restr;
   auto inipos = ins.tellg();
   constexpr const int roundsizelog = 5;
