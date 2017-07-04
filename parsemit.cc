@@ -178,7 +178,7 @@ MomParser::parse_string(bool *pgotstr)
         *pgotstr = true;
       MOM_THISPARSDBGLOG("L"<< inilincnt << ",C" << inicolpos << " string "
                          << MomShowString(str));
-      return _parnobuild?nullptr:str;
+      return _parnobuild?"":str;
     }
   else if (pc=='`' && (memset(border, 0, sizeof(border)), (borderpos=0), (nc=='_' || isalnum(nc)))
            && sscanf(curbytes(), "`" MOM_BORDER_FORMAT "|%n",
@@ -309,13 +309,13 @@ MomParser::parse_string(bool *pgotstr)
                          << std::endl
                          << " @" << location_str()
                          << std::endl);
-      return _parnobuild?nullptr:str;
+      return _parnobuild?"":str;
     }
 failure:
   if (pgotstr)
     *pgotstr = false;
   restore_state(inioff, inilincnt, inicolidx, inicolpos);
-  return nullptr;
+  return "";
 } // end  MomParser::parse_string
 
 intptr_t
