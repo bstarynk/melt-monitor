@@ -2153,30 +2153,93 @@ MomMainWindow::do_object_options(void)
 bool
 MomMainWindow::handle_txcmd_key_release(GdkEventKey*evk)
 {
+  // see <gdk/gdkkeysyms.h> for names of keysyms
   // perhaps should also handle GDK_KEY_KP_Enter
-  if (evk->keyval != GDK_KEY_Return)
-    return false; // propagate the event
-  auto modifiers = Gtk::AccelGroup::get_default_mod_mask();
-  bool withctrl = (evk->state & modifiers) == GDK_CONTROL_MASK;
-  bool withshift = (evk->state & modifiers) == GDK_SHIFT_MASK;
-  MOM_DEBUGLOG(gui, "handle_txcmd_key_release got return key"
-               << ' ' <<(withshift?"shifted":"unshifted")
-               << ' ' << (withctrl?"control":"nocontrol"));
-  if (withshift)
+  if (evk->keyval == GDK_KEY_Return)
     {
-      MOM_DEBUGLOG(gui, "handle_txcmd_key_release dealing with shift return");
-      do_txcmd_run_then_clear();
-      MOM_DEBUGLOG(gui, "handle_txcmd_key_release done with shift return");
-      return true;		// so retain, don't forward this event
+      auto modifiers = Gtk::AccelGroup::get_default_mod_mask();
+      bool withctrl = (evk->state & modifiers) == GDK_CONTROL_MASK;
+      bool withshift = (evk->state & modifiers) == GDK_SHIFT_MASK;
+      MOM_DEBUGLOG(gui, "handle_txcmd_key_release got return key"
+                   << ' ' <<(withshift?"shifted":"unshifted")
+                   << ' ' << (withctrl?"control":"nocontrol"));
+      if (withshift)
+        {
+          MOM_DEBUGLOG(gui, "handle_txcmd_key_release dealing with shift return");
+          do_txcmd_run_then_clear();
+          MOM_DEBUGLOG(gui, "handle_txcmd_key_release done with shift return");
+          return true;		// so retain, don't forward this event
+        }
+      else if (withctrl)
+        {
+          MOM_DEBUGLOG(gui, "handle_txcmd_key_release dealing with ctrl return");
+          do_txcmd_run_but_keep();
+          MOM_DEBUGLOG(gui, "handle_txcmd_key_release done with ctrl return");
+          return true;// so retain, don't forward this event
+        }
+      MOM_DEBUGLOG(gui, "handle_txcmd_key_release done & propagate plain return");
     }
-  else if (withctrl)
+  else if (evk->keyval == GDK_KEY_Tab)
     {
-      MOM_DEBUGLOG(gui, "handle_txcmd_key_release dealing with ctrl return");
-      do_txcmd_run_but_keep();
-      MOM_DEBUGLOG(gui, "handle_txcmd_key_release done with ctrl return");
-      return true;// so retain, don't forward this event
+      auto modifiers = Gtk::AccelGroup::get_default_mod_mask();
+      bool withctrl = (evk->state & modifiers) == GDK_CONTROL_MASK;
+      bool withshift = (evk->state & modifiers) == GDK_SHIFT_MASK;
+      Gtk::TextIter insertxit = _mwi_commandbuf->get_insert()->get_iter();
+      MOM_DEBUGLOG(gui, "handle_txcmd_key_release got tab key"
+                   << ' ' <<(withshift?"shifted":"unshifted")
+                   << ' ' << (withctrl?"control":"nocontrol")
+                   << " insertxit=" << MomShowTextIter(insertxit, MomShowTextIter::_FULL_,8) << std::endl
+                   << "... starts_word=" << (insertxit.starts_word()?"true":"false")
+                   << " ends_word=" << (insertxit.ends_word()?"true":"false")
+                   << " inside_word=" << (insertxit.inside_word()?"true":"false")
+                  );
+      Gtk::TextIter startinstxit = insertxit;
+      Gtk::TextIter endinstxit = insertxit;
+      if (insertxit.ends_word() || insertxit.inside_word())
+        {
+          Gtk::TextIter befinstxit = insertxit;
+          Gtk::TextIter afterinstxit = insertxit;
+          bool again = false;
+          again = !insertxit.is_start();
+          while (again)
+            {
+              befinstxit.backward_char();
+              int c=0;
+              {
+                Glib::ustring span = befinstxit.get_text(insertxit);
+                if (span.size()>0)
+                  c = span[0];
+              }
+              if (c<=0 || c>=127 || !(isalnum(c) || c=='_'))
+                break;
+              startinstxit = befinstxit;
+              again = !(befinstxit.starts_line() || befinstxit.is_start());
+            }
+          again = !insertxit.is_end();
+          while (again)
+            {
+              if (afterinstxit.ends_line())
+                break;
+              afterinstxit.forward_char();
+              int c = 0;
+              {
+                Glib::ustring span = insertxit.get_text(afterinstxit);
+                auto spansize = span.size();
+                if (spansize>0)
+                  c = span[spansize-1];
+              }
+              if (c<=0 || c>=127 || !(isalnum(c) || c=='_'))
+                break;
+              endinstxit = afterinstxit;
+            }
+          Glib::ustring wordustr = startinstxit.get_text(endinstxit);
+          MOM_DEBUGLOG(gui, "handle_txcmd_key_release tab wordustr=" << MomShowString(wordustr.c_str())
+                       << " startinstxit=" << MomShowTextIter(startinstxit)
+                       << " endinstxit=" << MomShowTextIter(endinstxit));
+        }
+      _mwi_txvcmd.error_bell();
+      return true; // never propagate tabulation
     }
-  MOM_DEBUGLOG(gui, "handle_txcmd_key_release done & propagate plain return");
   return false; // propagate the event
 }		// end MomMainWindow::handle_txcmd_key_release
 
