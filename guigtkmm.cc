@@ -3035,7 +3035,34 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
               nbmodif++;
             }
         }
-      else if (pars->got_cstring("?"))
+      else if (pars->got_cstring("?.")) // create, show and focus a new anonymous object
+        {
+          if (apply)
+            {
+              MomObject* pobfresh = MomObject::make_object();
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command show pobfresh=" << MomShowObject(pobfresh));
+              browser_show_object(pobfresh);
+              browser_set_focus_object(pobfresh);
+            }
+        }
+      else if (pars->got_cstring("?:")) // create, show and focus a new named object
+        {
+          bool gotname = false;
+          std::string newname = pars->parse_name(&gotname);
+          if (!gotname || newname.empty() || !mom_valid_name_radix_len(newname.c_str(), newname.size()))
+            MOM_PARSE_FAILURE(pars, "bad name after ?:");
+          if (mom_find_named(newname.c_str()))
+            MOM_PARSE_FAILURE(pars, "existing name after ?: " << newname);
+          if (apply)
+            {
+              MomObject* pobnewnamed = MomObject::make_object();
+              mom_register_unsync_named(pobnewnamed, newname.c_str());
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command show pobnewnamed=" << MomShowObject(pobnewnamed));
+              browser_show_object(pobnewnamed);
+              browser_set_focus_object(pobnewnamed);
+            }
+        }
+      else if (pars->got_cstring("?")) // show and focus an existing object
         {
           bool gotobj = false;
           MomObject* pobfocus = pars->parse_objptr(&gotobj);
