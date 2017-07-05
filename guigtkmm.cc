@@ -358,6 +358,7 @@ public:
   void do_txcmd_changed(void);
   void do_txcmd_end_user_action(void);
   void do_txcmd_populate_menu(Gtk::Menu*menu);
+  bool do_txcmd_complete_word(std::string word, Gtk::TextIter startxit, Gtk::TextIter endtxit);
   void do_txcmd_mark_set(const Gtk::TextIter& locit, const Glib::RefPtr<Gtk::TextMark>& mark);
   bool do_txcmd_blink_insert(void);
   void do_txcmd_unblink_insert(void);
@@ -2236,6 +2237,13 @@ MomMainWindow::handle_txcmd_key_release(GdkEventKey*evk)
           MOM_DEBUGLOG(gui, "handle_txcmd_key_release tab wordustr=" << MomShowString(wordustr.c_str())
                        << " startinstxit=" << MomShowTextIter(startinstxit)
                        << " endinstxit=" << MomShowTextIter(endinstxit));
+          std::string strword = wordustr;
+          bool completed = do_txcmd_complete_word (strword, startinstxit, endinstxit);
+          if (!completed)
+            {
+              _mwi_txvcmd.error_bell();
+              return true;
+            };
         }
       _mwi_txvcmd.error_bell();
       return true; // never propagate tabulation
@@ -2243,7 +2251,54 @@ MomMainWindow::handle_txcmd_key_release(GdkEventKey*evk)
   return false; // propagate the event
 }		// end MomMainWindow::handle_txcmd_key_release
 
-
+bool
+MomMainWindow::do_txcmd_complete_word(std::string word, Gtk::TextIter startxit, Gtk::TextIter endtxit)
+{
+  MOM_DEBUGLOG(gui, "do_txcmd_complete_word start word=" << MomShowString(word)
+               << " startxit=" << MomShowTextIter(startxit)
+               << " endtxit=" << MomShowTextIter(endtxit));
+  std::vector<std::string> complvec;
+  complvec.reserve(12);
+  if (isalpha(word[0]))
+    {
+      mom_each_name_prefixed(word.c_str(),[&](const std::string&name, MomObject*pobnamed)
+      {
+        MOM_DEBUGLOG(gui, "do_txcmd_complete_word name=" << MomShowString(name)
+                     << " pobnamed=" << pobnamed << " #" << complvec.size());
+        complvec.push_back(name);
+        return false;
+      });
+    }
+  else if (word.size()>=3 && word[0] == '_' && isdigit(word[1]) && isalnum(word[2]))
+    {
+      MomObject::do_each_object_prefixed
+      (word.c_str(),
+       [&](MomObject*curpob)
+      {
+        MOM_DEBUGLOG(gui, "do_txcmd_complete_word id curpob=" << curpob << " #" << complvec.size());
+        complvec.push_back(curpob->id().to_string());
+        return false;
+      });
+    }
+  MOM_DEBUGLOG(gui, "do_txcmd_complete_word word=" << MomShowString(word)
+               << " got " << complvec.size() << " completions");
+  if (complvec.size() == 0)   // no completion possible, failing
+    {
+      return false;
+    }
+  else if (complvec.size() == 1)   // single completion, replace and succeed
+    {
+      Gtk::TextIter newtxit = _mwi_commandbuf->erase(startxit,endtxit);
+      _mwi_commandbuf->insert(newtxit, word);
+      return true;
+    }
+  else  			// several completions, show a menu
+    {
+      MOM_WARNLOG("do_txcmd_complete_word got " << complvec.size() << " completions for " << word);
+#warning do_txcmd_complete_word unimplemented for several completions
+    }
+  return false; // completion failed
+} // end MomMainWindow::do_txcmd_complete_word
 
 void
 MomMainWindow::do_txcmd_begin_user_action(void)
