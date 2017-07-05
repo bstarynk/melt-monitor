@@ -2243,6 +2243,14 @@ MomMainWindow::handle_txcmd_key_release(GdkEventKey*evk)
             {
               _mwi_txvcmd.error_bell();
               return true;
+            }
+          else
+            {
+              MOM_DEBUGLOG(gui, "handle_txcmd_key_release tab completed");
+              do_txcmd_prettify_parse();
+              do_txcmd_blink_insert();
+              MOM_DEBUGLOG(gui, "handle_txcmd_key_release tab ending completed");
+              return true;
             };
         }
       _mwi_txvcmd.error_bell();
@@ -2289,7 +2297,8 @@ MomMainWindow::do_txcmd_complete_word(std::string word, Gtk::TextIter startxit, 
   else if (complvec.size() == 1)   // single completion, replace and succeed
     {
       Gtk::TextIter newtxit = _mwi_commandbuf->erase(startxit,endtxit);
-      _mwi_commandbuf->insert(newtxit, word);
+      newtxit = _mwi_commandbuf->insert(newtxit, complvec[0]);
+      MOM_DEBUGLOG(gui, "do_txcmd_complete_word replaced with " << complvec[0] << " newtxit=" << MomShowTextIter(newtxit));
       return true;
     }
   else  			// several completions, show a menu
