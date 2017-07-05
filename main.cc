@@ -695,6 +695,8 @@ mom_input_quoted_utf8_string(std::istream&ins)
           ins.unget();
           break;
         }
+      else if (c==EOF)
+        break;
       else if (c == '\\')
         {
           char inpzon[16];
