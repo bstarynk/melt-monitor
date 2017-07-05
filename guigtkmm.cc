@@ -316,6 +316,9 @@ private:
   // the key is an UTF-8 character (not byte) offset in the _mwi_commandbuf
   std::map<int,MomParenOffsets> _mwi_txcmd_openmap;
   std::map<int,MomParenOffsets> _mwi_txcmd_closemap;
+  Glib::RefPtr<Gtk::TextMark> _mwi_txcmd_startblink;
+  Glib::RefPtr<Gtk::TextMark> _mwi_txcmd_xtrablink;
+  Glib::RefPtr<Gtk::TextMark> _mwi_txcmd_endblink;
 public:
   int rank() const
   {
@@ -1613,7 +1616,7 @@ MomMainWindow::do_browser_blink_insert(void)
                    << " offxtra=" << offxtra << " xtralen=" << xtralen);
       opentxit.forward_chars(offopen);
       closetxit.forward_chars(offclose);
-      _mwi_browser_startblink = _mwi_browserbuf->create_mark("start_blink", opentxit);
+      _mwi_browser_startblink = _mwi_browserbuf->create_mark("start_blink_browser", opentxit);
       if (openlen>0)
         {
           Gtk::TextIter endopentxit = opentxit;
@@ -1622,7 +1625,7 @@ MomMainWindow::do_browser_blink_insert(void)
                        << " endopentxit=" << MomShowTextIter(endopentxit));
           _mwi_browserbuf->apply_tag(blinktag, opentxit, endopentxit);
         }
-      _mwi_browser_endblink = _mwi_browserbuf->create_mark("end_blink", closetxit);
+      _mwi_browser_endblink = _mwi_browserbuf->create_mark("end_blink_browser", closetxit);
       if (closelen>0)
         {
           Gtk::TextIter begclosetxit = closetxit;
@@ -1640,7 +1643,7 @@ MomMainWindow::do_browser_blink_insert(void)
           MOM_DEBUGLOG(blinkgui, "do_browser_blink_insert in pob=" << pob << " xtratxit=" << MomShowTextIter(xtratxit)
                        << " endxtratxit=" << MomShowTextIter(endxtratxit));
           _mwi_browserbuf->apply_tag(blinktag, xtratxit, endxtratxit);
-          _mwi_browser_xtrablink = _mwi_browserbuf->create_mark("xtra_blink", xtratxit);
+          _mwi_browser_xtrablink = _mwi_browserbuf->create_mark("xtra_blink_browser", xtratxit);
         }
       Glib::signal_timeout().connect_once
       (sigc::mem_fun(this,&MomMainWindow::do_browser_unblink_insert),
@@ -1706,6 +1709,8 @@ MomMainWindow::do_txcmd_mark_set(const Gtk::TextIter& locit,
   if (mark != _mwi_browserbuf->get_insert())
     return;
   MOM_DEBUGLOG(gui, "do_txcmd_mark_set insertmark locit=" << MomShowTextIter(locit));
+  do_txcmd_unblink_insert();
+  do_txcmd_blink_insert();
 } // end MomMainWindow::do_txcmd_mark_set
 
 bool
@@ -2286,6 +2291,8 @@ MomMainWindow::do_txcmd_end_user_action(void)
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_end_user_action start");
   do_txcmd_prettify_parse();
   _mwi_cmduseractim = 0.0;
+  do_txcmd_unblink_insert();
+  do_txcmd_blink_insert();
   MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_end_user_action done");
 } // end MomMainWindow::do_txcmd_end_user_action
 
@@ -2356,7 +2363,56 @@ MomMainWindow::do_txcmd_blink_insert(void)
   auto blinktag = MomApplication::itself()->lookup_command_tag("blink_cmdtag");
   blinktag->set_priority(MomApplication::itself()->nb_command_tags()-1);
   MomParenOffsets*  po = txcmd_find_parens_around_insert();
-#warning MomMainWindow::do_txcmd_blink_insert incomplete
+  _mwi_txcmd_startblink.clear();
+  _mwi_txcmd_xtrablink.clear();
+  _mwi_txcmd_endblink.clear();
+  if (po)
+    {
+      int openoff = po->paroff_open;
+      int closeoff = po->paroff_close;
+      int xtraoff = po->paroff_xtra;
+      int openlen = po->paroff_openlen;
+      int closelen = po->paroff_closelen;
+      int xtralen = po->paroff_xtralen;
+      MOM_DEBUGLOG(blinkgui, "do_command_blink_insert openoff=" << openoff
+                   << " openlen=" << openlen
+                   << " closeoff=" << closeoff << " closelen=" << closelen
+                   << " xtraoff=" << xtraoff << " xtralen=" << xtralen);
+      Gtk::TextIter startxit = _mwi_commandbuf->begin();
+      if (openoff>=0 && openlen>0)
+        {
+          Gtk::TextIter opentxit= startxit;
+          opentxit.forward_chars(openoff);
+          _mwi_txcmd_startblink = _mwi_browserbuf->create_mark("start_blink_command", opentxit);
+          Gtk::TextIter openendtxit = opentxit;
+          openendtxit.forward_chars(openlen);
+          _mwi_commandbuf->apply_tag(blinktag, opentxit, openendtxit);
+        }
+      if (closeoff>=0 && closeoff>openoff && closelen>0)
+        {
+          Gtk::TextIter closetxit= startxit;
+          closetxit.forward_chars(closeoff);
+          _mwi_txcmd_endblink = _mwi_browserbuf->create_mark("end_blink_command", closetxit);
+          Gtk::TextIter closebegtxit = closetxit;
+          closebegtxit.backward_chars(closelen);
+          _mwi_commandbuf->apply_tag(blinktag, closebegtxit, closetxit);
+        }
+      if (xtraoff>=0 && xtraoff<openoff && xtralen>0)
+        {
+          Gtk::TextIter xtratxit= startxit;
+          xtratxit.forward_chars(xtraoff);
+          _mwi_txcmd_xtrablink = _mwi_browserbuf->create_mark("xtra_blink_command", xtratxit);
+          Gtk::TextIter endxtratxit = xtratxit;
+          endxtratxit.forward_chars(xtralen);
+        }
+      Glib::signal_timeout().connect_once
+      (sigc::mem_fun(this,&MomMainWindow::do_browser_unblink_insert),
+       _blink_delay_milliseconds);
+    }
+  else
+    {
+      MOM_DEBUGLOG(blinkgui, "do_command_blink_insert outside");
+    }
   return true;
 } // end MomMainWindow::do_txcmd_blink_insert
 
@@ -2364,8 +2420,30 @@ MomMainWindow::do_txcmd_blink_insert(void)
 void
 MomMainWindow::do_txcmd_unblink_insert(void)
 {
+  auto blinktag = MomApplication::itself()->lookup_command_tag("blink_cmdtag");
   MOM_DEBUGLOG(blinkgui, "MomMainWindow::do_txcmd_unblink_insert");
-#warning MomMainWindow::do_txcmd_unblink_insert incomplete
+  if (_mwi_txcmd_startblink && _mwi_txcmd_endblink)
+    {
+      Gtk::TextIter startxit = _mwi_browser_startblink->get_iter();
+      Gtk::TextIter endtxit = _mwi_browser_endblink->get_iter();
+      MOM_DEBUGLOG(blinkgui, "do_command_unblink_insert startxit=" << MomShowTextIter(startxit)
+                   << " endtxit=" << MomShowTextIter(endtxit));
+      _mwi_commandbuf->remove_tag(blinktag, startxit, endtxit);
+    }
+  if (_mwi_txcmd_xtrablink)
+    {
+      Gtk::TextIter xtratxit = _mwi_browser_xtrablink->get_iter();
+      Gtk::TextIter bolxtratxit = xtratxit;
+      bolxtratxit.backward_line();
+      xtratxit.forward_line();
+      xtratxit.forward_char();
+      MOM_DEBUGLOG(blinkgui, "do_txcmd_unblink_insert xtraxit=" << MomShowTextIter(xtratxit)
+                   << " bolxtratxit=" << MomShowTextIter(bolxtratxit));
+      _mwi_commandbuf->remove_tag(blinktag, bolxtratxit, xtratxit);
+    }
+  _mwi_txcmd_startblink.clear();
+  _mwi_txcmd_xtrablink.clear();
+  _mwi_txcmd_endblink.clear();
 } // end MomMainWindow::do_txcmd_unblink_insert
 
 void
