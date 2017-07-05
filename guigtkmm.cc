@@ -1706,11 +1706,13 @@ void
 MomMainWindow::do_txcmd_mark_set(const Gtk::TextIter& locit,
                                  const Glib::RefPtr<Gtk::TextMark>& mark)
 {
-  if (mark != _mwi_browserbuf->get_insert())
+  if (mark != _mwi_commandbuf->get_insert())
     return;
-  MOM_DEBUGLOG(gui, "do_txcmd_mark_set insertmark locit=" << MomShowTextIter(locit));
+  MOM_DEBUGLOG(gui, "do_txcmd_mark_set insertmark locit=" << MomShowTextIter(locit)
+               << " oldinsertmark at=" << MomShowTextIter(mark->get_iter()));
   do_txcmd_unblink_insert();
   do_txcmd_blink_insert();
+  MOM_DEBUGLOG(gui, "do_txcmd_mark_set insertmark done");
 } // end MomMainWindow::do_txcmd_mark_set
 
 bool
