@@ -413,6 +413,14 @@
               <property name="font">Cabin Bold</property>
             </object>
         </child>
+	<!-- blink_cmdtag to blink matching parenthesis -->
+        <child type="tag">
+            <object class='GtkTextTag'>
+              <property name="name">blink_cmdtag</property>
+              <property name="foreground">sienna</property>
+              <property name="background">yellow2</property>
+            </object>
+        </child>
 	<!-- ===== -->
       </object>
       <!-- end of commandtagtable_id -->
