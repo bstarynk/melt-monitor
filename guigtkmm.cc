@@ -2949,6 +2949,46 @@ MomMainWindow::parse_command(MomParser*pars, bool apply)
               nbmodif++;
             }
         }
+      else if (pars->got_cstring("~g") || pars->got_cstring("~glob")) {
+          if (!_mwi_focusobj)
+            MOM_PARSE_FAILURE(pars, "expect focus object for ~g/~glob");
+	  if (apply) 
+            {
+              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());;
+              _mwi_focusobj->set_space(MomSpace::GlobalSp);
+              _mwi_focusobj->touch();
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command in global space " << _mwi_focusobj);
+              browser_show_object(_mwi_focusobj);
+              nbmodif++;
+            }
+      }
+      else if (pars->got_cstring("~u") || pars->got_cstring("~user")) {
+          if (!_mwi_focusobj)
+            MOM_PARSE_FAILURE(pars, "expect focus object for ~u/~user");
+	  if (apply) 
+            {
+              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());;
+              _mwi_focusobj->set_space(MomSpace::UserSp);
+              _mwi_focusobj->touch();
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command in user space " << _mwi_focusobj);
+              browser_show_object(_mwi_focusobj);
+              nbmodif++;
+            }
+      }
+      else if (pars->got_cstring("~t") || pars->got_cstring("~trans")) {
+          if (!_mwi_focusobj)
+            MOM_PARSE_FAILURE(pars, "expect focus object for ~t/~trans");
+	  if (apply) 
+            {
+              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());;
+              _mwi_focusobj->set_space(MomSpace::TransientSp);
+              _mwi_focusobj->touch();
+              MOM_DEBUGLOG(gui, "MomMainWindow::parse_command in transient space " << _mwi_focusobj);
+              browser_show_object(_mwi_focusobj);
+              nbmodif++;
+            }
+      }
+#warning should use ~predef to put in predefined space
       else if (pars->got_cstring("!"))
         {
           bool gotattr = false;
