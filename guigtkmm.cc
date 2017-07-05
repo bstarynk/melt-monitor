@@ -2383,27 +2383,37 @@ MomMainWindow::do_txcmd_blink_insert(void)
         {
           Gtk::TextIter opentxit= startxit;
           opentxit.forward_chars(openoff);
-          _mwi_txcmd_startblink = _mwi_browserbuf->create_mark("start_blink_command", opentxit);
+          _mwi_txcmd_startblink = _mwi_commandbuf->create_mark("start_blink_command", opentxit);
           Gtk::TextIter openendtxit = opentxit;
           openendtxit.forward_chars(openlen);
           _mwi_commandbuf->apply_tag(blinktag, opentxit, openendtxit);
+          MOM_DEBUGLOG(blinkgui, "do_command_blink_insert opentxit="
+                       << MomShowTextIter(opentxit)
+                       << " openendtxit=" << MomShowTextIter(openendtxit));
         }
       if (closeoff>=0 && closeoff>openoff && closelen>0)
         {
           Gtk::TextIter closetxit= startxit;
           closetxit.forward_chars(closeoff);
-          _mwi_txcmd_endblink = _mwi_browserbuf->create_mark("end_blink_command", closetxit);
+          _mwi_txcmd_endblink = _mwi_commandbuf->create_mark("end_blink_command", closetxit);
           Gtk::TextIter closebegtxit = closetxit;
           closebegtxit.backward_chars(closelen);
           _mwi_commandbuf->apply_tag(blinktag, closebegtxit, closetxit);
+          MOM_DEBUGLOG(blinkgui, "do_command_blink_insert closebegtxit="
+                       << MomShowTextIter(closebegtxit)
+                       << " closetxit=" << MomShowTextIter(closetxit));
         }
       if (xtraoff>=0 && xtraoff<openoff && xtralen>0)
         {
           Gtk::TextIter xtratxit= startxit;
           xtratxit.forward_chars(xtraoff);
-          _mwi_txcmd_xtrablink = _mwi_browserbuf->create_mark("xtra_blink_command", xtratxit);
+          _mwi_txcmd_xtrablink = _mwi_commandbuf->create_mark("xtra_blink_command", xtratxit);
           Gtk::TextIter endxtratxit = xtratxit;
           endxtratxit.forward_chars(xtralen);
+          _mwi_commandbuf->apply_tag(blinktag, xtratxit, endxtratxit);
+          MOM_DEBUGLOG(blinkgui, "do_command_blink_insert xtratxit="
+                       << MomShowTextIter(xtratxit)
+                       << " endxtratxit=" << MomShowTextIter(endxtratxit));
         }
       Glib::signal_timeout().connect_once
       (sigc::mem_fun(this,&MomMainWindow::do_browser_unblink_insert),
