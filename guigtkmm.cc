@@ -2434,15 +2434,15 @@ MomMainWindow::do_txcmd_unblink_insert(void)
   MOM_DEBUGLOG(blinkgui, "MomMainWindow::do_txcmd_unblink_insert");
   if (_mwi_txcmd_startblink && _mwi_txcmd_endblink)
     {
-      Gtk::TextIter startxit = _mwi_browser_startblink->get_iter();
-      Gtk::TextIter endtxit = _mwi_browser_endblink->get_iter();
+      Gtk::TextIter startxit = _mwi_txcmd_startblink->get_iter();
+      Gtk::TextIter endtxit = _mwi_txcmd_endblink->get_iter();
       MOM_DEBUGLOG(blinkgui, "do_command_unblink_insert startxit=" << MomShowTextIter(startxit)
                    << " endtxit=" << MomShowTextIter(endtxit));
       _mwi_commandbuf->remove_tag(blinktag, startxit, endtxit);
     }
   if (_mwi_txcmd_xtrablink)
     {
-      Gtk::TextIter xtratxit = _mwi_browser_xtrablink->get_iter();
+      Gtk::TextIter xtratxit = _mwi_txcmd_xtrablink->get_iter();
       Gtk::TextIter bolxtratxit = xtratxit;
       bolxtratxit.backward_line();
       xtratxit.forward_line();
