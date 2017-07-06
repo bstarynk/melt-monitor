@@ -29,6 +29,7 @@ constexpr const char MomParser::_par_comment_end1_[];
 #define MOM_PARSERDEBUGLOG(Pa,Log) do { if ((Pa)->_pardebug) MOM_DEBUGLOG(parse,Log); } while(0)
 #define MOM_THISPARSDBGLOG(Log) MOM_PARSERDEBUGLOG(this,Log)
 
+#warning MomParser should have a parse_command, used from the GUI...
 
 void
 MomParser::consume_bytes(unsigned byteoffset)
