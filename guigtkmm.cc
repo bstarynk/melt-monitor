@@ -2883,7 +2883,6 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   try
     {
       cmdpars.next_line().skip_spaces();
-      do_parse_command(&cmdpars, apply);
       MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse before do_parse_command");
       do_parse_command(&cmdpars, apply);
       MOM_DEBUGLOG(gui, "MomMainWindow::do_txcmd_prettify_parse do_parse_command done");
@@ -2950,7 +2949,7 @@ MomMainWindow::do_parse_command(MomParser*pars, bool apply)
               nbmodif++;
             }
         }
-      else if (pars->got_cstring("~g") || pars->got_cstring("~glob"))
+      else if (pars->got_cstring("~glob") || pars->got_cstring("~g")) // order important, first should be longest
         {
           if (!_mwi_focusobj)
             MOM_PARSE_FAILURE(pars, "expect focus object for ~g/~glob");
@@ -2964,7 +2963,7 @@ MomMainWindow::do_parse_command(MomParser*pars, bool apply)
               nbmodif++;
             }
         }
-      else if (pars->got_cstring("~u") || pars->got_cstring("~user"))
+      else if (pars->got_cstring("~user") || pars->got_cstring("~u"))
         {
           if (!_mwi_focusobj)
             MOM_PARSE_FAILURE(pars, "expect focus object for ~u/~user");
@@ -2978,7 +2977,7 @@ MomMainWindow::do_parse_command(MomParser*pars, bool apply)
               nbmodif++;
             }
         }
-      else if (pars->got_cstring("~t") || pars->got_cstring("~trans"))
+      else if (pars->got_cstring("~trans") || pars->got_cstring("~t"))
         {
           if (!_mwi_focusobj)
             MOM_PARSE_FAILURE(pars, "expect focus object for ~t/~trans");
