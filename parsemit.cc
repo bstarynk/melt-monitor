@@ -72,7 +72,8 @@ MomParser::set_loader_for_object(MomLoader*ld, MomObject*pob, const char*tit)
 } // end MomParser::set_loader_for_object
 
 void
-MomParser::put_focused_object(MomObject*pob) {
+MomParser::put_focused_object(MomObject*pob)
+{
   if (pob != nullptr)
     MOM_PARSE_FAILURE(this, "cannot put focused object " << pob << " in plain MomParser");
 } // end default MomParser::put_focused_object
@@ -1257,156 +1258,175 @@ void
 MomParser::parse_command(bool *pgotcommand)
 {
   skip_spaces();
-  if (eof()) {
-    if (pgotcommand) *pgotcommand=false;
-    return;
-  }
+  if (eof())
+    {
+      if (pgotcommand) *pgotcommand=false;
+      return;
+    }
   MomObject*pobfocus = focused_object();
   MOM_DEBUGLOG(parse, "parse_command curbytes=" << MomShowString(curbytes())
-	       << " pobfocus=" << pobfocus
-	       << " @" << location_str());
+               << " pobfocus=" << pobfocus
+               << " @" << location_str());
   ////
   // ! <obattr> <valattr> or @: <obattr> <valattr> to add an attribute
-  if (got_cstring("@:") || got_cstring("!")) {
-    bool gotattr = false;
-    MomObject* pobattr = parse_objptr(&gotattr);
-    if (!gotattr)
-      MOM_PARSE_FAILURE(this, "expect object attribute after ! or @:"
-			<< " focus on "<< pobfocus);
-    bool gotval = false;
-    MomValue valattr = parse_value(&gotval);
-    if (!gotattr)
-      MOM_PARSE_FAILURE(this, "expect attribute value after ! or @:"
-			<< " focus on " << pobfocus << ", attribute:"
-			<< pobattr);
-    MOM_DEBUGLOG(parse, "should put attribute pobattr=" << pobattr
-		 << " valattr=" << valattr
-		 << " into focus=" << pobfocus);
-    if (!_parnobuild){
-      if (!pobfocus)
-	MOM_PARSE_FAILURE(this, "expect focus object for !- to remove "
-			  << pobattr);
-      std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
-      pobfocus->unsync_put_phys_attr(pobattr, valattr);
-      updated_focused_object(pobfocus);
-    }
-  } // end if  ! <obattr> <valattr> or @: <obattr> <valattr>
+  if (got_cstring("@:") || got_cstring("!"))
+    {
+      bool gotattr = false;
+      MomObject* pobattr = parse_objptr(&gotattr);
+      if (!gotattr)
+        MOM_PARSE_FAILURE(this, "expect object attribute after ! or @:"
+                          << " focus on "<< pobfocus);
+      bool gotval = false;
+      MomValue valattr = parse_value(&gotval);
+      if (!gotattr)
+        MOM_PARSE_FAILURE(this, "expect attribute value after ! or @:"
+                          << " focus on " << pobfocus << ", attribute:"
+                          << pobattr);
+      MOM_DEBUGLOG(parse, "should put attribute pobattr=" << pobattr
+                   << " valattr=" << valattr
+                   << " into focus=" << pobfocus);
+      if (!_parnobuild)
+        {
+          if (!pobfocus)
+            MOM_PARSE_FAILURE(this, "expect focus object for !- to remove "
+                              << pobattr);
+          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          pobfocus->unsync_put_phys_attr(pobattr, valattr);
+          updated_focused_object(pobfocus);
+        }
+    } // end if  ! <obattr> <valattr> or @: <obattr> <valattr>
   ////
   // & <valcomp> or @& <valcomp> to append a component
-  if (got_cstring("@&") || got_cstring("&")) {
-    bool gotval = false;
-    MomValue valcomp =parse_value(&gotval);
-    if (!gotval)
-      MOM_PARSE_FAILURE(this, "expect component value to append to focus " << pobfocus << " after & or @&");
-    MOM_DEBUGLOG(parse, "should append valcomp=" << valcomp
-		 << " into focus=" << pobfocus);
-    if (!_parnobuild){
-      if (!pobfocus)
-	MOM_PARSE_FAILURE(this,
-			  "expect focus object for @& or & to append ");
-      std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());
-      pobfocus->unsync_append_comp(valcomp);
-      updated_focused_object(pobfocus);
-    }
-  } // end if  & <valcomp> or @& <valcomp>
+  if (got_cstring("@&") || got_cstring("&"))
+    {
+      bool gotval = false;
+      MomValue valcomp =parse_value(&gotval);
+      if (!gotval)
+        MOM_PARSE_FAILURE(this, "expect component value to append to focus " << pobfocus << " after & or @&");
+      MOM_DEBUGLOG(parse, "should append valcomp=" << valcomp
+                   << " into focus=" << pobfocus);
+      if (!_parnobuild)
+        {
+          if (!pobfocus)
+            MOM_PARSE_FAILURE(this,
+                              "expect focus object for @& or & to append ");
+          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());
+          pobfocus->unsync_append_comp(valcomp);
+          updated_focused_object(pobfocus);
+        }
+    } // end if  & <valcomp> or @& <valcomp>
   ////
   /// for removing an attribute from focus: !- <attrobj>
-  else if (got_cstring("!-")) { // remove attribute from focus
-    bool gotattr = false;
-    MomObject* pobattr = parse_objptr(&gotattr);
-    if (!gotattr)
-      MOM_PARSE_FAILURE(this, "expect object attribute to remove after !-");
-    MOM_DEBUGLOG(parse,"parse_command should remove pobattr=" << pobattr
-		 << " from pobfocus=" << pobfocus);
-    if (!_parnobuild){
-      if (!pobfocus)
-	MOM_PARSE_FAILURE(this, "expect focus object for !- to remove "
-			  << pobattr);
-      std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
-      pobfocus->unsync_remove_phys_attr(pobattr);
-      updated_focused_object(pobfocus);
-    }
-  } // end if !- to remove attr from the focus
+  else if (got_cstring("!-"))   // remove attribute from focus
+    {
+      bool gotattr = false;
+      MomObject* pobattr = parse_objptr(&gotattr);
+      if (!gotattr)
+        MOM_PARSE_FAILURE(this, "expect object attribute to remove after !-");
+      MOM_DEBUGLOG(parse,"parse_command should remove pobattr=" << pobattr
+                   << " from pobfocus=" << pobfocus);
+      if (!_parnobuild)
+        {
+          if (!pobfocus)
+            MOM_PARSE_FAILURE(this, "expect focus object for !- to remove "
+                              << pobattr);
+          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          pobfocus->unsync_remove_phys_attr(pobattr);
+          updated_focused_object(pobfocus);
+        }
+    } // end if !- to remove attr from the focus
   ////
   // to put the focus in global space: ~g | ~glob
-  else if (got_cstring("~glob") || got_cstring("~g")) { // order matters!
-    MOM_DEBUGLOG(parse,"parse_command should put in global space pobfocus=" << pobfocus);
-    if (!_parnobuild) {
-      if (!pobfocus)
-	MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
-      std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
-      pobfocus->set_space(MomSpace::GlobalSp);
-      updated_focused_object(pobfocus);
-    }
-  } // end if ~g or ~glob to make global the focus
+  else if (got_cstring("~glob") || got_cstring("~g"))   // order matters!
+    {
+      MOM_DEBUGLOG(parse,"parse_command should put in global space pobfocus=" << pobfocus);
+      if (!_parnobuild)
+        {
+          if (!pobfocus)
+            MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
+          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          pobfocus->set_space(MomSpace::GlobalSp);
+          updated_focused_object(pobfocus);
+        }
+    } // end if ~g or ~glob to make global the focus
   ////
   // to put the focus in user space: ~u | ~user
-  else if (got_cstring("~user") ||got_cstring("~u")) { // order matters!
-    MOM_DEBUGLOG(parse,"parse_command should put in user space pobfocus=" << pobfocus);
-    if (!_parnobuild) {
-      if (!pobfocus)
-	MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
-      std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
-      pobfocus->set_space(MomSpace::UserSp);
-      updated_focused_object(pobfocus);
-    }
-  } // end if ~u or ~user to put in user space the focus
+  else if (got_cstring("~user") ||got_cstring("~u"))   // order matters!
+    {
+      MOM_DEBUGLOG(parse,"parse_command should put in user space pobfocus=" << pobfocus);
+      if (!_parnobuild)
+        {
+          if (!pobfocus)
+            MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
+          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          pobfocus->set_space(MomSpace::UserSp);
+          updated_focused_object(pobfocus);
+        }
+    } // end if ~u or ~user to put in user space the focus
   ////
   // to put the focus in transient space: ~t | ~trans
-  else if (got_cstring("~trans") || got_cstring("~t")) {  // order matters!
-    MOM_DEBUGLOG(parse,"parse_command should put in user space pobfocus=" << pobfocus);
-    if (!_parnobuild) {
-      if (!pobfocus)
-	MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
-      std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
-      pobfocus->set_space(MomSpace::TransientSp);
-      updated_focused_object(pobfocus);
-    }
-  } // end if ~t or ~trans to put in transient space the focus
+  else if (got_cstring("~trans") || got_cstring("~t"))    // order matters!
+    {
+      MOM_DEBUGLOG(parse,"parse_command should put in user space pobfocus=" << pobfocus);
+      if (!_parnobuild)
+        {
+          if (!pobfocus)
+            MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
+          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          pobfocus->set_space(MomSpace::TransientSp);
+          updated_focused_object(pobfocus);
+        }
+    } // end if ~t or ~trans to put in transient space the focus
   ////
   // ?. to change focus to a new anonymous object
-  else if (got_cstring("?.")) {
-    MOM_DEBUGLOG(parse,"parse_command should focus on new anon object");
-    if (!_parnobuild) {
-      MomObject*pobnew = MomObject::make_object();
-      MOM_DEBUGLOG(parse,"parse_command focus on anon pobnew=" << pobnew);
-      put_focused_object(pobnew);
-      updated_focused_object(pobnew);
+  else if (got_cstring("?."))
+    {
+      MOM_DEBUGLOG(parse,"parse_command should focus on new anon object");
+      if (!_parnobuild)
+        {
+          MomObject*pobnew = MomObject::make_object();
+          MOM_DEBUGLOG(parse,"parse_command focus on anon pobnew=" << pobnew);
+          put_focused_object(pobnew);
+          updated_focused_object(pobnew);
+        }
     }
-  }
   ////
   // ?: <name> to change focus to a new named object
-  else if (got_cstring("?:")) {
-    bool gotname = false;
-    std::string newname = parse_name(&gotname);
-    if (!gotname || newname.empty() || !mom_valid_name_radix_len(newname.c_str(), newname.size()))
-      MOM_PARSE_FAILURE(this, "bad name after ?:");
-    MOM_DEBUGLOG(parse, "parse_command should create new named " << newname);
-    if (mom_find_named(newname.c_str()))
-      MOM_PARSE_FAILURE(this, "existing name after ?: " << newname);
-    if (!_parnobuild) {
-      MomObject*pobnewnamed = MomObject::make_object();
-      mom_register_unsync_named(pobnewnamed, newname.c_str());
-      MOM_DEBUGLOG(parse,"parse_command focus on new pobnewnamed=" << pobnewnamed);
-      put_focused_object(pobnewnamed);
-      updated_focused_object(pobnewnamed);
+  else if (got_cstring("?:"))
+    {
+      bool gotname = false;
+      std::string newname = parse_name(&gotname);
+      if (!gotname || newname.empty() || !mom_valid_name_radix_len(newname.c_str(), newname.size()))
+        MOM_PARSE_FAILURE(this, "bad name after ?:");
+      MOM_DEBUGLOG(parse, "parse_command should create new named " << newname);
+      if (mom_find_named(newname.c_str()))
+        MOM_PARSE_FAILURE(this, "existing name after ?: " << newname);
+      if (!_parnobuild)
+        {
+          MomObject*pobnewnamed = MomObject::make_object();
+          mom_register_unsync_named(pobnewnamed, newname.c_str());
+          MOM_DEBUGLOG(parse,"parse_command focus on new pobnewnamed=" << pobnewnamed);
+          put_focused_object(pobnewnamed);
+          updated_focused_object(pobnewnamed);
+        }
     }
-  }
   ////
   // ? <object> to change focus to an existing object
-  else if (got_cstring("?")) { // show and focus an existing object
-    bool gotobj = false;
-    MomObject* pobnewfocus = parse_objptr(&gotobj);
-    if (!gotobj)
-      MOM_PARSE_FAILURE(this, "expect new focus object after ?");;
-    MOM_DEBUGLOG(parse, "parse_command should focus on pobnewfocus=" << pobnewfocus);
-    if (!_parnobuild) {
-      MOM_DEBUGLOG(parse,"parse_command focus on new pobnewfocus=" << pobnewfocus);
-      put_focused_object(pobnewfocus);
-      updated_focused_object(pobnewfocus);
+  else if (got_cstring("?"))   // show and focus an existing object
+    {
+      bool gotobj = false;
+      MomObject* pobnewfocus = parse_objptr(&gotobj);
+      if (!gotobj)
+        MOM_PARSE_FAILURE(this, "expect new focus object after ?");;
+      MOM_DEBUGLOG(parse, "parse_command should focus on pobnewfocus=" << pobnewfocus);
+      if (!_parnobuild)
+        {
+          MOM_DEBUGLOG(parse,"parse_command focus on new pobnewfocus=" << pobnewfocus);
+          put_focused_object(pobnewfocus);
+          updated_focused_object(pobnewfocus);
+        }
     }
-  }
-  else 
+  else
     MOM_PARSE_FAILURE(this, "bad command @" << location_str() << " :" << curbytes());
 #warning MomParser::parse_command unimplemented
 } // end MomParser::parse_command

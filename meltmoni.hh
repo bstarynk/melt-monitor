@@ -2946,7 +2946,10 @@ public:
   bool parse_chunk_element(std::vector<MomValue>&vec, int depth=0);
   MomObject* parse_objptr(bool* pgotob, int depth=0);
   // for command processing, get & put the focused object
-  virtual MomObject* focused_object(void) const { return nullptr; };
+  virtual MomObject* focused_object(void) const
+  {
+    return nullptr;
+  };
   virtual void put_focused_object(MomObject*pob);
   // signal that a focused object has been updated, could touch it
   virtual void updated_focused_object(MomObject*) {};
