@@ -2936,6 +2936,7 @@ public:
   MomParser& next_line(void);
   std::string parse_string(bool *pgotstr);
   std::string parse_name(bool *pgotname);
+  void parse_command(bool *pgotcommand, bool apply=false);
   MomIdent parse_id(bool *pgotid);
   intptr_t parse_int(bool *pgotint);
   double parse_double(bool *pgotdouble);
