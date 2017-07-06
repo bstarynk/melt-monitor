@@ -1115,6 +1115,7 @@ again:
     }
   check_exhaustion();
   peek_prevcurr_utf8(pc,nc,1);
+#warning should accept @ <globalname> e.g. @anon1 in parse_objptr
   if ((pc<127 && isspace(pc)) || has_spacing())
     {
       skip_spaces();

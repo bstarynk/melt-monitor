@@ -1,0 +1,8 @@
+#!./monimelt --parse-command-file
+// create the obvious name
+?: obvious
+// focus on the anon1
+? @anon1
+// add an obvious attribute
+! obvious [ x y ]
+
