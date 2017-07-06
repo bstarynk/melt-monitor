@@ -2936,7 +2936,8 @@ public:
   MomParser& next_line(void);
   std::string parse_string(bool *pgotstr);
   std::string parse_name(bool *pgotname);
-  void parse_command(bool *pgotcommand, bool apply=false);
+  // parse a single command
+  void parse_command(bool *pgotcommand); // won't run the command if _parnobuild
   MomIdent parse_id(bool *pgotid);
   intptr_t parse_int(bool *pgotint);
   double parse_double(bool *pgotdouble);
@@ -2944,6 +2945,11 @@ public:
   MomValue parse_chunk(bool* pgotchunk, int depth=0); // parse a code chunk, including the ending )$
   bool parse_chunk_element(std::vector<MomValue>&vec, int depth=0);
   MomObject* parse_objptr(bool* pgotob, int depth=0);
+  // for command processing, get & put the focused object
+  virtual MomObject* focused_object(void) const { return nullptr; };
+  virtual void put_focused_object(MomObject*pob);
+  // signal that a focused object has been updated, could touch it
+  virtual void updated_focused_object(MomObject*) {};
   /// given some name, fetch the corresponding named object
   virtual MomObject* fetch_named_object(const std::string&namstr, long inioff, unsigned inilincnt, int inicolpos)
   {
