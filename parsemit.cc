@@ -1782,3 +1782,20 @@ MomSimpleParser::chunk_value(const std::vector<MomValue>&vec, long inioff, unsig
   return res;
 } // end MomSimpleParser::chunk_value
 
+
+void
+MomSimpleParser::put_focused_object(MomObject*pob)
+{
+  if (_spar_putfocusedobjectfun)
+    _spar_putfocusedobjectfun(this,pob);
+  else
+    MOM_PARSE_FAILURE(this, "no put_focused_object @" << location_str());
+} // end MomSimpleParser::put_focused_object
+
+
+void
+MomSimpleParser::updated_focused_object(MomObject*pob)
+{
+  if (_spar_updatedfocusedobjectfun)
+    _spar_updatedfocusedobjectfun(this,pob);
+} // end MomSimpleParser::updated_focused_object

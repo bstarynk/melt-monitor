@@ -2945,6 +2945,7 @@ public:
   MomValue parse_chunk(bool* pgotchunk, int depth=0); // parse a code chunk, including the ending )$
   bool parse_chunk_element(std::vector<MomValue>&vec, int depth=0);
   MomObject* parse_objptr(bool* pgotob, int depth=0);
+  ///
   // for command processing, get & put the focused object
   virtual MomObject* focused_object(void) const
   {
@@ -2953,6 +2954,7 @@ public:
   virtual void put_focused_object(MomObject*pob);
   // signal that a focused object has been updated, could touch it
   virtual void updated_focused_object(MomObject*) {};
+  ///
   /// given some name, fetch the corresponding named object
   virtual MomObject* fetch_named_object(const std::string&namstr, long inioff, unsigned inilincnt, int inicolpos)
   {
@@ -3093,6 +3095,14 @@ class MomSimpleParser : public MomParser
                      long endoffset, unsigned endlinecnt, int endcolpos,
                      int depth
                     )> _spar_parsedvalchunkfun;
+  //
+  std::function<MomObject* (MomSimpleParser*
+                           )> _spar_getfocusedobjectfun;
+  std::function<void (MomSimpleParser*, MomObject*
+                     )> _spar_putfocusedobjectfun;
+  std::function<void (MomSimpleParser*, MomObject*
+                     )> _spar_updatedfocusedobjectfun;
+  //
 public:
   MomSimpleParser(std::istream&inp, unsigned lincount=0)
     : MomParser(inp,lincount),
@@ -3337,6 +3347,38 @@ public:
                               inioffset, inilinecnt,  inicolpos,
                               endoffset, endlinecnt,  endcolpos, depth);
   }
+  //
+  MomSimpleParser&
+  set_getfocusedobjectfun(std::function<MomObject* (MomSimpleParser*
+                                                   )> fun)
+  {
+    _spar_getfocusedobjectfun = fun;
+    return *this;
+  };
+  virtual MomObject* focused_object(void) const
+  {
+    if (_spar_getfocusedobjectfun)
+      return _spar_getfocusedobjectfun(const_cast<MomSimpleParser*>(this));
+    return nullptr;
+  };
+  //
+  MomSimpleParser&
+  set_putfocusedobjectfun(std::function<void (MomSimpleParser*, MomObject*)> fun)
+  {
+    _spar_putfocusedobjectfun = fun;
+    return *this;
+  };
+  virtual void put_focused_object(MomObject*pob);
+  //
+  MomSimpleParser&
+  set_updatedfocusedobjectfun(
+    std::function<void (MomSimpleParser*, MomObject*
+                       )> fun)
+  {
+    _spar_updatedfocusedobjectfun = fun;
+    return *this;
+  };
+  virtual void updated_focused_object(MomObject*);
 };				// end class MomSimpleParser
 
 
