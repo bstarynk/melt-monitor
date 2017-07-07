@@ -1089,6 +1089,105 @@ mom_strftime_centi (char *buf, size_t len, const char *fmt, double ti)
 }
 
 
+static void
+parse_file_of_commands_mom(const std::string& path)
+{
+  std::ifstream insf{path};
+  MomSimpleParser pars(insf);
+  MomObject *pobfocus = nullptr;
+  pars
+  .set_name(path)
+  .set_make_from_id(true)
+  .set_debug(MOM_IS_DEBUGGING(parse))
+  .set_has_chunk(true)
+  .disable_exhaustion();
+  pars
+  .set_getfocusedobjectfun([&](MomSimpleParser*)
+  {
+    return pobfocus;
+  })
+  .set_putfocusedobjectfun
+  ([&](MomSimpleParser*theparser,MomObject*pob)
+  {
+    MOM_DEBUGLOG(parse, "setting focus to pob=" << pob
+                 << "@" << theparser->location_str());
+    pobfocus = pob;
+  })
+  .set_updatedfocusedobjectfun([&](MomSimpleParser*,MomObject*pob)
+  {
+    pob->touch();
+  })
+  ;
+  pars.skip_spaces();
+  MOM_DEBUGLOG(parse, "start of parse-command-file @"
+               << pars.location_str());
+  int nbcommands = 0;
+  for (;;)
+    {
+      pars.skip_spaces();
+      if (pars.eof())
+        break;
+      bool gotcommand;
+      MOM_DEBUGLOG(parse, "before parsing command @" << pars.location_str());
+      pars.parse_command(&gotcommand);
+      if (!gotcommand)
+        {
+          MOM_WARNLOG("failed to parse command @" << pars.location_str());
+          break;
+        }
+      nbcommands++;
+      MOM_DEBUGLOG(parse, "after parsing command#" << nbcommands << " @" << pars.location_str());
+    }
+  MOM_INFORMPRINTF("parse %d commands from %s", nbcommands, path.c_str());
+} // end parse_file_of_commands_mom
+
+static void
+parse_file_of_values_mom(const std::string& path)
+{
+  std::ifstream insf{path};
+  MomSimpleParser pars(insf);
+  pars
+  .set_name(path)
+  .set_make_from_id(true)
+  .set_debug(MOM_IS_DEBUGGING(parse))
+  .set_has_chunk(true)
+  .disable_exhaustion();
+  pars.skip_spaces();
+  MOM_DEBUGLOG(parse, "start of parse-file @"
+               << pars.location_str());
+  MOM_INFORMLOG("parse-file '" << path << "'" << std::endl
+                << "peek_utf8(0)=" << pars.peek_utf8(0) << ' '
+                << "peek_utf8(1)=" << pars.peek_utf8(1) << ' '
+                << "peek_utf8(2)=" << pars.peek_utf8(2) << ' '
+                << "peek_utf8(3)=" << pars.peek_utf8(3) << ' '
+                << "peek_utf8(4)=" << pars.peek_utf8(4) << std::endl);
+  int parsecnt = 0;
+  for (;;)
+    {
+      pars.skip_spaces();
+      MOM_DEBUGLOG(parse, "parse-file @" << pars.location_str());
+      bool gotval = false;
+      std::string locstr = pars.location_str();
+      auto val = pars.parse_value(&gotval);
+      if (!gotval || pars.eof())
+        break;
+      parsecnt++;
+      pars.skip_spaces();
+      MOM_INFORMLOG("parse-file " << (gotval?"with":"without") << " value=" << val
+                    << std::endl << "...@ " << pars.location_str()
+                    << std::endl << "/// raw val#" << parsecnt << " @" << locstr
+                    << std::endl
+                    << MomDoShow([&](std::ostream&os)
+      {
+        MomEmitter rawem(os);
+        rawem.emit_value(val);
+      })
+          << std::endl);
+    }
+  if (pars.eof())
+    MOM_INFORMLOG("parse-file eof at " << pars.location_str() << std::endl);
+} // end parse_file_of_values_mom
+
 
 extern "C" const char *const mom_debug_names[momdbg__last] =
 {
@@ -1116,7 +1215,8 @@ enum extraopt_en
   xtraopt_testid,
   xtraopt_parseid,
   xtraopt_parseval,
-  xtraopt_parsefile,
+  xtraopt_parsefileofvalues,
+  xtraopt_parsefileofcommands,
   xtraopt_runcmd,
   xtraopt_loadsequential,
   xtraopt_loadspyid1,
@@ -1140,7 +1240,8 @@ static const struct option mom_long_options[] =
   {"test-id", no_argument, nullptr, xtraopt_testid},
   {"parse-id", required_argument, nullptr, xtraopt_parseid},
   {"parse-val", required_argument, nullptr, xtraopt_parseval},
-  {"parse-file", required_argument, nullptr, xtraopt_parsefile},
+  {"parse-file", required_argument, nullptr, xtraopt_parsefileofvalues},
+  {"parse-command-file", required_argument, nullptr, xtraopt_parsefileofcommands},
   {"run-cmd", required_argument, nullptr, xtraopt_runcmd},
   {"load-spy-id1", required_argument, nullptr, xtraopt_loadspyid1},
   {"load-spy-id2", required_argument, nullptr, xtraopt_loadspyid2},
@@ -1174,7 +1275,8 @@ usage_mom (const char *argv0)
   printf ("\t --parse-id id" " \t#parse an id\n");
   printf ("\t --parse-val <val>" " \t#parse some value after load\n");
   printf ("\t --parse-file <file-path>" " \t#parse several values from file after load\n");
-  printf ("\t --run-cmd <command>" " \t#run that command\n");
+  printf ("\t --parse-command-file <file-path>" " \t#parse several commands from file after load\n");
+  printf ("\t --run-cmd <command>" " \t#run that shell command\n");
   printf ("\t --load-sequential <loaddir>" " \t# Load the state sequentially (no threads).\n");
   printf ("\t --load-spy-id1 <id>" " \t# Set the id1 for spying the loader.\n");
   printf ("\t --load-spy-id2 <id>" " \t# Set the id2 for spying the loader.\n");
@@ -1488,86 +1590,58 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           });
         }
         break;
-        case xtraopt_parsefile:
+        case xtraopt_parsefileofvalues:
         {
           if (optarg == nullptr)
             MOM_FATAPRINTF("missing filepath for --parse-file");
           pstr = std::string{optarg};
-          MOM_INFORMLOG("should parse file " << MomShowString(pstr));
+          MOM_INFORMLOG("should parse file of values " << MomShowString(pstr));
           todo_after_load_mom.push_back
           ([=](void)
           {
-            std::ifstream insf{pstr};
-            MomSimpleParser pars(insf);
-            pars
-            .set_name(pstr)
-            .set_make_from_id(true)
-            .set_debug(MOM_IS_DEBUGGING(parse))
-            .set_has_chunk(true)
-            .disable_exhaustion();
-            pars.skip_spaces();
-            MOM_DEBUGLOG(parse, "start of parse-file @"
-                         << pars.location_str());
-            MOM_INFORMLOG("parse-file '" << pstr << "'" << std::endl
-                          << "peek_utf8(0)=" << pars.peek_utf8(0) << ' '
-                          << "peek_utf8(1)=" << pars.peek_utf8(1) << ' '
-                          << "peek_utf8(2)=" << pars.peek_utf8(2) << ' '
-                          << "peek_utf8(3)=" << pars.peek_utf8(3) << ' '
-                          << "peek_utf8(4)=" << pars.peek_utf8(4) << std::endl);
-            int parsecnt = 0;
-            for (;;)
-              {
-                pars.skip_spaces();
-                MOM_DEBUGLOG(parse, "parse-file @" << pars.location_str());
-                bool gotval = false;
-                std::string locstr = pars.location_str();
-                auto val = pars.parse_value(&gotval);
-                if (!gotval || pars.eof())
-                  break;
-                parsecnt++;
-                pars.skip_spaces();
-                MOM_INFORMLOG("parse-file " << (gotval?"with":"without") << " value=" << val
-                              << std::endl << "...@ " << pars.location_str()
-                              << std::endl << "/// raw val#" << parsecnt << " @" << locstr
-                              << std::endl
-                              << MomDoShow([&](std::ostream&os)
-                {
-                  MomEmitter rawem(os);
-                  rawem.emit_value(val);
-                })
-                    << std::endl);
-              }
-            if (pars.eof())
-              MOM_INFORMLOG("parse-file eof at " << pars.location_str() << std::endl);
+            parse_file_of_values_mom(pstr);
           });
-          break;
-          case xtraopt_loadspyid1:
+        }
+        break;
+        case xtraopt_parsefileofcommands:
+        {
+          if (optarg == nullptr)
+            MOM_FATAPRINTF("missing filepath for --parse-command-file");
+          pstr = std::string{optarg};
+          MOM_INFORMLOG("should parse file of commands " << MomShowString(pstr));
+          todo_after_load_mom.push_back
+          ([=](void)
           {
-            if (optarg == nullptr)
-              MOM_FATAPRINTF("missing id for --load-spy-id1");
-            auto idp = MomIdent::make_from_cstr(optarg, true);
-            MOM_INFORMLOG("load-spy-id1 '" << optarg << "'" << std::endl
-                          << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
-                          << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
-            mom_load_spyid1= idp;
-          }
-          break;
-          case xtraopt_loadspyid2:
-          {
-            if (optarg == nullptr)
-              MOM_FATAPRINTF("missing id for --load-spy-id2");
-            auto idp = MomIdent::make_from_cstr(optarg, true);
-            MOM_INFORMLOG("load-spy-id2 '" << optarg << "'" << std::endl
-                          << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
-                          << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
-            mom_load_spyid2= idp;
-          }
-          break;
-          default:
-            MOM_FATAPRINTF ("bad option (%c/%d) at %d", isalpha (opt) ? opt : '?', opt,
-                            optind);
-            return;
-          }
+            parse_file_of_commands_mom(pstr);
+          });
+        }
+        break;
+        case xtraopt_loadspyid1:
+        {
+          if (optarg == nullptr)
+            MOM_FATAPRINTF("missing id for --load-spy-id1");
+          auto idp = MomIdent::make_from_cstr(optarg, true);
+          MOM_INFORMLOG("load-spy-id1 '" << optarg << "'" << std::endl
+                        << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
+                        << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
+          mom_load_spyid1= idp;
+        }
+        break;
+        case xtraopt_loadspyid2:
+        {
+          if (optarg == nullptr)
+            MOM_FATAPRINTF("missing id for --load-spy-id2");
+          auto idp = MomIdent::make_from_cstr(optarg, true);
+          MOM_INFORMLOG("load-spy-id2 '" << optarg << "'" << std::endl
+                        << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
+                        << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
+          mom_load_spyid2= idp;
+        }
+        break;
+        default:
+          MOM_FATAPRINTF ("bad option (%c/%d) at %d", isalpha (opt) ? opt : '?', opt,
+                          optind);
+          return;
         }
     }
   *pargc -= optind;
@@ -1576,6 +1650,7 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
   argv = *pargv;
   MOM_DEBUGLOG(misc, "parse_program_arguments final argc=" << argc);
 } // end of parse_program_arguments_mom
+
 
 
 static void mom_sqlite_errlog(void*, int errcode, const char*msg)
