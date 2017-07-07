@@ -1417,7 +1417,7 @@ MomParser::parse_command(bool *pgotcommand)
       bool gotobj = false;
       MomObject* pobnewfocus = parse_objptr(&gotobj);
       if (!gotobj)
-        MOM_PARSE_FAILURE(this, "expect new focus object after ?");;
+        MOM_PARSE_FAILURE(this, "expect new focus object after ? @" << location_str());;
       MOM_DEBUGLOG(parse, "parse_command should focus on pobnewfocus=" << pobnewfocus);
       if (!_parnobuild)
         {
