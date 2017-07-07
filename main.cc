@@ -1109,15 +1109,18 @@ parse_file_of_commands_mom(const std::string& path)
   .set_putfocusedobjectfun
   ([&](MomSimpleParser*theparser,MomObject*pob)
   {
-    MOM_DEBUGLOG(parse, "setting focus to pob=" << pob
-                 << "@" << theparser->location_str());
+    MOM_DEBUGLOG(parse, "setting focus to pob=" << MomShowObject(pob)
+                 << " @" << theparser->location_str());
     pobfocus = pob;
   })
-  .set_updatedfocusedobjectfun([&](MomSimpleParser*,MomObject*pob)
+  .set_updatedfocusedobjectfun([&](MomSimpleParser*theparser,MomObject*pob)
   {
+    MOM_DEBUGLOG(parse, "touching updated pob=" << MomShowObject(pob)
+                 << " @" << theparser->location_str());
     pob->touch();
   })
   ;
+  pars.next_line();
   pars.skip_spaces();
   MOM_DEBUGLOG(parse, "start of parse-command-file @"
                << pars.location_str());
@@ -1128,7 +1131,8 @@ parse_file_of_commands_mom(const std::string& path)
       if (pars.eof())
         break;
       bool gotcommand;
-      MOM_DEBUGLOG(parse, "before parsing command @" << pars.location_str());
+      MOM_DEBUGLOG(parse, "before parsing command @" << pars.location_str()
+                   << " " << MomShowString(pars.curbytes()));
       pars.parse_command(&gotcommand);
       if (!gotcommand)
         {

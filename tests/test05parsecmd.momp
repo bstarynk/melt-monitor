@@ -1,4 +1,5 @@
 #!./monimelt --parse-command-file
+// file tests/test05parsecmd.momp
 // create the obvious name
 ?: obvious
 // focus on the anon1

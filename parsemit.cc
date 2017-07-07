@@ -1260,7 +1260,9 @@ MomParser::parse_command(bool *pgotcommand)
   skip_spaces();
   if (eof())
     {
-      if (pgotcommand) *pgotcommand=false;
+      if (pgotcommand)
+        *pgotcommand=false;
+      MOM_DEBUGLOG(parse, "parse_command got eof @" << location_str());
       return;
     }
   MomObject*pobfocus = focused_object();
@@ -1404,8 +1406,10 @@ MomParser::parse_command(bool *pgotcommand)
       if (!_parnobuild)
         {
           MomObject*pobnewnamed = MomObject::make_object();
+          MOM_DEBUGLOG(parse,"parse_command focus made new pobnewnamed=" << pobnewnamed);
           mom_register_unsync_named(pobnewnamed, newname.c_str());
-          MOM_DEBUGLOG(parse,"parse_command focus on new pobnewnamed=" << pobnewnamed);
+          MOM_DEBUGLOG(parse,"parse_command focus on new pobnewnamed="
+                       << MomShowObject(pobnewnamed));
           put_focused_object(pobnewnamed);
           updated_focused_object(pobnewnamed);
         }
@@ -1414,6 +1418,7 @@ MomParser::parse_command(bool *pgotcommand)
   // ? <object> to change focus to an existing object
   else if (got_cstring("?"))   // show and focus an existing object
     {
+      MOM_DEBUGLOG(parse,"parse_command after ? @" << location_str());
       bool gotobj = false;
       MomObject* pobnewfocus = parse_objptr(&gotobj);
       if (!gotobj)
