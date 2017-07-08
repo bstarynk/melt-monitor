@@ -751,6 +751,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   int nbattr = 0;
   MOM_ASSERT((thix>0 && thix<=(int)mom_nb_jobs) || _ld_sequential,
              "MomLoader::load_object_content bad thix#" << thix);
+  /// we might use parse_command in a loop, but it probably is not worth the effort
   for (;;)
     {
       contpars.skip_spaces();
