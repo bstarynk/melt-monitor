@@ -1095,6 +1095,7 @@ parse_file_of_commands_mom(const std::string& path)
   std::ifstream insf{path};
   MomSimpleParser pars(insf);
   MomObject *pobfocus = nullptr;
+  MOM_DEBUGLOG(parse, "start parse_file_of_commands_mom path=" << path);
   pars
   .set_name(path)
   .set_make_from_id(true)
@@ -1132,10 +1133,12 @@ parse_file_of_commands_mom(const std::string& path)
         break;
       bool gotcommand;
       MOM_DEBUGLOG(parse, "before parsing command @" << pars.location_str()
-                   << " " << MomShowString(pars.curbytes()));
+                   << " " << MomShowString(pars.curbytes())
+                   << " nbcommands=" << nbcommands);
       pars.parse_command(&gotcommand);
       if (!gotcommand)
         {
+          MOM_DEBUGLOG(parse, "parse_command failed @" << pars.location_str());
           MOM_WARNLOG("failed to parse command @" << pars.location_str());
           break;
         }
@@ -1143,6 +1146,7 @@ parse_file_of_commands_mom(const std::string& path)
       MOM_DEBUGLOG(parse, "after parsing command#" << nbcommands << " @" << pars.location_str());
     }
   MOM_INFORMPRINTF("parse %d commands from %s", nbcommands, path.c_str());
+  MOM_DEBUGLOG(parse, "end parse_file_of_commands_mom path=" << path);
 } // end parse_file_of_commands_mom
 
 static void
@@ -1742,6 +1746,7 @@ main (int argc_main, char **argv_main)
   if (!todo_after_load_mom.empty())
     {
       MOM_INFORMLOG("todo after load: " << todo_after_load_mom.size() << " entries.");
+      usleep(10000);
       long todocnt = 0;
       while (!todo_after_load_mom.empty())
         {
