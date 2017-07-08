@@ -2050,6 +2050,12 @@ MomMainWindow::do_object_show_hide(void)
   do
     {
       result = showdialog.run();
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide raw result=" << result
+                   <<((Gtk::RESPONSE_CANCEL==result)?"=cancel"
+                      :(Gtk::RESPONSE_OK==result)?"=ok"
+                      :(ShowOb==result)?"=show"
+                      :(HideOb==result)?"=hide"
+                      :";"));
       Glib::ustring showtext = showcombox.get_active_text();
       MomObject* pob = nullptr;
       if (showtext[0] < 127 && isalpha(showtext[0]))
@@ -2073,7 +2079,7 @@ MomMainWindow::do_object_show_hide(void)
                 pob = globptr->load();
               }
           }
-          if (!foundglobname)
+          if (!foundglobname && result !=  Gtk::RESPONSE_CANCEL)
             result = REPEAT;
         }
       MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide result=" << result
@@ -2088,20 +2094,27 @@ MomMainWindow::do_object_show_hide(void)
               browser_show_object(pob);
               browser_set_focus_object(pob);
             }
-          else
+          else if (result != Gtk::RESPONSE_CANCEL)
             result = REPEAT;
           break;
         case HideOb:
           MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide hide showtext=" << MomShowString(showtext));
           if (pob)
             browser_hide_object(pob);
-          else
+          else if (result != Gtk::RESPONSE_CANCEL)
             result = REPEAT;
           break;
         case Gtk::RESPONSE_CANCEL:
           MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide cancel");
           break;
         }
+      MOM_DEBUGLOG(gui, "MomMainWindow::do_object_show_hide endloop result=" << result
+                   <<((Gtk::RESPONSE_CANCEL==result)?"=cancel"
+                      :(Gtk::RESPONSE_OK==result)?"=ok"
+                      :(ShowOb==result)?"=show"
+                      :(HideOb==result)?"=hide"
+                      :(REPEAT==result)?"=repeat"
+                      :";"));
     }
   while (result == REPEAT);
   showdialog.hide();
