@@ -1196,7 +1196,7 @@ again:
   // @glob gets the global named glob
   else if (pc=='@' && nc<127 && isalpha(nc))
     {
-      const char*begnamp = curbytes();
+      const char*begnamp = curbytes()+1;
       const char*endnamp = begnamp+1;
       while (*endnamp<127 && (isalnum(*endnamp) || (*endnamp == '_' && isalnum(endnamp[-1]))))
         endnamp++;
@@ -1273,6 +1273,9 @@ MomParser::parse_command(bool *pgotcommand)
   // ! <obattr> <valattr> or @: <obattr> <valattr> to add an attribute
   if (got_cstring("@:") || got_cstring("!"))
     {
+      MOM_DEBUGLOG(parse, "parse_command after @: or ! curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
       bool gotattr = false;
       MomObject* pobattr = parse_objptr(&gotattr);
       if (!gotattr)
@@ -1296,11 +1299,16 @@ MomParser::parse_command(bool *pgotcommand)
           pobfocus->unsync_put_phys_attr(pobattr, valattr);
           updated_focused_object(pobfocus);
         }
+      if (pgotcommand)
+        *pgotcommand=true;
     } // end if  ! <obattr> <valattr> or @: <obattr> <valattr>
   ////
   // & <valcomp> or @& <valcomp> to append a component
   if (got_cstring("@&") || got_cstring("&"))
     {
+      MOM_DEBUGLOG(parse, "parse_command after @& or & curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
       bool gotval = false;
       MomValue valcomp =parse_value(&gotval);
       if (!gotval)
@@ -1316,11 +1324,16 @@ MomParser::parse_command(bool *pgotcommand)
           pobfocus->unsync_append_comp(valcomp);
           updated_focused_object(pobfocus);
         }
+      if (pgotcommand)
+        *pgotcommand=true;
     } // end if  & <valcomp> or @& <valcomp>
   ////
   /// for removing an attribute from focus: !- <attrobj>
   else if (got_cstring("!-"))   // remove attribute from focus
     {
+      MOM_DEBUGLOG(parse, "parse_command after !- curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
       bool gotattr = false;
       MomObject* pobattr = parse_objptr(&gotattr);
       if (!gotattr)
@@ -1336,11 +1349,16 @@ MomParser::parse_command(bool *pgotcommand)
           pobfocus->unsync_remove_phys_attr(pobattr);
           updated_focused_object(pobfocus);
         }
+      if (pgotcommand)
+        *pgotcommand=true;
     } // end if !- to remove attr from the focus
   ////
   // to put the focus in global space: ~g | ~glob
   else if (got_cstring("~glob") || got_cstring("~g"))   // order matters!
     {
+      MOM_DEBUGLOG(parse, "parse_command after ~glob or ~g curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
       MOM_DEBUGLOG(parse,"parse_command should put in global space pobfocus=" << pobfocus);
       if (!_parnobuild)
         {
@@ -1350,11 +1368,16 @@ MomParser::parse_command(bool *pgotcommand)
           pobfocus->set_space(MomSpace::GlobalSp);
           updated_focused_object(pobfocus);
         }
+      if (pgotcommand)
+        *pgotcommand=true;
     } // end if ~g or ~glob to make global the focus
   ////
   // to put the focus in user space: ~u | ~user
   else if (got_cstring("~user") ||got_cstring("~u"))   // order matters!
     {
+      MOM_DEBUGLOG(parse, "parse_command after ~user or ~u curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
       MOM_DEBUGLOG(parse,"parse_command should put in user space pobfocus=" << pobfocus);
       if (!_parnobuild)
         {
@@ -1364,11 +1387,16 @@ MomParser::parse_command(bool *pgotcommand)
           pobfocus->set_space(MomSpace::UserSp);
           updated_focused_object(pobfocus);
         }
+      if (pgotcommand)
+        *pgotcommand=true;
     } // end if ~u or ~user to put in user space the focus
   ////
   // to put the focus in transient space: ~t | ~trans
   else if (got_cstring("~trans") || got_cstring("~t"))    // order matters!
     {
+      MOM_DEBUGLOG(parse, "parse_command after ~trans or ~t curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
       MOM_DEBUGLOG(parse,"parse_command should put in user space pobfocus=" << pobfocus);
       if (!_parnobuild)
         {
@@ -1378,11 +1406,16 @@ MomParser::parse_command(bool *pgotcommand)
           pobfocus->set_space(MomSpace::TransientSp);
           updated_focused_object(pobfocus);
         }
+      if (pgotcommand)
+        *pgotcommand=true;
     } // end if ~t or ~trans to put in transient space the focus
   ////
   // ?. to change focus to a new anonymous object
   else if (got_cstring("?."))
     {
+      MOM_DEBUGLOG(parse, "parse_command after ?. curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
       MOM_DEBUGLOG(parse,"parse_command should focus on new anon object");
       if (!_parnobuild)
         {
@@ -1391,11 +1424,16 @@ MomParser::parse_command(bool *pgotcommand)
           put_focused_object(pobnew);
           updated_focused_object(pobnew);
         }
-    }
+      if (pgotcommand)
+        *pgotcommand=true;
+    } // end if ?.
   ////
   // ?: <name> to change focus to a new named object
   else if (got_cstring("?:"))
     {
+      MOM_DEBUGLOG(parse, "parse_command after ?: curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
       bool gotname = false;
       std::string newname = parse_name(&gotname);
       if (!gotname || newname.empty() || !mom_valid_name_radix_len(newname.c_str(), newname.size()))
@@ -1413,12 +1451,16 @@ MomParser::parse_command(bool *pgotcommand)
           put_focused_object(pobnewnamed);
           updated_focused_object(pobnewnamed);
         }
-    }
+      if (pgotcommand)
+        *pgotcommand=true;
+    } // end if ?:
   ////
   // ? <object> to change focus to an existing object
   else if (got_cstring("?"))   // show and focus an existing object
     {
-      MOM_DEBUGLOG(parse,"parse_command after ? @" << location_str());
+      MOM_DEBUGLOG(parse, "parse_command after ? curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
       bool gotobj = false;
       MomObject* pobnewfocus = parse_objptr(&gotobj);
       if (!gotobj)
@@ -1430,9 +1472,22 @@ MomParser::parse_command(bool *pgotcommand)
           put_focused_object(pobnewfocus);
           updated_focused_object(pobnewfocus);
         }
-    }
+      if (pgotcommand)
+        *pgotcommand=true;
+    } // end if ?
+  ////
   else
-    MOM_PARSE_FAILURE(this, "bad command @" << location_str() << " :" << curbytes());
+    {
+      MOM_DEBUGLOG(parse, "parse_command unexpected curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
+      if (pgotcommand)
+        *pgotcommand=false;
+      MOM_PARSE_FAILURE(this, "bad command @" << location_str() << " :" << curbytes());
+    }
+  MOM_DEBUGLOG(parse, "parse_command ending curbytes="
+               << MomShowString(curbytes())
+               << " @" <<location_str());
 #warning MomParser::parse_command unimplemented
 } // end MomParser::parse_command
 
