@@ -1252,7 +1252,7 @@ failure:
   return nullptr;
 } // end of MomParser::parse_objptr
 
-
+////////////////////////////////////////////////////////////////
 #warning parse_command might even be used for loading
 void
 MomParser::parse_command(bool *pgotcommand)
@@ -1260,6 +1260,10 @@ MomParser::parse_command(bool *pgotcommand)
   MOM_DEBUGLOG(parse, "parse_command ++start @" << location_str()
                << " " << MomShowString(curbytes()));
   skip_spaces();
+  auto inioff = _parlinoffset;
+  auto inicolidx = _parcolidx;
+  auto inicolpos = _parcolpos;
+  auto inilincnt = _parlincount;
   MOM_DEBUGLOG(parse, "parse_command after spaces @" << location_str());
   if (eof())
     {
@@ -1298,7 +1302,7 @@ MomParser::parse_command(bool *pgotcommand)
           if (!pobfocus)
             MOM_PARSE_FAILURE(this, "expect focus object for !- to remove "
                               << pobattr);
-          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          std::unique_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
           pobfocus->unsync_put_phys_attr(pobattr, valattr);
           updated_focused_object(pobfocus);
         }
@@ -1327,7 +1331,7 @@ MomParser::parse_command(bool *pgotcommand)
           if (!pobfocus)
             MOM_PARSE_FAILURE(this,
                               "expect focus object for @& or & to append ");
-          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());
+          std::unique_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());
           pobfocus->unsync_append_comp(valcomp);
           updated_focused_object(pobfocus);
         }
@@ -1356,7 +1360,7 @@ MomParser::parse_command(bool *pgotcommand)
           if (!pobfocus)
             MOM_PARSE_FAILURE(this, "expect focus object for !- to remove "
                               << pobattr);
-          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          std::unique_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
           pobfocus->unsync_remove_phys_attr(pobattr);
           updated_focused_object(pobfocus);
         }
@@ -1515,6 +1519,66 @@ MomParser::parse_command(bool *pgotcommand)
                    << " @" <<location_str());
     } // end if ?
   ////
+  // %! stepobj ( arguments ) to step with arguments
+  else if (got_cstring("%!"))
+    {
+      MOM_DEBUGLOG(parse, "parse_command after %! curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
+      bool gotobj = false;
+      MomObject* pobstep = parse_objptr(&gotobj);
+      if (!gotobj)
+        {
+          restore_state(inioff, inilincnt, inicolidx, inicolpos);
+          MOM_PARSE_FAILURE(this, "expect new step object after %! @" << location_str());
+        }
+      skip_spaces();
+      if (!got_cstring("("))
+        {
+          restore_state(inioff, inilincnt, inicolidx, inicolpos);
+          MOM_PARSE_FAILURE(this, "expect left paren after %! @" << location_str()
+                            << " pobstep=" << MomShowObject(pobstep));
+        }
+      std::string leftparloc = location_str();
+      std::vector<MomValue> argsvec;
+      for (;;)
+        {
+          skip_spaces();
+          if (has_cstring(")") || eof())
+            break;
+          MomValue curargv = nullptr;
+          bool gotarg = false;
+          curargv = parse_value(&gotarg);
+          if (!gotarg)
+            {
+              std::string curloc = location_str();
+              restore_state(inioff, inilincnt, inicolidx, inicolpos);
+              MOM_PARSE_FAILURE(this, "expect value @" << curloc << " for step @" << leftparloc
+                                << " pobstep=" << MomShowObject(pobstep));
+            }
+          if (!_parnobuild)
+            argsvec.push_back(curargv);
+        }
+      if (!got_cstring(")"))
+        {
+          restore_state(inioff, inilincnt, inicolidx, inicolpos);
+          MOM_PARSE_FAILURE(this, "expect right paren after %! @" << location_str()
+                            << " matching @" << leftparloc
+                            << " pobstep=" << MomShowObject(pobstep));
+        }
+      if (!_parnobuild)
+        {
+          if (!pobstep)
+            {
+              restore_state(inioff, inilincnt, inicolidx, inicolpos);
+              MOM_PARSE_FAILURE(this, "expect stepping object after %! @" << location_str());
+            }
+          std::shared_lock<std::shared_mutex> lk(pobstep->get_shared_mutex());
+          pobstep->unsync_step(argsvec);
+        }
+      MOM_DEBUGLOG(parse, "parse_command after %! @" << leftparloc);
+    } // end if %! stepobj (arguments)
+  ///
   else if (eol())
     {
       MOM_DEBUGLOG(parse, "parse_command eol @" << location_str());
