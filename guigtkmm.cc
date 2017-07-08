@@ -325,7 +325,10 @@ public:
   {
     return _mwi_winrank;
   };
-  int txcmd_nbmodif() const { return _mwi_txcmd_nbmodif; };
+  int txcmd_nbmodif() const
+  {
+    return _mwi_txcmd_nbmodif;
+  };
   MomMainWindow();
   ~MomMainWindow();
   void browser_show_object(MomObject*pob);
@@ -360,7 +363,7 @@ public:
   void do_txcmd_changed(void);
   void do_txcmd_end_user_action(void);
   void do_txcmd_populate_menu(Gtk::Menu*menu);
-  bool do_txcmd_complete_word(std::string word, Gtk::TextIter startxit, Gtk::TextIter endtxit);
+  bool do_txcmd_complete_word(const GdkEvent*ev, std::string word, Gtk::TextIter startxit, Gtk::TextIter endtxit);
   void do_txcmd_mark_set(const Gtk::TextIter& locit, const Glib::RefPtr<Gtk::TextMark>& mark);
   bool do_txcmd_blink_insert(void);
   void do_txcmd_unblink_insert(void);
@@ -2241,7 +2244,8 @@ MomMainWindow::handle_txcmd_key_release(GdkEventKey*evk)
                        << " startinstxit=" << MomShowTextIter(startinstxit)
                        << " endinstxit=" << MomShowTextIter(endinstxit));
           std::string strword = wordustr;
-          bool completed = do_txcmd_complete_word (strword, startinstxit, endinstxit);
+          bool completed = do_txcmd_complete_word (reinterpret_cast<const GdkEvent*>(evk),
+                           strword, startinstxit, endinstxit);
           if (!completed)
             {
               _mwi_txvcmd.error_bell();
@@ -2263,7 +2267,8 @@ MomMainWindow::handle_txcmd_key_release(GdkEventKey*evk)
 }		// end MomMainWindow::handle_txcmd_key_release
 
 bool
-MomMainWindow::do_txcmd_complete_word(std::string word, Gtk::TextIter startxit, Gtk::TextIter endtxit)
+MomMainWindow::do_txcmd_complete_word(const GdkEvent*ev,
+                                      std::string word, Gtk::TextIter startxit, Gtk::TextIter endtxit)
 {
   MOM_DEBUGLOG(gui, "do_txcmd_complete_word start word=" << MomShowString(word)
                << " startxit=" << MomShowTextIter(startxit)
@@ -2307,7 +2312,52 @@ MomMainWindow::do_txcmd_complete_word(std::string word, Gtk::TextIter startxit, 
   else  			// several completions, show a menu
     {
       MOM_WARNLOG("do_txcmd_complete_word got " << complvec.size() << " completions for " << word);
-#warning do_txcmd_complete_word unimplemented for several completions
+      auto mloop = Glib::MainLoop::create();
+      bool replaced=false;
+      Gtk::Menu* complmenu = Gtk::manage(new Gtk::Menu());
+      for (std::string curcomplstr : complvec)
+        {
+          Gtk::MenuItem* curmit =Gtk::manage(new Gtk::MenuItem(curcomplstr));
+          complmenu->append(*curmit);
+          curmit->signal_activate().connect
+          ([=,&replaced]()
+          {
+            MOM_DEBUGLOG(gui, "do_txcmd_complete_word replace with " << curcomplstr.c_str());
+            Gtk::TextIter newtxit = _mwi_commandbuf->erase(startxit,endtxit);
+            newtxit = _mwi_commandbuf->insert(newtxit,curcomplstr);
+            mloop->quit();
+            replaced=true;
+          });
+        }
+      Gtk::SeparatorMenuItem* sepmit = Gtk::manage(new Gtk::SeparatorMenuItem());
+      complmenu->append(*sepmit);
+      // ⛒ U+26D2 CIRCLED CROSSING LANES
+      // ⛝ U+26DD SQUARED SALTIRE
+      // ❌ U+274C CROSS MARK
+      // ◎ U+25CE BULLSEYE
+      Gtk::MenuItem* closemit =
+        Gtk::manage(new Gtk::MenuItem("- \342\227\216 -"/*◎ U+25CE BULLSEYE*/));
+      closemit->set_right_justified();
+      complmenu->append(*closemit);
+      closemit->signal_activate().connect
+      ([=]()
+      {
+        MOM_DEBUGLOG(gui, "do_txcmd_complete_word closing");
+        mloop->quit();
+      });
+      complmenu->show_all_children();
+      MOM_DEBUGLOG(gui, "do_txcmd_complete_word popup complmenu=" << complmenu);
+      complmenu->set_opacity(0.85);
+      complmenu->popup_at_pointer(ev);
+      mloop->run();
+      MOM_DEBUGLOG(gui, "do_txcmd_complete_word popup done popup complmenu=" << complmenu);
+      complmenu->hide();
+      mloop->quit();
+      if (replaced)
+        {
+          MOM_DEBUGLOG(gui, "do_txcmd_complete_word popup replaced");
+          return true;
+        }
     }
   return false; // completion failed
 } // end MomMainWindow::do_txcmd_complete_word
@@ -2883,29 +2933,32 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
   } /*end parsedval_valchunk  λ*/ )
   //
   .set_getfocusedobjectfun
-  ([&](MomSimpleParser*) {
+  ([&](MomSimpleParser*)
+  {
     MOM_DEBUGLOG(gui, "do_txcmd_prettify_parse getfocusedobjectfun λ _mwi_focusobj=" << _mwi_focusobj);
-     return _mwi_focusobj;
-   } /* end getfocusedobjectfun λ*/)
+    return _mwi_focusobj;
+  } /* end getfocusedobjectfun λ*/)
   //
   .set_putfocusedobjectfun
-    ([&](MomSimpleParser*, MomObject*pobnewfocus) {
-       MOM_DEBUGLOG(gui, "do_txcmd_prettify_parse putfocusedobjectfun λ pobnewfocus="
-		    << MomShowObject(pobnewfocus));
-       _mwi_focusobj = pobnewfocus;
-     } /* end putfocusedobjectfun λ*/)
-    //
-    .set_updatedfocusedobjectfun
-    ([&](MomSimpleParser*, MomObject*pobnewfocus) {
-       MOM_DEBUGLOG(gui, "do_txcmd_prettify_parse updatedfocusedobjectfun λ pobnewfocus="
-		    << MomShowObject(pobnewfocus));
-       if (pobnewfocus)
-	 pobnewfocus->touch();
-       MOM_ASSERT(pobnewfocus == _mwi_focusobj,
-		  "do_txcmd_prettify_parse updatedfocusedobjectfun pobnewfocus=" << pobnewfocus
-		  << " different of _mwi_focusobj=" << _mwi_focusobj);
-       browser_show_object(pobnewfocus);
-     } /* end updatedfocusedobjectfun  λ*/)
+  ([&](MomSimpleParser*, MomObject*pobnewfocus)
+  {
+    MOM_DEBUGLOG(gui, "do_txcmd_prettify_parse putfocusedobjectfun λ pobnewfocus="
+                 << MomShowObject(pobnewfocus));
+    _mwi_focusobj = pobnewfocus;
+  } /* end putfocusedobjectfun λ*/)
+  //
+  .set_updatedfocusedobjectfun
+  ([&](MomSimpleParser*, MomObject*pobnewfocus)
+  {
+    MOM_DEBUGLOG(gui, "do_txcmd_prettify_parse updatedfocusedobjectfun λ pobnewfocus="
+                 << MomShowObject(pobnewfocus));
+    if (pobnewfocus)
+      pobnewfocus->touch();
+    MOM_ASSERT(pobnewfocus == _mwi_focusobj,
+               "do_txcmd_prettify_parse updatedfocusedobjectfun pobnewfocus=" << pobnewfocus
+               << " different of _mwi_focusobj=" << _mwi_focusobj);
+    browser_show_object(pobnewfocus);
+  } /* end updatedfocusedobjectfun  λ*/)
   ;
   try
     {
@@ -2953,31 +3006,35 @@ MomMainWindow::do_parse_commands(MomParser*pars, bool apply)
   while (!pars->eof())
     {
       pars->skip_spaces();
-      if (pars->eof()) {
-	MOM_DEBUGLOG(gui, "do_parse_commands eof");
-        break;
-      }
+      if (pars->eof())
+        {
+          MOM_DEBUGLOG(gui, "do_parse_commands eof");
+          break;
+        }
       MOM_DEBUGLOG(gui, "do_parse_commands before parse_command curbytes=" << MomShowString(pars->curbytes())
                    << " @" << pars->location_str());
-      bool gotcommand=false;      
+      bool gotcommand=false;
       pars->parse_command(&gotcommand);
       MOM_DEBUGLOG(gui, "do_parse_commands after parse_command curbytes=" << MomShowString(pars->curbytes())
                    << " @" << pars->location_str()
-		   << " gotcommand=" << (gotcommand?"true":"false")
-		   << ' ' << (pars->eol()?"eol":"noneol")
-		   << ' ' << (pars->eof()?"eof":"noneof"));
-      if (!gotcommand) {
-	pars->skip_spaces();
-	if (pars->eof()) {
-	  MOM_DEBUGLOG(gui, "do_parse_commands eof break");
-	  break;
-	}
-	else {
-	  MOM_DEBUGLOG(gui, "do_parse_commands parse_command failed"
-		       << " @" << pars->location_str());
-	  MOM_PARSE_FAILURE(pars, "do_parse_commands failed to parse command @" << pars->location_str());
-	}
-      }
+                   << " gotcommand=" << (gotcommand?"true":"false")
+                   << ' ' << (pars->eol()?"eol":"noneol")
+                   << ' ' << (pars->eof()?"eof":"noneof"));
+      if (!gotcommand)
+        {
+          pars->skip_spaces();
+          if (pars->eof())
+            {
+              MOM_DEBUGLOG(gui, "do_parse_commands eof break");
+              break;
+            }
+          else
+            {
+              MOM_DEBUGLOG(gui, "do_parse_commands parse_command failed"
+                           << " @" << pars->location_str());
+              MOM_PARSE_FAILURE(pars, "do_parse_commands failed to parse command @" << pars->location_str());
+            }
+        }
     };
   MOM_DEBUGLOG(gui, "do_parse_commands done parsing @" << pars->location_str());
   if (apply)
