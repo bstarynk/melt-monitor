@@ -319,11 +319,13 @@ private:
   Glib::RefPtr<Gtk::TextMark> _mwi_txcmd_startblink;
   Glib::RefPtr<Gtk::TextMark> _mwi_txcmd_xtrablink;
   Glib::RefPtr<Gtk::TextMark> _mwi_txcmd_endblink;
+  int _mwi_txcmd_nbmodif;
 public:
   int rank() const
   {
     return _mwi_winrank;
   };
+  int txcmd_nbmodif() const { return _mwi_txcmd_nbmodif; };
   MomMainWindow();
   ~MomMainWindow();
   void browser_show_object(MomObject*pob);
@@ -1875,7 +1877,8 @@ MomMainWindow::MomMainWindow()
     _mwi_cmduseractim(0.0),
     _mwi_cmdlastuseractim(0.0),
     _mwi_focusobj(nullptr),
-    _mwi_winobj(nullptr)
+    _mwi_winobj(nullptr),
+    _mwi_txcmd_nbmodif(0)
 {
   {
     auto screen = Gdk::Screen::get_default();
@@ -2940,225 +2943,54 @@ MomMainWindow::do_txcmd_prettify_parse(bool apply)
 void
 MomMainWindow::do_parse_commands(MomParser*pars, bool apply)
 {
-  int nbmodif=0;
-#warning should call MomParser::parse_command
   MOM_ASSERT(pars != nullptr, "do_parse_commands: null parser");
   pars->skip_spaces();
   MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands start @ " << pars->location_str()
                << " " << MomShowString(pars->curbytes())
                << " apply=" << (apply?"true":"false"));
+  pars->set_no_build(!apply);
+  _mwi_txcmd_nbmodif = 0;
   while (!pars->eof())
     {
       pars->skip_spaces();
-      if (pars->eof())
+      if (pars->eof()) {
+	MOM_DEBUGLOG(gui, "do_parse_commands eof");
         break;
-      MOM_DEBUGLOG(gui, "do_parse_commands curbytes=" << MomShowString(pars->curbytes())
+      }
+      MOM_DEBUGLOG(gui, "do_parse_commands before parse_command curbytes=" << MomShowString(pars->curbytes())
                    << " @" << pars->location_str());
-      if (pars->got_cstring("!-"))
-        {
-          bool gotattr = false;
-          MomObject* pobattr = pars->parse_objptr(&gotattr);
-          if (!gotattr)
-            MOM_PARSE_FAILURE(pars, "expect object attribute after !-");
-          if (!_mwi_focusobj)
-            MOM_PARSE_FAILURE(pars, "expect focus object for !-");
-          if (apply)
-            {
-              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());;
-              _mwi_focusobj->unsync_remove_phys_attr(pobattr);
-              _mwi_focusobj->touch();
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands remove into " << _mwi_focusobj
-                           << " pobattr=" << pobattr);
-              browser_show_object(_mwi_focusobj);
-              nbmodif++;
-            }
-        }
-      else if (pars->got_cstring("~glob") || pars->got_cstring("~g")) // order important, first should be longest
-        {
-          if (!_mwi_focusobj)
-            MOM_PARSE_FAILURE(pars, "expect focus object for ~g/~glob");
-          if (apply)
-            {
-              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());;
-              _mwi_focusobj->set_space(MomSpace::GlobalSp);
-              _mwi_focusobj->touch();
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands in global space " << _mwi_focusobj);
-              browser_show_object(_mwi_focusobj);
-              nbmodif++;
-            }
-        }
-      else if (pars->got_cstring("~user") || pars->got_cstring("~u"))
-        {
-          if (!_mwi_focusobj)
-            MOM_PARSE_FAILURE(pars, "expect focus object for ~u/~user");
-          if (apply)
-            {
-              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());;
-              _mwi_focusobj->set_space(MomSpace::UserSp);
-              _mwi_focusobj->touch();
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands in user space " << _mwi_focusobj);
-              browser_show_object(_mwi_focusobj);
-              nbmodif++;
-            }
-        }
-      else if (pars->got_cstring("~trans") || pars->got_cstring("~t"))
-        {
-          if (!_mwi_focusobj)
-            MOM_PARSE_FAILURE(pars, "expect focus object for ~t/~trans");
-          if (apply)
-            {
-              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());;
-              _mwi_focusobj->set_space(MomSpace::TransientSp);
-              _mwi_focusobj->touch();
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands in transient space " << _mwi_focusobj);
-              browser_show_object(_mwi_focusobj);
-              nbmodif++;
-            }
-        }
-#warning should use ~predef to put in predefined space
-      else if (pars->got_cstring("!"))
-        {
-          bool gotattr = false;
-          MomObject* pobattr = pars->parse_objptr(&gotattr);
-          if (!gotattr)
-            MOM_PARSE_FAILURE(pars, "expect object attribute after !");
-          MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands adding pobattr=" << MomShowObject(pobattr));
-          bool gotval = false;
-          MomValue valattr = pars->parse_value(&gotval);
-          if (!gotval)
-            MOM_PARSE_FAILURE(pars, "expect value of attribute after !");
-          if (!_mwi_focusobj)
-            MOM_PARSE_FAILURE(pars, "expect focus object for !");
-          if (apply)
-            {
-              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
-              _mwi_focusobj->unsync_put_phys_attr(pobattr, valattr);
-              _mwi_focusobj->touch();
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands add into " << MomShowObject(_mwi_focusobj)
-                           << " pobattr=" << MomShowObject(pobattr) << " valattr=" << valattr);
-              browser_show_object(_mwi_focusobj);
-              nbmodif++;
-            }
-        }
-      else if (pars->got_cstring("&@"))
-        {
-          bool gotpos = false;
-          bool gotval = false;
-          intptr_t pos = pars->parse_int(&gotpos);
-          if (!gotpos)
-            MOM_PARSE_FAILURE(pars, "expect integer insertion position of component after &@");
-          MomValue valcomp = pars->parse_value(&gotval);;
-          if (!gotval)
-            MOM_PARSE_FAILURE(pars, "expect value of inserted component after &@");
-          if (!_mwi_focusobj)
-            MOM_PARSE_FAILURE(pars, "expect focus object for insertion with &@");
-          if (apply)
-            {
-              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
-              _mwi_focusobj->unsync_insert_comp((int)pos, valcomp);
-              _mwi_focusobj->touch();
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands insert into " << _mwi_focusobj
-                           << " pos=" << pos
-                           << " valcomp=" << valcomp);
-              browser_show_object(_mwi_focusobj);
-              nbmodif++;
-            }
-        }
-      else if (pars->got_cstring("&-"))
-        {
-          bool gotpos = false;
-          intptr_t pos = pars->parse_int(&gotpos);
-          if (!gotpos)
-            MOM_PARSE_FAILURE(pars, "expect integer removal position of component after &@");
-          if (!_mwi_focusobj)
-            MOM_PARSE_FAILURE(pars, "expect focus object for insertion with &@");
-          if (apply)
-            {
-              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
-              _mwi_focusobj->unsync_remove_comp((int)pos);
-              _mwi_focusobj->touch();
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands remove into " << _mwi_focusobj
-                           << " pos=" << pos);
-              browser_show_object(_mwi_focusobj);
-              nbmodif++;
-            }
-        }
-      else if (pars->got_cstring("&"))
-        {
-          bool gotval = false;
-          MomValue valcomp = pars->parse_value(&gotval);
-          if (!gotval)
-            MOM_PARSE_FAILURE(pars, "expect value of component after &");
-          if (!_mwi_focusobj)
-            MOM_PARSE_FAILURE(pars, "expect focus object for &");
-          if (apply)
-            {
-              std::shared_lock<std::shared_mutex> lk(_mwi_focusobj->get_shared_mutex());
-              _mwi_focusobj->unsync_append_comp(valcomp);
-              _mwi_focusobj->touch();
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands add into " << _mwi_focusobj
-                           << " valcomp=" << valcomp);
-              browser_show_object(_mwi_focusobj);
-              nbmodif++;
-            }
-        }
-      else if (pars->got_cstring("?.")) // create, show and focus a new anonymous object
-        {
-          if (apply)
-            {
-              MomObject* pobfresh = MomObject::make_object();
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands show pobfresh=" << MomShowObject(pobfresh));
-              browser_show_object(pobfresh);
-              browser_set_focus_object(pobfresh);
-            }
-        }
-      else if (pars->got_cstring("?:")) // create, show and focus a new named object
-        {
-          bool gotname = false;
-          std::string newname = pars->parse_name(&gotname);
-          if (!gotname || newname.empty() || !mom_valid_name_radix_len(newname.c_str(), newname.size()))
-            MOM_PARSE_FAILURE(pars, "bad name after ?:");
-          if (mom_find_named(newname.c_str()))
-            MOM_PARSE_FAILURE(pars, "existing name after ?: " << newname);
-          if (apply)
-            {
-              MomObject* pobnewnamed = MomObject::make_object();
-              mom_register_unsync_named(pobnewnamed, newname.c_str());
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands show pobnewnamed=" << MomShowObject(pobnewnamed));
-              browser_show_object(pobnewnamed);
-              browser_set_focus_object(pobnewnamed);
-            }
-        }
-      else if (pars->got_cstring("?")) // show and focus an existing object
-        {
-          bool gotobj = false;
-          MomObject* pobfocus = pars->parse_objptr(&gotobj);
-          if (!gotobj)
-            MOM_PARSE_FAILURE(pars, "expect new focus object after ?");
-          if (apply)
-            {
-              MOM_DEBUGLOG(gui, "MomMainWindow::do_parse_commands show pobfocus=" << MomShowObject(pobfocus));
-              browser_show_object(pobfocus);
-              browser_set_focus_object(pobfocus);
-            }
-        }
-      else
-        MOM_PARSE_FAILURE(pars, "bad command @" << pars->location_str());
-      MOM_DEBUGLOG(gui, "do_parse_commands endloop  nbmodif=" << nbmodif
-                   << " apply=" << (apply?"true":"false")
-                   << " _mwi_focusobj=" << MomShowObject(_mwi_focusobj)
-                   << " @" << pars->location_str());
-    }
-  MOM_DEBUGLOG(gui, "do_parse_commands ending nbmodif=" << nbmodif
-               << " apply=" << (apply?"true":"false"));
+      bool gotcommand=false;      
+      pars->parse_command(&gotcommand);
+      MOM_DEBUGLOG(gui, "do_parse_commands after parse_command curbytes=" << MomShowString(pars->curbytes())
+                   << " @" << pars->location_str()
+		   << " gotcommand=" << (gotcommand?"true":"false")
+		   << ' ' << (pars->eol()?"eol":"noneol")
+		   << ' ' << (pars->eof()?"eof":"noneof"));
+      if (!gotcommand) {
+	pars->skip_spaces();
+	if (pars->eof()) {
+	  MOM_DEBUGLOG(gui, "do_parse_commands eof break");
+	  break;
+	}
+	else {
+	  MOM_DEBUGLOG(gui, "do_parse_commands parse_command failed"
+		       << " @" << pars->location_str());
+	  MOM_PARSE_FAILURE(pars, "do_parse_commands failed to parse command @" << pars->location_str());
+	}
+      }
+    };
+  MOM_DEBUGLOG(gui, "do_parse_commands done parsing @" << pars->location_str());
   if (apply)
     {
       char modifbuf[40];
       memset (modifbuf, 0, sizeof(modifbuf));
       snprintf(modifbuf, sizeof(modifbuf), "done %d modifications",
-               nbmodif);
+               _mwi_txcmd_nbmodif);
       show_status_decisec(modifbuf, _default_status_delay_deciseconds_);
     }
+  MOM_DEBUGLOG(gui, "do_parse_commands done  @ " << pars->location_str()
+               << " " << MomShowString(pars->curbytes())
+               << " apply=" << (apply?"true":"false"));
 } // end MomMainWindow::do_parse_commands
 
 

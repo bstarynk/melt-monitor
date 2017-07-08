@@ -2619,7 +2619,7 @@ private:
   int _parcolpos; // current column position in UTF8 characters; first is 0
   bool _pardebug;	// if set, activate MOM_DEBUGLOG(parse, ...)
   bool _parsilent; // if set, failure is silent without backtrace
-  bool _parnobuild; // if set, no values are built
+  bool _parnobuild; // if set, no values are built and no commands run
   bool _parmakefromid; // if set, make objects from id
   bool _parhaschunk;   // if set, accept code chunks
   bool _parnocheckx;   // don't check exhaustion
