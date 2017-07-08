@@ -1311,7 +1311,7 @@ MomParser::parse_command(bool *pgotcommand)
     } // end if  ! <obattr> <valattr> or @: <obattr> <valattr>
   ////
   // & <valcomp> or @& <valcomp> to append a component
-  if (got_cstring("@&") || got_cstring("&"))
+  else if (got_cstring("@&") || got_cstring("&"))
     {
       MOM_DEBUGLOG(parse, "parse_command after @& or & curbytes="
                    << MomShowString(curbytes())
