@@ -449,12 +449,13 @@ MomLoader::load_all_objects_content(void)
       MOM_DEBUGLOG(load,
                    "load_all_objects_content started contentload mom_nb_jobs="
                    << mom_nb_jobs);
-      std::this_thread::sleep_for(std::chrono::milliseconds(5+2*mom_nb_jobs));
+      std::this_thread::sleep_for(std::chrono::milliseconds(50+10*mom_nb_jobs));
       for (int ix=1; ix<=(int)mom_nb_jobs; ix++)
         {
           vecthr[ix-1].join();
           MOM_DEBUGLOG(load,"load_all_objects_content joined ix=" << ix);
         }
+      usleep(10000);
     } // end multi-threaded
   globstmt.used(true);
   userstmt.used(true);
