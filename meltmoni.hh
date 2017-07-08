@@ -2241,6 +2241,10 @@ public:
   {
     unsync_step(il.begin(), il.size());
   };
+  inline void unsync_step(const std::vector<MomValue>& vec)
+  {
+    unsync_step(vec.data(), vec.size());
+  };
   template <typename ... ArgPack>
   inline void unsync_step_arg(ArgPack... args);
   ///
