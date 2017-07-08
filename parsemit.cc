@@ -1267,7 +1267,7 @@ MomParser::parse_command(bool *pgotcommand)
     }
   MomObject*pobfocus = focused_object();
   MOM_DEBUGLOG(parse, "parse_command curbytes=" << MomShowString(curbytes())
-               << " pobfocus=" << pobfocus
+               << " pobfocus=" << MomShowObject(pobfocus)
                << " @" << location_str());
   ////
   // ! <obattr> <valattr> or @: <obattr> <valattr> to add an attribute
@@ -1465,7 +1465,7 @@ MomParser::parse_command(bool *pgotcommand)
       MomObject* pobnewfocus = parse_objptr(&gotobj);
       if (!gotobj)
         MOM_PARSE_FAILURE(this, "expect new focus object after ? @" << location_str());;
-      MOM_DEBUGLOG(parse, "parse_command should focus on pobnewfocus=" << pobnewfocus);
+      MOM_DEBUGLOG(parse, "parse_command should focus on pobnewfocus=" << MomShowObject(pobnewfocus));
       if (!_parnobuild)
         {
           MOM_DEBUGLOG(parse,"parse_command focus on new pobnewfocus=" << pobnewfocus);
