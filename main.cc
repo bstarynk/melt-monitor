@@ -1128,26 +1128,46 @@ parse_file_of_commands_mom(const std::string& path)
   int nbcommands = 0;
   for (;;)
     {
+      MOM_DEBUGLOG(parse, "parse_file_of_commands_mom ***start loop nbcommands=" << nbcommands
+                   << " @" << pars.location_str() <<std::endl);
       pars.skip_spaces();
+      MOM_DEBUGLOG(parse, "parse_file_of_commands_mom loop#" << nbcommands
+                   << " after skip_spaces @" << pars.location_str()
+                   << ' ' << (pars.eof()?"eof":"noeof")
+                   << ' ' << (pars.eol()?"eol":"noeol"));
       if (pars.eof())
         break;
-      bool gotcommand;
-      MOM_DEBUGLOG(parse, "before parsing command @" << pars.location_str()
+      bool gotcommand=false;
+      MOM_DEBUGLOG(parse, "parse_file_of_commands_mom before parse_command @" << pars.location_str()
                    << " " << MomShowString(pars.curbytes())
                    << " nbcommands=" << nbcommands);
       pars.parse_command(&gotcommand);
+      MOM_DEBUGLOG(parse, "parse_file_of_commands_mom after parse_command @" << pars.location_str()
+                   << " " << MomShowString(pars.curbytes())
+                   << " nbcommands=" << nbcommands
+                   << " gotcommand=" << (gotcommand?"true":"false")
+                   << ' ' << (pars.eof()?"eof":"noeof"));
       if (!gotcommand)
         {
-          MOM_DEBUGLOG(parse, "parse_command failed @" << pars.location_str());
+          MOM_DEBUGLOG(parse, "parse_command failed @" << pars.location_str()
+                       << ' ' << (pars.eof()?"eof":"noeof"));
           MOM_WARNLOG("failed to parse command @" << pars.location_str());
           break;
         }
       nbcommands++;
-      MOM_DEBUGLOG(parse, "after parsing command#" << nbcommands << " @" << pars.location_str());
+      MOM_DEBUGLOG(parse, "after parsing command#" << nbcommands << " @" << pars.location_str()
+                   << ' ' << (pars.eof()?"eof":"noeof")
+                   << ' ' << (pars.eol()?"eol":"noeol")
+                   << std::endl);
     }
+  MOM_DEBUGLOG(parse, "parse_file_of_commands_mom ending path=" << path << " @" << pars.location_str()
+               << ' ' << (pars.eof()?"eof":"noeof")
+               << ' ' << (pars.eol()?"eol":"noeol")
+               << std::endl);
   MOM_INFORMPRINTF("parse %d commands from %s", nbcommands, path.c_str());
-  MOM_DEBUGLOG(parse, "end parse_file_of_commands_mom path=" << path);
 } // end parse_file_of_commands_mom
+
+
 
 static void
 parse_file_of_values_mom(const std::string& path)
