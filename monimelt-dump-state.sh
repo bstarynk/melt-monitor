@@ -16,6 +16,12 @@
 ##   along with GCC; see the file COPYING3.   If not see
 ##   <http://www.gnu.org/licenses/>.
 
+### this probably should be recoded in C++ with sqlite3.19,
+### see https://stackoverflow.com/q/44989176/841108
+
+### notice that the schema could be retrieved
+### with SELECT sql FROM sqlite_master WHERE type='table';
+
 ## Dont change the name monimelt-dump-state.sh of this script without
 ## care, it appears elsewhere...
 
@@ -81,6 +87,7 @@ echo >> $tempdump
 #     | head -1 | tr -d '\n\r\f\"' ; echo ' ---' ) >> $tempdump
 
 sqlite3 $dbfile >> $tempdump <<EOF
+.binary on
 .print BEGIN TRANSACTION;   --- for schema
 .schema
 .print END TRANSACTION;     --- for schema
