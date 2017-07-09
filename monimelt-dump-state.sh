@@ -86,8 +86,12 @@ echo >> $tempdump
 #(echo -n ' --- monimelt lastgitcommit ' ;  git log --format=oneline --abbrev=12 --abbrev-commit -q  \
 #     | head -1 | tr -d '\n\r\f\"' ; echo ' ---' ) >> $tempdump
 
-sqlite3 $dbfile >> $tempdump <<EOF
+if [ -x ./dumpsqlmonimelt ]; then
+    ./dumpsqlmonimelt $dbfile >> $tempdump
+else
+    sqlite3 $dbfile >> $tempdump <<EOF
 .binary on
+.print ---- dump directly from monimelt-dump-state.sh
 .print BEGIN TRANSACTION;   --- for schema
 .schema
 .print END TRANSACTION;     --- for schema
@@ -111,9 +115,11 @@ SELECT * FROM t_objects ORDER  BY ob_id;
 .print 
 .print END TRANSACTION; ---- for t_objects
 .print
-.print ------- END DUMP @@@@@
+.print ------- END DUMP  directly from monimelt-dump-state.sh @@@@@
 .print
 EOF
+fi
+
 echo  "-- monimelt-dump-state end dump $dubase" >> $tempdump
 
 if [ -z "$sqlref" ]; then

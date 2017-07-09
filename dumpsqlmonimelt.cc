@@ -156,12 +156,12 @@ void dump_objects(sqlite::database& db)
               << "', " << mtim << ",\n'" << ShowQuoted(content)
               << "',\n";
     if (paylkind.empty() && paylinit.empty() && paylcontent.empty())
-      std::cout << "'', '', ''\n";
+      std::cout << "'', '', '' -- nopayl\n";
     else
-      std::cout << "'" << paylkind << "',\n"
+      std::cout << "'" << paylkind << "', --- payl "<< oid << "\n"
                 << "'" << ShowQuoted(paylinit) << "',\n"
                 << "'" << ShowQuoted(paylcontent) << "'\n";
-    std::cout << ");\n" << "--'* end " << oid<< "\n\n"<< std::endl;
+    std::cout << ");\n" << "------'** end " << oid<< "\n\n"<< std::endl;
   };
   std::cout << "\n\n" "END TRANSACTION; --- for t_objects\n\n" << std::endl;
 } // end dump_objects
