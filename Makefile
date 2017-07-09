@@ -50,9 +50,11 @@ MODULE_SOURCES= $(sort  $(wildcard modules/momg_*.cc))
 # generated headers
 GENERATED_HEADERS= $(sort $(wildcard _mom*.h) $(wildcard MOM_*.h))
 MODULES=  $(patsubst %.cc,%.so,$(MODULE_SOURCES))
+CXXSTANDALONESOURCES= dumpsqlmonimelt.cc
+STANDALONEPROGRAMS= $(patsubst %.cc,%,$(CXXSTANDALONESOURCES))
 
 CSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.c)))
-CXXSOURCES= $(wildcard [0-9]*.cc) $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.cc)))
+CXXSOURCES= $(wildcard [0-9]*.cc) $(sort $(filter-out $(CXXSTANDALONESOURCES) $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.cc)))
 SHSOURCES= $(sort $(filter-out $(PLUGIN_SOURCES), $(wildcard [a-zA-Z]*.sh)))
 
 OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES))
@@ -60,11 +62,11 @@ OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES))
 RM= rm -fv
 
 
-.PHONY: all checkgithooks installgithooks dump restore
+.PHONY: all checkgithooks installgithooks dump restore 
 .PHONY: dumpuserstate dumpglobstate restoreuserstate restoreglobstate
 .PHONY: tags modules plugins clean tests loadthendump
 
-all: checkgithooks loadthendump monimelt
+all: checkgithooks $(STANDALONEPROGRAMS) loadthendump monimelt
 
 
 clean:
@@ -73,8 +75,9 @@ clean:
 	$(RM) _timestamp*
 	$(RM) core*
 	$(RM) *memo*
+	$(RM) monimelt dumpsqlmonimelt
 
-loadthendump: monimelt
+loadthendump: monimelt dumpsqlmonimelt
 	./monimelt -d .
 	$(MAKE) monimelt
 
@@ -124,6 +127,9 @@ monimelt: $(OBJECTS)
 	$(LINK.cc)  $(LINKFLAGS) -rdynamic $(OBJECTS) $(LIBES) -o $@  _timestamp.o
 	rm _timestamp.*
 
+dumpsqlmonimelt: dumpsqlmonimelt.o
+	$(LINK.cc)  $(LINKFLAGS) -rdynamic $< $(shell pkg-config --libs sqlite_modern_cpp) -o $@
+
 indent: .indent.pro
 	cp -v meltmoni.hh meltmoni.hh%
 	$(ASTYLE) $(ASTYLEFLAGS) meltmoni.hh
@@ -136,12 +142,12 @@ indent: .indent.pro
 	  $(ASTYLE)  $(ASTYLEFLAGS) $$g ; \
 	done
 
-dump: dumpuserstate dumpglobstate monimelt-dump-state.sh | mom_global.sqlite mom_user.sqlite 
+dump: dumpsqlmonimelt dumpuserstate dumpglobstate monimelt-dump-state.sh | mom_global.sqlite mom_user.sqlite 
 
-dumpglobstate:  monimelt-dump-state.sh | mom_global.sqlite
+dumpglobstate:  monimelt-dump-state.sh dumpsqlmonimelt | mom_global.sqlite
 	./monimelt-dump-state.sh mom_global.sqlite mom_global.sql
 
-dumpuserstate:  monimelt-dump-state.sh | mom_user.sqlite
+dumpuserstate:  monimelt-dump-state.sh dumpsqlmonimelt | mom_user.sqlite
 	./monimelt-dump-state.sh mom_user.sqlite mom_user.sql
 
 restore: restoreuserstate restoreglobstate |  mom_global.sql  mom_user.sql

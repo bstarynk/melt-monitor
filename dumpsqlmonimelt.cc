@@ -101,7 +101,7 @@ void dump_schema(sqlite::database& db)
     if (!stmtxt.empty())
       std::cout << stmtxt << ";" << std::endl;
   };
-  std::cout << "END TRANSACTION;\n" << std::endl;
+  std::cout << "END TRANSACTION; -- schema\n" << std::endl;
 } // end dump_schema
 
 
