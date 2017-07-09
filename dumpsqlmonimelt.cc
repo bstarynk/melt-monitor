@@ -191,7 +191,11 @@ int main(int argc, char**argv)
   dump_globdata(db);
   dump_names(db);
   dump_objects(db);
-  std::cout << "-- end dump of " << basename(argv[1])
+  std::string basestr{basename(argv[1])};
+  auto d = basestr.find('.');
+  if (d>0)
+    basestr.erase(d);
+  std::cout << "-- end dump of " << basestr
             << " by dumpsqlmonimelt" << std::endl;
   return 0;
 } // end main
