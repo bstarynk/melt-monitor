@@ -1579,12 +1579,79 @@ MomParser::parse_command(bool *pgotcommand)
       MOM_DEBUGLOG(parse, "parse_command after %! @" << leftparloc);
     } // end if %! stepobj (arguments)
   ///
+  // %+ targobj attrobj ( arguments ) to update targobj with attrobj and arguments
+  else if (got_cstring("%+"))
+    {
+      MOM_DEBUGLOG(parse, "parse_command after %+ curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
+      bool gotobjtarg = false;
+      MomObject* pobtarget = parse_objptr(&gotobjtarg);
+      if (!gotobjtarg)
+        {
+          restore_state(inioff, inilincnt, inicolidx, inicolpos);
+          MOM_PARSE_FAILURE(this, "expect target object after %+ @" << location_str());
+        }
+      skip_spaces();
+      bool gotobjattr = false;
+      MomObject* pobattr = parse_objptr(&gotobjattr);
+      if (!gotobjattr)
+        {
+          restore_state(inioff, inilincnt, inicolidx, inicolpos);
+          MOM_PARSE_FAILURE(this, "expect attr object after %+ @" << location_str()
+                            << " for target " << MomShowObject(pobtarget));
+        }
+      skip_spaces();
+      std::string leftparloc = location_str();
+      std::vector<MomValue> argsvec;
+      for (;;)
+        {
+          skip_spaces();
+          if (has_cstring(")") || eof())
+            break;
+          MomValue curargv = nullptr;
+          bool gotarg = false;
+          curargv = parse_value(&gotarg);
+          if (!gotarg)
+            {
+              std::string curloc = location_str();
+              restore_state(inioff, inilincnt, inicolidx, inicolpos);
+              MOM_PARSE_FAILURE(this, "expect value @" << curloc << " for update @" << leftparloc
+                                << " pobtarget=" << MomShowObject(pobtarget)
+                                << " pobattr=" << MomShowObject(pobattr));
+            }
+          if (!_parnobuild)
+            argsvec.push_back(curargv);
+        }
+      if (!got_cstring(")"))
+        {
+          restore_state(inioff, inilincnt, inicolidx, inicolpos);
+          MOM_PARSE_FAILURE(this, "expect right paren after %+ @" << location_str()
+                            << " matching @" << leftparloc
+                            << " pobtarget=" << MomShowObject(pobtarget));
+        }
+      if (!_parnobuild)
+        {
+          if (!pobtarget || !pobattr)
+            {
+              restore_state(inioff, inilincnt, inicolidx, inicolpos);
+              MOM_PARSE_FAILURE(this, "expect target & attribute objects after update %+ @" << location_str());
+            }
+          std::shared_lock<std::shared_mutex> lk(pobtarget->get_shared_mutex());
+          pobtarget->unsync_update(pobattr, argsvec);
+        }
+      MOM_DEBUGLOG(parse, "parse_command done %+ curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
+    } // end if %+ targobj attrobj ( arguments )
+  ///
   else if (eol())
     {
       MOM_DEBUGLOG(parse, "parse_command eol @" << location_str());
       if (pgotcommand)
         *pgotcommand=false;
     }
+  ///
   else if (eof())
     {
       MOM_DEBUGLOG(parse, "parse_command eof @" << location_str());
