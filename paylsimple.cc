@@ -1077,13 +1077,21 @@ MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
   return nullptr;
 } // end MomPaylGenfile::Fetch
 
+
 void
-MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob,
+                       const MomValue*vecarr, unsigned veclen)
 {
   auto py = static_cast< MomPaylGenfile*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
              "MomPaylGenfile::Update invalid genfile payload for own=" << own);
+  if (attrob == MOMP_emit)
+    {
+      MOM_WARNLOG("emit of own=" << own << " unimplemented"
+                  << MOM_SHOW_BACKTRACE("emit genfile"));
+#warning should implement MomPaylGenfile emit
+    }
   if ((proxob=py->_pgenfile_proxy) != nullptr)
     {
       std::unique_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
