@@ -46,6 +46,7 @@ INSERT INTO t_names VALUES ('_7hbSpcNUdHi_4QezAVr6Bgj', 'chunk');
 INSERT INTO t_names VALUES ('_8f7GaaT5WJK_01z8k1JztS6', 'dollar');
 INSERT INTO t_names VALUES ('_4cCZc3Izgsr_7LsCkWW7flp', 'doublesq');
 INSERT INTO t_names VALUES ('_33imugvOze0_0wdPqjmME0U', 'embed');
+INSERT INTO t_names VALUES ('_2QeF5dreQwf_51c3fAJEYqJ', 'emit');
 INSERT INTO t_names VALUES ('_7QeFDN33m7B_3dQv2OqqbH6', 'get');
 INSERT INTO t_names VALUES ('_0vgCFjXblkx_4zCMhMAWjVK', 'int');
 INSERT INTO t_names VALUES ('_45cnnX4v29t_9gZkfMOZj2Z', 'intsq');
@@ -112,6 +113,17 @@ INSERT INTO t_objects VALUES('_1jJjA6LcXiX_1V4ZcXlje09', 1493382726.98,
 '@NAMEDPROXY: __'
 );
 ------'** end _1jJjA6LcXiX_1V4ZcXlje09
+
+
+INSERT INTO t_objects VALUES('_2QeF5dreQwf_51c3fAJEYqJ', 1499613379.2,
+'
+
+',
+'named', --- payl _2QeF5dreQwf_51c3fAJEYqJ
+'emit',
+'@NAMEDPROXY: __'
+);
+------'** end _2QeF5dreQwf_51c3fAJEYqJ
 
 
 INSERT INTO t_objects VALUES('_2mYaTh9kH4I_7ENiXcymRmy', 1493382726.98,
@@ -365,5 +377,5 @@ INSERT INTO t_objects VALUES('_9Cr5XlTL8lI_7ALESzYlXD7', 1497636292.47,
 END TRANSACTION; --- for t_objects
 
 
--- end dump of mom_global.sqlite by dumpsqlmonimelt
+-- end dump of mom_global by dumpsqlmonimelt
 -- monimelt-dump-state end dump mom_global
