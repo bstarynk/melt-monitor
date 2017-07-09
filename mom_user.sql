@@ -444,5 +444,5 @@ INSERT INTO t_objects VALUES('_60mTYUA9RUQ_2NnbVf206gi', 1497676631.35,
 END TRANSACTION; --- for t_objects
 
 
--- end dump of mom_user.sqlite by dumpsqlmonimelt
+-- end dump of mom_user by dumpsqlmonimelt
 -- monimelt-dump-state end dump mom_user
