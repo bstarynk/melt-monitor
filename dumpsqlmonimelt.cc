@@ -29,6 +29,9 @@
 #include <features.h>           // GNU things
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
+
+#include <sqlite3.h>
 
 #include <vector>
 #include <map>
@@ -85,6 +88,14 @@ void ShowQuoted::output(std::ostream&out) const
     }
 }
 
+static void
+sqlite_errlog(void*, int errcode, const char*msg)
+{
+  std::cerr << "SQLITE ERROR#" << errcode
+            << " (" << sqlite3_errstr(errcode) << "):: "
+            << msg << std::endl;
+}
+
 void dump_schema(sqlite::database& db)
 {
   std::cout << "--- the data base schema @@@@@" << std::endl;
@@ -109,7 +120,7 @@ void dump_globdata(sqlite::database& db)
 {
   std::cout << "--- TABLE t_globdata @@@@@" << std::endl;
   std::cout << "BEGIN TRANSACTION;" << std::endl;
-  db << "SELECT (glob_namestr, glob_oid) FROM t_globdata"
+  db << "SELECT glob_namestr, glob_oid FROM t_globdata"
      " ORDER BY glob_namestr"
      >> [&](std::string nam, std::string oid)
   {
@@ -122,7 +133,7 @@ void dump_names(sqlite::database& db)
 {
   std::cout << "--- TABLE t_names @@@@@" << std::endl;
   std::cout << "BEGIN TRANSACTION;" << std::endl;
-  db << "SELECT (nam_oid, nam_str) FROM t_names"
+  db << "SELECT nam_oid, nam_str FROM t_names"
      " ORDER BY nam_str"
      >> [&](std::string oid, std::string nam)
   {
@@ -148,8 +159,8 @@ void dump_objects(sqlite::database& db)
       std::cout << "'', '', ''\n";
     else
       std::cout << "'" << paylkind << "',\n"
-                << "'" << ShowQuoted(paylinit) << ",\n"
-                << "'" << ShowQuoted(paylcontent) << '\n';
+                << "'" << ShowQuoted(paylinit) << "',\n"
+                << "'" << ShowQuoted(paylcontent) << "'\n";
     std::cout << ");\n" << "--'* end " << oid<< "\n\n"<< std::endl;
   };
   std::cout << "\n\n" "END TRANSACTION; --- for t_objects\n\n" << std::endl;
@@ -167,15 +178,19 @@ int main(int argc, char**argv)
       perror(argv[1]);
       exit(EXIT_FAILURE);
     };
+  sqlite3_config(SQLITE_CONFIG_LOG, sqlite_errlog, nullptr);
   sqlite::sqlite_config dbconfig;
   dbconfig.flags = sqlite::OpenFlags::READONLY;
   dbconfig.encoding = sqlite::Encoding::UTF8;
   sqlite::database db(argv[1],dbconfig);
+  std::cout << "\n" "-- dump of " << basename(argv[1])
+            << " by dumpsqlmonimelt" << std::endl;
   dump_schema(db);
   dump_globdata(db);
   dump_names(db);
   dump_objects(db);
-  std::cout << "-- end dump of " << basename(argv[1]) << std::endl;
+  std::cout << "-- end dump of " << basename(argv[1])
+            << " by dumpsqlmonimelt" << std::endl;
   return 0;
 } // end main
 
