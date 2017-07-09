@@ -26,6 +26,7 @@
 ## care, it appears elsewhere...
 
 ## Keep this in sync with the MomDumper::initialize_db function in state.cc
+## and with dumpsqlmonimelt.cc file
 
 echo start $0 "$@" >&2
 logger --id=$$ -s -t $0 starting at $(date +%c)  "$@"

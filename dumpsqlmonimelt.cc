@@ -43,6 +43,8 @@
 
 
 
+/// keep this file in sync with monimelt-dump-state.sh script
+/// and with the MomDumper::initialize_db function in state.cc
 
 
 /// from https://github.com/aminroosta/sqlite_modern_cpp

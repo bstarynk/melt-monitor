@@ -1255,6 +1255,7 @@ void
 MomDumper::initialize_db(sqlite::database &db)
 {
   /// keep this in sync with monimelt-dump-state.sh script
+  /// and with dumpsqlmonimelt.cc file
   db << R"!*(
 CREATE TABLE IF NOT EXISTS t_objects
  (ob_id VARCHAR(30) PRIMARY KEY ASC NOT NULL UNIQUE,
