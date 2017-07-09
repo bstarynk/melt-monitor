@@ -2225,6 +2225,10 @@ public:
   {
     unsync_update_owner(this,pobattr,vecarr,veclen);
   };
+  inline void unsync_update(const MomObject*pobattr, const std::vector<MomValue>&vec)
+  {
+    unsync_update_owner(this,pobattr,vec.data(),vec.size());
+  };
   inline void unsync_update(const MomObject*pobattr, const std::initializer_list<MomValue>& il)
   {
     unsync_update(pobattr, il.begin(), il.size());
