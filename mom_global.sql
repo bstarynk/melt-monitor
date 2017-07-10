@@ -61,6 +61,7 @@ INSERT INTO t_names VALUES ('_3bMUJDWlMMQ_2j2bm7EeIbv', 'put');
 INSERT INTO t_names VALUES ('_2mYaTh9kH4I_7ENiXcymRmy', 'set');
 INSERT INTO t_names VALUES ('_3SFtXTTy3kj_89fO24X2HFo', 'size');
 INSERT INTO t_names VALUES ('_4T8am97muLl_5969SR22Ecq', 'string');
+INSERT INTO t_names VALUES ('_5Wnb8RZdglo_9jkLPwTffMm', 'the_system');
 INSERT INTO t_names VALUES ('_6TmLNh9vtVY_0pwkHRtJ44k', 'tuple');
 END TRANSACTION; --- for t_names
 
@@ -229,6 +230,18 @@ INSERT INTO t_objects VALUES('_4w339hT5dXd_1tUZFvU4fWx', 1495430034.89,
 '@NAMEDPROXY: __'
 );
 ------'** end _4w339hT5dXd_1tUZFvU4fWx
+
+
+INSERT INTO t_objects VALUES('_5Wnb8RZdglo_9jkLPwTffMm', 1499684428.68,
+'
+///$the_system
+
+',
+'named', --- payl _5Wnb8RZdglo_9jkLPwTffMm
+'the_system',
+'@NAMEDPROXY: __'
+);
+------'** end _5Wnb8RZdglo_9jkLPwTffMm
 
 
 INSERT INTO t_objects VALUES('_6TmLNh9vtVY_0pwkHRtJ44k', 1497636292.47,
