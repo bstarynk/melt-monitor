@@ -1721,9 +1721,12 @@ MomEmitter::emit_value(const MomValue v, int depth)
   else if (v.is_transient())
     {
       if (_emnotransient)
-        return;
-      _emout << "°";
-      emit_value(MomValue{v.to_transient()}, depth);
+        _emout << " |*transient:| __";
+      else
+        {
+          _emout << "°";
+          emit_value(MomValue{v.to_transient()}, depth);
+        }
     }
   else if (v.is_val())
     {

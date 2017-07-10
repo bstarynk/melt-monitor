@@ -1683,6 +1683,8 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
   }
   for (auto pobcstattr: setattrs) {
     auto pobattr = const_cast<MomObject*>(pobcstattr);
+    if (!du->is_dumped(pobattr))
+      continue;
     auto valattr = _ob_attrs.find(pobattr)->second;
     em.out() << "@: ";
     em.emit_objptr(pobcstattr);
