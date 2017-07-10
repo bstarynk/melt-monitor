@@ -996,6 +996,8 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
   auto tmpath = mom_dump_temporary_file_path(du, py->_pgenfile_pathstr);
   {
     std::ofstream out(tmpath);
+    if (!out)
+      MOM_WARNLOG("genfile emitdump own=" << own << " failed to open tmpath=" << tmpath << " (" << strerror(errno) << ")");
     auto bfstr = pystrobuf->buffer_string();
     out.write(bfstr.c_str(), bfstr.size());
     out.close();
@@ -1089,21 +1091,32 @@ MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
              "MomPaylGenfile::Update invalid genfile payload for own=" << own);
   if (attrob == MOMP_emit)
     {
+      if (veclen>0)
+        MOM_FAILURE("genfile update emit got " << veclen << " arguments wanted none");
       auto pobuf = MomObject::make_object();
       std::lock_guard<std::recursive_mutex> gu{pobuf->get_recursive_mutex()};
       auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
       MOM_DEBUGLOG(gencod, "genfile update emit pobuf=" << MomShowObject(pobuf) << " own=" << MomShowObject(own));
       pystrobuf->unsync_output_all_to_buffer(own);
       std::string pathstr = py->_pgenfile_pathstr;
-      MOM_WARNLOG("emit of own=" << own << " on " << pathstr << " unimplemented"
-                  << MOM_SHOW_BACKTRACE("emit genfile")
-                  << std::endl
-                  << pystrobuf->buffer_string());
-      /// use static function mom_random_temporary_suffix(void);
-      /// use static function MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc)
-#warning should implement MomPaylGenfile emit
+      {
+        std::string tempathstr = pathstr + mom_random_temporary_file_suffix();
+        MOM_DEBUGLOG(gencod, "genfile update emit tempathstr=" << tempathstr << " pobuf=" << pobuf);
+        std::ofstream out(tempathstr);
+        if (!out)
+          MOM_WARNLOG("genfile update emit  own=" << own << " failed to open tempathstr="
+                      << tempathstr << " (" << strerror(errno) << ")");
+        auto bfstr = pystrobuf->buffer_string();
+        out.write(bfstr.c_str(), bfstr.size());
+        out.close();
+        bool same = mom_rename_file_if_changed(tempathstr, pathstr, true);
+        if (same)
+          MOM_INFORMLOG("genfile update emit own=" << MomShowObject(own) << " unchanged file " << pathstr);
+        else
+          MOM_INFORMLOG("genfile update emit own=" << MomShowObject(own) << " updated file " << pathstr);
+      }
     }
-  if ((proxob=py->_pgenfile_proxy) != nullptr)
+  else if ((proxob=py->_pgenfile_proxy) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
 #warning incomplete MomPaylGenfile::Update
