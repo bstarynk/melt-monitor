@@ -71,6 +71,7 @@ all: checkgithooks $(STANDALONEPROGRAMS) loadthendump monimelt
 
 clean:
 	$(RM) .*~ *~ *% *.o *.so */*.so *.log */*~ */*.orig *.i *.orig *.gch README.html
+	$(RM) *~-journal
 	$(RM) modules/*.so modules/*~ modules/*%
 	$(RM) _timestamp*
 	$(RM) core*
