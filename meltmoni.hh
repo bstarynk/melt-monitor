@@ -3836,6 +3836,8 @@ MomShowObject::MomShowObject(MomObject*pob)
 extern "C" MomIdent mom_load_spyid1;
 extern "C" MomIdent mom_load_spyid2;
 
+extern "C" std::string mom_random_temporary_file_suffix(void);
+
 extern "C" long mom_dump_in_directory(const char*dirname); // return number of dumped objects
 extern "C" void mom_load_from_directory(const char*dirname);
 extern "C" void mom_load_sequential_from_directory(const char*dirname);

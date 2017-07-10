@@ -862,6 +862,19 @@ mom_load_sequential_from_directory(const char*dirname)
 //==============================================================
 ////////////////////////////////////////////////////////////////
 
+std::string mom_random_temporary_suffix(void)
+{
+  char tempbuf[64];
+  memset(tempbuf, 0, sizeof(tempbuf));
+  auto rs = MomSerial63::make_random();
+  char sbuf16[16];
+  memset(sbuf16, 0, sizeof(sbuf16));
+  rs.to_cbuf16(sbuf16);
+  sbuf16[0] = '+';
+  snprintf(tempbuf, sizeof(tempbuf), "%s_p%d_~", sbuf16, (int)getpid());
+  return std::string{tempbuf};
+} // end mom_random_temporary_suffix
+
 // we don't want to move MomDumper into meltmoni.hh because it uses sqlite::
 enum MomDumpState { dus_none, dus_scan, dus_emit };
 
@@ -953,6 +966,8 @@ public:
   };
 };				// end class MomDumper
 
+
+
 class MomDumpEmitter final : public MomEmitter
 {
   MomDumper*_de_dumper;
@@ -997,17 +1012,7 @@ MomDumper::MomDumper(const std::string&dirnam)
   if (stat(dirnam.c_str(), &dirstat)
       || (!S_ISDIR(dirstat.st_mode) && (errno=ENOTDIR)!=0))
     MOM_FAILURE("MomDumper bad directory " << dirnam << " : " << strerror(errno));
-  {
-    char tempbuf[64];
-    memset(tempbuf, 0, sizeof(tempbuf));
-    auto rs = MomSerial63::make_random();
-    char sbuf16[16];
-    memset(sbuf16, 0, sizeof(sbuf16));
-    rs.to_cbuf16(sbuf16);
-    sbuf16[0] = '+';
-    snprintf(tempbuf, sizeof(tempbuf), "%s_p%d_~", sbuf16, (int)getpid());
-    _du_tempsuffix.assign(tempbuf);
-  }
+  _du_tempsuffix = mom_random_temporary_suffix();
   auto thisdump = this;
   _du_scanfunh =
     MomGC::the_garbcoll.add_scan_function
