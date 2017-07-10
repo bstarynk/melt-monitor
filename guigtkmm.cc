@@ -1341,6 +1341,7 @@ MomMainWindow::browser_insert_value(Gtk::TextIter& txit, MomValue val, MomDispla
     case MomKind::TagStringK: /// string value
     {
       std::vector<Glib::ustring> tagsescape = tags;
+      MOM_ASSERT(vv->vkind() ==  MomKind::TagStringK, "bad string vv@" << (void*)vv);
       auto strv = reinterpret_cast<const MomString*>(vv);
       std::string str = strv->string();
       txit = _mwi_browserbuf->insert_with_tags_by_name	(txit, "\"", tags);
