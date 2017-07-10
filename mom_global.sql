@@ -1,4 +1,4 @@
--- dump 2017 Jul 09 from mom_global dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jul 10 from mom_global dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -18,7 +18,8 @@
  --  <http://www.gnu.org/licenses/>.
 
 
--- dump of mom_global.sqlite by dumpsqlmonimelt
+-- dump of mom_global sqlite db by dumpsqlmonimelt
+
 --- the data base schema @@@@@
 BEGIN TRANSACTION;
 CREATE TABLE t_globdata
@@ -117,6 +118,7 @@ INSERT INTO t_objects VALUES('_1jJjA6LcXiX_1V4ZcXlje09', 1493382726.98,
 
 INSERT INTO t_objects VALUES('_2QeF5dreQwf_51c3fAJEYqJ', 1499613379.2,
 '
+///$emit
 
 ',
 'named', --- payl _2QeF5dreQwf_51c3fAJEYqJ

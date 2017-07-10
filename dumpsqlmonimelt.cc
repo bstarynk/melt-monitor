@@ -180,21 +180,21 @@ int main(int argc, char**argv)
       perror(argv[1]);
       exit(EXIT_FAILURE);
     };
+  std::string basestr{basename(argv[1])};
+  auto d = basestr.find('.');
+  if (d>0)
+    basestr.erase(d);
   sqlite3_config(SQLITE_CONFIG_LOG, sqlite_errlog, nullptr);
   sqlite::sqlite_config dbconfig;
   dbconfig.flags = sqlite::OpenFlags::READONLY;
   dbconfig.encoding = sqlite::Encoding::UTF8;
   sqlite::database db(argv[1],dbconfig);
-  std::cout << "\n" "-- dump of " << basename(argv[1])
-            << " by dumpsqlmonimelt" << std::endl;
+  std::cout << "\n" "-- dump of " << basestr
+            << " sqlite db by dumpsqlmonimelt\n" << std::endl;
   dump_schema(db);
   dump_globdata(db);
   dump_names(db);
   dump_objects(db);
-  std::string basestr{basename(argv[1])};
-  auto d = basestr.find('.');
-  if (d>0)
-    basestr.erase(d);
   std::cout << "-- end dump of " << basestr
             << " by dumpsqlmonimelt" << std::endl;
   return 0;

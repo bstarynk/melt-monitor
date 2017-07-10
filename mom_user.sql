@@ -1,4 +1,4 @@
--- dump 2017 Jul 09 from mom_user dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jul 10 from mom_user dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -18,7 +18,8 @@
  --  <http://www.gnu.org/licenses/>.
 
 
--- dump of mom_user.sqlite by dumpsqlmonimelt
+-- dump of mom_user sqlite db by dumpsqlmonimelt
+
 --- the data base schema @@@@@
 BEGIN TRANSACTION;
 CREATE TABLE t_globdata
