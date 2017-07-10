@@ -2638,8 +2638,8 @@ private:
   void unterminated_small_comment(const char*missing);
 public:
   static constexpr std::uint64_t _par_word_limit_ = 1<<28;
-  static constexpr double _par_plain_time_limit_ = 0.3;
-  static constexpr double _par_debug_time_limit_ = 15.5;
+  static constexpr double _par_plain_time_limit_ = 4.3;
+  static constexpr double _par_debug_time_limit_ = 25.5;
   static constexpr const char _par_comment_start1_[] = "\342\214\251" /*U+2329 LEFT-POINTING ANGLE BRACKET 〈 */;
   static constexpr const char _par_comment_end1_[] = "\342\214\252" /*U+232A RIGHT-POINTING ANGLE BRACKET 〉 */;
   class Mom_parse_failure : public Mom_runtime_failure
