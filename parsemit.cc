@@ -1302,7 +1302,7 @@ MomParser::parse_command(bool *pgotcommand)
           if (!pobfocus)
             MOM_PARSE_FAILURE(this, "expect focus object for !- to remove "
                               << pobattr);
-          std::unique_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          std::lock_guard<std::recursive_mutex> gu{pobfocus->get_recursive_mutex()};
           pobfocus->unsync_put_phys_attr(pobattr, valattr);
           updated_focused_object(pobfocus);
         }
@@ -1331,7 +1331,7 @@ MomParser::parse_command(bool *pgotcommand)
           if (!pobfocus)
             MOM_PARSE_FAILURE(this,
                               "expect focus object for @& or & to append ");
-          std::unique_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());
+          std::lock_guard<std::recursive_mutex> gu{pobfocus->get_recursive_mutex()};
           pobfocus->unsync_append_comp(valcomp);
           updated_focused_object(pobfocus);
         }
@@ -1360,7 +1360,7 @@ MomParser::parse_command(bool *pgotcommand)
           if (!pobfocus)
             MOM_PARSE_FAILURE(this, "expect focus object for !- to remove "
                               << pobattr);
-          std::unique_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          std::lock_guard<std::recursive_mutex> gu{pobfocus->get_recursive_mutex()};
           pobfocus->unsync_remove_phys_attr(pobattr);
           updated_focused_object(pobfocus);
         }
@@ -1383,7 +1383,7 @@ MomParser::parse_command(bool *pgotcommand)
         {
           if (!pobfocus)
             MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
-          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          std::lock_guard<std::recursive_mutex> gu{pobfocus->get_recursive_mutex()};
           pobfocus->set_space(MomSpace::GlobalSp);
           updated_focused_object(pobfocus);
         }
@@ -1406,7 +1406,7 @@ MomParser::parse_command(bool *pgotcommand)
         {
           if (!pobfocus)
             MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
-          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          std::lock_guard<std::recursive_mutex> gu{pobfocus->get_recursive_mutex()};
           pobfocus->set_space(MomSpace::UserSp);
           updated_focused_object(pobfocus);
         }
@@ -1429,7 +1429,7 @@ MomParser::parse_command(bool *pgotcommand)
         {
           if (!pobfocus)
             MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
-          std::shared_lock<std::shared_mutex> lk(pobfocus->get_shared_mutex());;
+          std::lock_guard<std::recursive_mutex> gu{pobfocus->get_recursive_mutex()};
           pobfocus->set_space(MomSpace::TransientSp);
           updated_focused_object(pobfocus);
         }
@@ -1573,7 +1573,7 @@ MomParser::parse_command(bool *pgotcommand)
               restore_state(inioff, inilincnt, inicolidx, inicolpos);
               MOM_PARSE_FAILURE(this, "expect stepping object after %! @" << location_str());
             }
-          std::shared_lock<std::shared_mutex> lk(pobstep->get_shared_mutex());
+          std::lock_guard<std::recursive_mutex> gu{pobstep->get_recursive_mutex()};
           pobstep->unsync_step(argsvec);
         }
       MOM_DEBUGLOG(parse, "parse_command after %! @" << leftparloc);
@@ -1637,7 +1637,7 @@ MomParser::parse_command(bool *pgotcommand)
               restore_state(inioff, inilincnt, inicolidx, inicolpos);
               MOM_PARSE_FAILURE(this, "expect target & attribute objects after update %+ @" << location_str());
             }
-          std::shared_lock<std::shared_mutex> lk(pobtarget->get_shared_mutex());
+          std::lock_guard<std::recursive_mutex> gu{pobtarget->get_recursive_mutex()};
           pobtarget->unsync_update(pobattr, argsvec);
         }
       MOM_DEBUGLOG(parse, "parse_command done %+ curbytes="
@@ -1898,7 +1898,7 @@ MomEmitter::emit_objptr(const MomObject*pob, int depth)
     {
       std::string obnamstr;
       {
-        std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
+        std::lock_guard<std::recursive_mutex> gu{pob->get_recursive_mutex()};
         obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
       }
       if (!obnamstr.empty())

@@ -746,7 +746,7 @@ MomLoader::load_object_content(MomObject*pob, int thix, const std::string&strcon
   snprintf(title, sizeof(title), "*content %s*", idbuf);
   contpars.set_name(std::string{title}).set_make_from_id(true);
   contpars.next_line();
-  std::unique_lock<std::shared_mutex> shgu(pob->get_shared_mutex());
+  std::lock_guard<std::recursive_mutex> gu{pob->get_recursive_mutex()};
   int nbcomp = 0;
   int nbattr = 0;
   MOM_ASSERT((thix>0 && thix<=(int)mom_nb_jobs) || _ld_sequential,
@@ -1435,7 +1435,7 @@ MomDumper::dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dum
   MomObject::PayloadEmission pyem;
   double obmtime=0.0;
   {
-    std::shared_lock<std::shared_mutex> gu{pob->_ob_shmtx};
+    std::lock_guard<std::recursive_mutex> gu{pob->_ob_recmtx};
     auto sp = pob->space();
     if (sp == MomSpace::PredefSp || sp == MomSpace::GlobalSp)
       isglobal = true;
@@ -1627,7 +1627,7 @@ MomObject::scan_dump(MomDumper*du) const
 void
 MomObject::scan_dump_content(MomDumper*du) const
 {
-  std::shared_lock<std::shared_mutex> gu{_ob_shmtx};
+  std::lock_guard<std::recursive_mutex> gu{this->_ob_recmtx};
   MOM_ASSERT(vkind() == MomKind::TagObjectK,
 	     "MomObject::scan_dump_content bad object@" << (const void*)this);
   if (space()==MomSpace::TransientSp) return;

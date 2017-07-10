@@ -338,7 +338,7 @@ MomObject::MomObject(const MomIdent id, MomHash h)
     _ob_space(ATOMIC_VAR_INIT(MomSpace::TransientSp)),
     _ob_magic(false),
     _ob_mtim(ATOMIC_VAR_INIT(0.0)),
-    _ob_shmtx(),
+    _ob_recmtx(),
     _ob_attrs{},
     _ob_comps(),
     _ob_payl(nullptr)
@@ -417,7 +417,7 @@ MomObject::valmtx() const
 void
 MomObject::scan_gc(MomGC*gc) const
 {
-  std::shared_lock<std::shared_mutex> gu{_ob_shmtx};
+  std::lock_guard<std::recursive_mutex> gu{_ob_recmtx};
   for (auto p: _ob_attrs)
     {
       MomObject* pobattr = p.first;
@@ -464,11 +464,11 @@ MomObject::less_named(const MomObject*ob) const
   std::string thisname;
   std::string obname;
   {
-    std::shared_lock<std::shared_mutex> lk(_ob_shmtx);
+    std::lock_guard<std::recursive_mutex> gu{this->_ob_recmtx};
     thisname = mom_get_unsync_string_name(const_cast<MomObject*>(this));
   }
   {
-    std::shared_lock<std::shared_mutex> lk(ob->_ob_shmtx);
+    std::lock_guard<std::recursive_mutex> gu{ob->_ob_recmtx};
     obname = mom_get_unsync_string_name(const_cast<MomObject*>(ob));
   }
   if (thisname.empty() && obname.empty())
@@ -688,7 +688,7 @@ MomShowObject::output(std::ostream& os) const
   MOM_ASSERT(_shob->vkind() == MomKind::TagObjectK, "MomShowObject::output bad _shob");
   std::string name;
   {
-    std::shared_lock<std::shared_mutex> lk(_shob->get_shared_mutex());
+    std::lock_guard<std::recursive_mutex> gu{_shob->get_recursive_mutex()};
     name = mom_get_unsync_string_name(_shob);
   }
   if (!name.empty())

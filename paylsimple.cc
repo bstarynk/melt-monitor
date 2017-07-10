@@ -291,7 +291,7 @@ MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*own,const M
 #warning perhaps we need to have some lazy pseudo-value. What about cycles of proxys and locking...
   else if ((proxob=py->_nam_proxy) != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
     }
   return nullptr;
@@ -490,7 +490,7 @@ MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const Mom
     return py->_pset_proxy;
   else if ((proxob=py->_pset_proxy) != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
     }
   return nullptr;
@@ -517,7 +517,7 @@ MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObje
     };
   if ((proxob=py->_pset_proxy) != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_fetch_owner(const_cast<MomObject*>(own),attrob,vecarr,veclen);
     }
   return nullptr;
@@ -544,7 +544,7 @@ MomPaylSet::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, 
     }
   if ((proxob=py->_pset_proxy) != nullptr)
     {
-      std::unique_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       proxob->unsync_update_owner(own,attrob,vecarr,veclen);
     }
 } // end MomPaylSet::Update
@@ -762,7 +762,7 @@ MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const
     return py->_pstrobuf_proxy;
   else if ((proxob=py->_pstrobuf_proxy) != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
     }
   return nullptr;
@@ -781,7 +781,7 @@ MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
     };
   if ((proxob=py->_pstrobuf_proxy) != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_fetch_owner(const_cast<MomObject*>(own),attrob,vecarr,veclen);
     }
   return nullptr;
@@ -798,7 +798,7 @@ MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
              "MomPaylStrobuf::Update invalid strobuf payload for own=" << own);
   if ((proxob=py->_pstrobuf_proxy) != nullptr)
     {
-      std::unique_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       proxob->unsync_update_owner(own,attrob,vecarr,veclen);
     }
 } // end MomPaylStrobuf::Update
@@ -865,7 +865,7 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
       MomObject* connob = nodv->conn();
       MomValue connoutv;
       {
-        std::shared_lock<std::shared_mutex> lk(connob->get_shared_mutex());
+        std::lock_guard<std::recursive_mutex> gu{connob->get_recursive_mutex()};
         connoutv = connob->unsync_get(MOMP_outputter);
       }
       MOM_DEBUGLOG(gencod, "MomPaylStrobuf::output_value_to_buffer owner=" << owner()
@@ -877,7 +877,7 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
                     << " connoutv=" << connoutv
                     << " unexpected node:" << v);
       {
-        std::shared_lock<std::shared_mutex> lk(coutob->get_shared_mutex());
+        std::lock_guard<std::recursive_mutex> gu{coutob->get_recursive_mutex()};
         coutob->unsync_step_arg(MomValue(forob),v,MomValue(ctxob),MomValue(depth));
       }
       MOM_DEBUGLOG(gencod, "MomPaylStrobuf::output_value_to_buffer done owner=" << owner()
@@ -1051,7 +1051,7 @@ MomPaylGenfile::Getmagic (const struct MomPayload*payl, const MomObject*own, con
     return py->_pgenfile_proxy;
   else if ((proxob=py->_pgenfile_proxy) != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
     }
   return nullptr;
@@ -1071,7 +1071,7 @@ MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
     };
   if ((proxob=py->_pgenfile_proxy) != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
 #warning incomplete MomPaylGenfile::Fetch
     }
   return nullptr;
@@ -1094,7 +1094,7 @@ MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
     }
   if ((proxob=py->_pgenfile_proxy) != nullptr)
     {
-      std::unique_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
 #warning incomplete MomPaylGenfile::Update
     }
 } // end MomPaylGenfile::Update
@@ -1174,7 +1174,7 @@ MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
   ctxob->unsync_make_payload<MomPaylEnvstack>();
   if (_pstrobuf_starter != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(_pstrobuf_starter->get_shared_mutex());
+      std::lock_guard<std::recursive_mutex> gu{_pstrobuf_starter->get_recursive_mutex()};
       MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer before starter step own=" << own
                    << " forpob=" << forpob << " ctxob=" << ctxob);
       _pstrobuf_starter->unsync_step_arg(MomValue(own),MomValue(forpob),MomValue(ctxob));
@@ -1515,7 +1515,7 @@ MomPaylEnvstack::Getmagic(const struct MomPayload*payl, const MomObject*own, con
     return py->_penvstack_proxy;
   else if ((proxob=py->_penvstack_proxy) != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
     }
   return nullptr;

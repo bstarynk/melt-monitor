@@ -824,7 +824,7 @@ MomMainWindow::browser_insert_object_display(Gtk::TextIter& txit, MomObject*pob,
   memset(obidbuf, 0, sizeof(obidbuf));
   int depth = _mwi_dispdepth;
   pob->id().to_cbuf32(obidbuf);
-  std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
+  std::lock_guard<std::recursive_mutex> gu{pob->get_recursive_mutex()};
   std::string obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
   auto itm = _mwi_browsedobmap.find(pob);
   bool found = false;
@@ -1158,7 +1158,7 @@ MomMainWindow::browser_insert_objptr(Gtk::TextIter& txit, MomObject*pob, MomDisp
   memset(obidbuf, 0, sizeof(obidbuf));
   pob->id().to_cbuf32(obidbuf);
   {
-    std::shared_lock<std::shared_mutex> lk(pob->get_shared_mutex());
+    std::lock_guard<std::recursive_mutex> gu{pob->get_recursive_mutex()};
     obnamstr = mom_get_unsync_string_name(const_cast<MomObject*>(pob));
   }
   if (obnamstr.empty())
@@ -3464,7 +3464,7 @@ MomPaylMainWindow::Getmagic (const struct MomPayload*payl,const MomObject*own,co
     return py->_pymw_proxy;
   else if ((proxob=py->_pymw_proxy) != nullptr)
     {
-      std::shared_lock<std::shared_mutex> lk(proxob->get_shared_mutex(py));
+      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
     }
   return nullptr;

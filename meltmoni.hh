@@ -2043,7 +2043,7 @@ class MomObject final : public MomAnyVal // in objectv.cc
   std::atomic<MomSpace> _ob_space;
   std::atomic<bool> _ob_magic;
   std::atomic<double> _ob_mtim;
-  mutable std::shared_mutex _ob_shmtx;
+  mutable std::recursive_mutex _ob_recmtx;
   std::unordered_map<MomObject*,MomValue,MomObjptrHash> _ob_attrs;
   std::vector<MomValue> _ob_comps;
   MomPayload* _ob_payl;
@@ -2062,9 +2062,9 @@ class MomObject final : public MomAnyVal // in objectv.cc
   static void gc_todo_clear_mark_bucket(MomGC*gc,unsigned buckix);
   static void gc_todo_sweep_bucket(MomGC*gc,unsigned buckix);
 public:
-  std::shared_mutex& get_shared_mutex(const MomPayload* = nullptr) const
+  std::recursive_mutex& get_recursive_mutex(const MomPayload* = nullptr) const
   {
-    return _ob_shmtx;
+    return _ob_recmtx;
   };
   static void gc_zero_clear_count(MomGC*)
   {
@@ -2095,23 +2095,23 @@ public:
   template<typename ResType>
   ResType locked_access(std::function<ResType(MomObject const*)>fun) const
   {
-    std::shared_lock<std::shared_mutex> lk(_ob_shmtx);
+    std::lock_guard<std::recursive_mutex> gu{_ob_recmtx};
     return fun(this);
   }
   void locked_access(std::function<void(MomObject const*)>fun) const
   {
-    std::shared_lock<std::shared_mutex> lk(_ob_shmtx);
+    std::lock_guard<std::recursive_mutex> gu{_ob_recmtx};
     fun(this);
   }
   template<typename ResType>
   ResType locked_modify(std::function<ResType(MomObject*)>fun)
   {
-    std::unique_lock<std::shared_mutex> lk(_ob_shmtx);
+    std::lock_guard<std::recursive_mutex> gu{_ob_recmtx};
     return fun(this);
   }
   void locked_modify(std::function<void(MomObject*)>fun)
   {
-    std::unique_lock<std::shared_mutex> lk(_ob_shmtx);
+    std::lock_guard<std::recursive_mutex> gu{_ob_recmtx};
     fun(this);
   }
   static MomObject*find_object_of_id(const MomIdent id);
