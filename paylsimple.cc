@@ -988,6 +988,7 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
   empaylcont->out() << "@GENFILEPROXY: ";
   empaylcont->emit_objptr(py->_pgenfile_proxy);
   auto pobuf = MomObject::make_object();
+  std::lock_guard<std::recursive_mutex> gu{pobuf->get_recursive_mutex()};
   auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
   MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own
                << " pobuf=" << pobuf);
@@ -1088,8 +1089,18 @@ MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
              "MomPaylGenfile::Update invalid genfile payload for own=" << own);
   if (attrob == MOMP_emit)
     {
-      MOM_WARNLOG("emit of own=" << own << " unimplemented"
-                  << MOM_SHOW_BACKTRACE("emit genfile"));
+      auto pobuf = MomObject::make_object();
+      std::lock_guard<std::recursive_mutex> gu{pobuf->get_recursive_mutex()};
+      auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
+      MOM_DEBUGLOG(gencod, "genfile update emit pobuf=" << MomShowObject(pobuf) << " own=" << MomShowObject(own));
+      pystrobuf->unsync_output_all_to_buffer(own);
+      std::string pathstr = py->_pgenfile_pathstr;
+      MOM_WARNLOG("emit of own=" << own << " on " << pathstr << " unimplemented"
+                  << MOM_SHOW_BACKTRACE("emit genfile")
+                  << std::endl
+                  << pystrobuf->buffer_string());
+      /// use static function mom_random_temporary_suffix(void);
+      /// use static function MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc)
 #warning should implement MomPaylGenfile emit
     }
   if ((proxob=py->_pgenfile_proxy) != nullptr)
