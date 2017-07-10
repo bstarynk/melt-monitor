@@ -65,6 +65,7 @@ INSERT INTO t_names VALUES ('_3ojMJ5jyD6s_3i5kM0DDFDT', 'q');
 INSERT INTO t_names VALUES ('_3r6zyliGEa1_4VuvVlsYGiH', 'r');
 INSERT INTO t_names VALUES ('_3xRwKNR8Txl_0wsckeKslWS', 's');
 INSERT INTO t_names VALUES ('_40qshq4y5x8_7gVSxYkkZS7', 't');
+INSERT INTO t_names VALUES ('_1su4dxploe6_3OEeK9QS68b', 'test1gen');
 INSERT INTO t_names VALUES ('_4aAhx0sQzAr_9XhL9OAq5TM', 'u');
 INSERT INTO t_names VALUES ('_4ioux9ZO1CL_1rL5zUwbrDz', 'v');
 INSERT INTO t_names VALUES ('_4jWlc9OU9d7_7kWpO3U1cmr', 'w');
@@ -209,6 +210,19 @@ INSERT INTO t_objects VALUES('_1YO5QQwWD9S_648ErV7JiiJ', 1499315419.12,
 ------'** end _1YO5QQwWD9S_648ErV7JiiJ
 
 
+INSERT INTO t_objects VALUES('_1su4dxploe6_3OEeK9QS68b', 1499689282.34,
+'
+///$test1gen
+@: _3xRwKNR8Txl_0wsckeKslWS _4SCyZfyLX4u_38OYdt3f0wJ
+
+',
+'named', --- payl _1su4dxploe6_3OEeK9QS68b
+'test1gen',
+'@NAMEDPROXY: _4SCyZfyLX4u_38OYdt3f0wJ'
+);
+------'** end _1su4dxploe6_3OEeK9QS68b
+
+
 INSERT INTO t_objects VALUES('_1tiNOVWIpjD_7kYkIXbupOP', 1497676631.19,
 '
 ///$j
@@ -338,6 +352,15 @@ INSERT INTO t_objects VALUES('_40qshq4y5x8_7gVSxYkkZS7', 1497676631.29,
 ------'** end _40qshq4y5x8_7gVSxYkkZS7
 
 
+INSERT INTO t_objects VALUES('_4SCyZfyLX4u_38OYdt3f0wJ', 1499689302.15,
+'
+
+',
+'', '', '' -- nopayl
+);
+------'** end _4SCyZfyLX4u_38OYdt3f0wJ
+
+
 INSERT INTO t_objects VALUES('_4aAhx0sQzAr_9XhL9OAq5TM', 1497676631.3,
 '
 ///$u
@@ -374,7 +397,7 @@ INSERT INTO t_objects VALUES('_4jWlc9OU9d7_7kWpO3U1cmr', 1497676631.32,
 ------'** end _4jWlc9OU9d7_7kWpO3U1cmr
 
 
-INSERT INTO t_objects VALUES('_5duwaaKJiRS_6cHHv0uehF0', 1499247937.07,
+INSERT INTO t_objects VALUES('_5duwaaKJiRS_6cHHv0uehF0', 1499689029.27,
 '
 @: _0vgCFjXblkx_4zCMhMAWjVK 12345
 @: _2mYaTh9kH4I_7ENiXcymRmy {_0h6QnlLjipB_7LjgRYcUBIx _0uAMtAmkP34_1BhIutSjPN9 _0y2wxoWfbtR_59BsZol6oh5
@@ -397,6 +420,7 @@ INSERT INTO t_objects VALUES('_5duwaaKJiRS_6cHHv0uehF0', 1499247937.07,
   _4ioux9ZO1CL_1rL5zUwbrDz [_3ojMJ5jyD6s_3i5kM0DDFDT _3r6zyliGEa1_4VuvVlsYGiH] "BLACK HEART SUIT is \u2665"
   {_0h6QnlLjipB_7LjgRYcUBIx _0uAMtAmkP34_1BhIutSjPN9} *_3r6zyliGEa1_4VuvVlsYGiH("inside" 
    "HAMMER \u2692 PICK")))
+&: _1su4dxploe6_3OEeK9QS68b
 
 ',
 '', '', '' -- nopayl
