@@ -3837,6 +3837,7 @@ extern "C" MomIdent mom_load_spyid1;
 extern "C" MomIdent mom_load_spyid2;
 
 extern "C" std::string mom_random_temporary_file_suffix(void);
+extern "C" bool mom_rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc);
 
 extern "C" long mom_dump_in_directory(const char*dirname); // return number of dumped objects
 extern "C" void mom_load_from_directory(const char*dirname);

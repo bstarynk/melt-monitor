@@ -862,7 +862,7 @@ mom_load_sequential_from_directory(const char*dirname)
 //==============================================================
 ////////////////////////////////////////////////////////////////
 
-std::string mom_random_temporary_suffix(void)
+std::string mom_random_temporary_file_suffix(void)
 {
   char tempbuf[64];
   memset(tempbuf, 0, sizeof(tempbuf));
@@ -912,7 +912,6 @@ public:
   void todo_scan(std::function<void(MomDumper*)> todoscanfun);
   void todo_emit(std::function<void(MomDumper*)> todoemitfun);
   std::string temporary_file_path(const std::string& path);
-  static bool rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc=false); // return true if same files
   void rename_temporary_files(void);
   MomDumper(const std::string&dirnam);
   void open_databases(void);
@@ -1012,7 +1011,7 @@ MomDumper::MomDumper(const std::string&dirnam)
   if (stat(dirnam.c_str(), &dirstat)
       || (!S_ISDIR(dirstat.st_mode) && (errno=ENOTDIR)!=0))
     MOM_FAILURE("MomDumper bad directory " << dirnam << " : " << strerror(errno));
-  _du_tempsuffix = mom_random_temporary_suffix();
+  _du_tempsuffix = mom_random_temporary_file_suffix();
   auto thisdump = this;
   _du_scanfunh =
     MomGC::the_garbcoll.add_scan_function
@@ -1185,7 +1184,7 @@ void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam)
 
 
 bool
-MomDumper::rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc)
+mom_rename_file_if_changed(const std::string& srcpath, const std::string& dstpath, bool keepsamesrc)
 {
   MOM_DEBUGLOG(dump,"rename_file_if_changed srcpath=" << srcpath << " dstpath=" << dstpath
                << " keepsamesrc=" << (keepsamesrc?"true":"false"));
@@ -1251,7 +1250,7 @@ MomDumper::rename_temporary_files(void)
     {
       std::string tmpath = _du_dirname + "/" + path + _du_tempsuffix;
       MOM_DEBUGLOG(dump, "rename_temporary_files path=" << path << " tmpath=" << path);
-      rename_file_if_changed(tmpath, _du_dirname + "/" + path);
+      mom_rename_file_if_changed(tmpath, _du_dirname + "/" + path, true);
     }
   MOM_DEBUGLOG(dump,"rename_temporary_files end");
 } // end MomDumper::rename_temporary_files
