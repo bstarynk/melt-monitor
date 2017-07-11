@@ -32,6 +32,7 @@
 #define MOM_HAS_GLOBDATA(Nam) MomRegisterGlobData momreglobdata_##Nam(#Nam,MOM_GLOBDATA_VAR(Nam));
 #include "_mom_globdata.h"
 
+constexpr int MomPayload::_py_max_proxdepth_;
 
 bool
 mom_valid_name_radix_len (const char *str, int len)

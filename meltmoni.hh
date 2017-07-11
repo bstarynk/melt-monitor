@@ -2209,10 +2209,10 @@ public:
   void unsync_clear_all();
   inline MomValue unsync_get_magic_attr(const MomObject*pobattr) const;
   ///
-  inline MomValue unsync_fetch_owner(MomObject*ob,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen);
+  inline MomValue unsync_fetch_owner(MomObject*ob,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen, int depth=0);
   inline MomValue unsync_fetch(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
   {
-    return unsync_fetch_owner(this, pobattr, vecarr, veclen);
+    return unsync_fetch_owner(this, pobattr, vecarr, veclen, 0);
   };
   inline MomValue unsync_fetch(const MomObject*pobattr, const std::initializer_list<MomValue>& il)
   {
@@ -2486,11 +2486,12 @@ typedef void MomPyv_scandump_sig(const struct MomPayload*payl,MomObject*own,MomD
 typedef void MomPyv_emitdump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont);
 typedef MomPayload* MomPyv_initload_sig(MomObject*own,MomLoader*ld,const char*inits);
 typedef void MomPyv_loadfill_sig(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills);
-#warning some signatures in payload should take a last depth argument
-typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob);
-typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
-typedef void MomPyv_update_sig(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
-typedef void MomPyv_step_sig(struct MomPayload*payl,MomObject*own,const MomValue*vecarr, unsigned veclen);
+// notice the depth argument below
+typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, int depth);
+typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
+typedef void MomPyv_update_sig(struct MomPayload*payl,MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
+typedef void MomPyv_step_sig(struct MomPayload*payl,MomObject*target,const MomValue*vecarr, unsigned veclen, int depth);
+//
 #define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
 /// a payloadvtbl named FOO is declared as mompyvtl_FOO
 #define MOM_PAYLOADVTBL_SUFFIX "mompyvtl_"
@@ -2556,6 +2557,7 @@ struct MomPayload
   const struct MomVtablePayload_st* _py_vtbl;
   MomObject* _py_owner;
   MomObject* _py_proxy;
+  static constexpr int _py_max_proxdepth_ = 32;
   ~MomPayload()
   {
     auto ownob = _py_owner;
@@ -2608,6 +2610,26 @@ struct MomPayload
     MOM_ASSERT (!proxob || proxob->vkind() == MomKind::TagObjectK, "set_proxy bad proxob");
     _py_proxy = proxob;
   };
+  MomValue payl_getmagic_deep(MomObject*targetob, MomObject*attrob, int depth, bool *pgot=nullptr)
+  {
+    MOM_ASSERT(targetob && targetob->vkind() == MomKind::TagObjectK, "payl_getmagic bad targetob");
+    MOM_ASSERT(attrob && attrob->vkind() == MomKind::TagObjectK, "payl_getmagic bad attrob");
+    if (depth >= MomPayload::_py_max_proxdepth_)
+      MOM_FAILURE("too deep named getmagic targetob=" << MomShowObject(targetob) << " attrob=" << MomShowObject(attrob)
+                  << " owner=" << MomShowObject(owner()));
+    if (_py_vtbl->pyv_getmagic)
+      {
+        if (pgot)
+          *pgot = true;
+        return _py_vtbl->pyv_getmagic(this, targetob, attrob, depth);
+      }
+    else
+      {
+        if (pgot)
+          *pgot = false;
+        return nullptr;
+      }
+  }
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
 
@@ -3701,7 +3723,7 @@ MomObject::unsync_get_magic_attr(const MomObject*pobattr) const
       MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
                  "unsync_get_magic_attr bad pyvt");
       if (pyvt->pyv_getmagic)
-        return pyvt->pyv_getmagic(payl,this,pobattr);
+        return pyvt->pyv_getmagic(payl,this,pobattr,0);
     };
   return nullptr;
 } // end MomObject::unsync_get_magic_attr
@@ -3709,7 +3731,7 @@ MomObject::unsync_get_magic_attr(const MomObject*pobattr) const
 ////
 
 inline MomValue
-MomObject::unsync_fetch_owner(MomObject*owner, const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
+MomObject::unsync_fetch_owner(MomObject*owner, const MomObject*pobattr, const MomValue*vecarr, unsigned veclen, int depth)
 {
   if (!vecarr)
     veclen=0;
@@ -3720,7 +3742,7 @@ MomObject::unsync_fetch_owner(MomObject*owner, const MomObject*pobattr, const Mo
       MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
                  "unsync_fetch bad pyvt");
       if (pyvt->pyv_fetch)
-        return pyvt->pyv_fetch(payl,owner,pobattr,vecarr,veclen);
+        return pyvt->pyv_fetch(payl,owner,pobattr,vecarr,veclen,depth);
     };
   return nullptr;
 } // end MomObject::unsync_fetch_owner
@@ -3746,7 +3768,7 @@ MomObject::unsync_update_owner(MomObject*own,const MomObject*pobattr, const MomV
       MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
                  "unsync_update bad pyvt");
       if (pyvt->pyv_update)
-        pyvt->pyv_update(payl,own,pobattr,vecarr,veclen);
+        pyvt->pyv_update(payl,own,pobattr,vecarr,veclen,0);
     };
 } // end MomObject::unsync_update_owner
 
@@ -3771,7 +3793,7 @@ MomObject::unsync_step_owner(MomObject*own,const MomValue*vecarr, unsigned vecle
       MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
                  "unsync_step bad pyvt");
       if (pyvt->pyv_step)
-        pyvt->pyv_step(payl,own,vecarr,veclen);
+        pyvt->pyv_step(payl,own,vecarr,veclen,0);
     };
 } // end MomObject::unsync_step_owner
 
@@ -3791,7 +3813,7 @@ public:
   friend struct MomVtablePayload_st;
   friend class MomObject;
   // when these function return true, the proxy is used
-  typedef bool MomCod_Getmagic_sig (MomValue*res, const struct MomPayload*payl,const MomObject*own,const MomObject*attrob);
+  typedef bool MomCod_Getmagic_sig (MomValue*res, const struct MomPayload*payl,const MomObject*targetob,const MomObject*attrob);
   typedef bool MomCod_Fetch_sig(MomValue*res, const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
   typedef bool MomCod_Update_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
 private:

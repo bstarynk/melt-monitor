@@ -3453,7 +3453,7 @@ MomPaylMainWindow::Destroy(struct MomPayload*payl,MomObject*own)
 
 
 MomValue
-MomPaylMainWindow::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
+MomPaylMainWindow::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, int depth)
 {
   auto py = static_cast<const MomPaylMainWindow*>(payl);
   MomObject*proxob = nullptr;

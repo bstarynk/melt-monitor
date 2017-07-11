@@ -261,21 +261,28 @@ MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const c
 
 
 MomValue
-MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
+MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*targetob,const MomObject*attrob, int depth)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
+  if (depth >= MomPayload::_py_max_proxdepth_)
+    MOM_FAILURE("too deep named getmagic targetob=" << targetob << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
+                << " owner=" << py->owner());
   MomObject*proxob = nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
-             "MomPaylNamed::Getmagic invalid named payload for own=" << own);
+             "MomPaylNamed::Getmagic invalid named payload for own=" << payl->owner());
   if (attrob == MOMP_name)
     return MomString::make_from_string(py->_nam_str);
   else if (attrob == MOMP_proxy)
     return py->proxy();
-#warning perhaps we need to have some lazy pseudo-value. What about cycles of proxys and locking...
   else if ((proxob=py->proxy()) != nullptr)
     {
+#warning MomPaylNamed::Getmagic wrong code here
+      /*
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      return proxob->unsync_get_magic_attr(attrob);
+      MomPayload*proxpayl = proxob->unsync_payload();
+      if (proxpayl)
+      return proxpayl->payl_getmagic_deep(targetob, attrob, depth+1);
+      */
     }
   return nullptr;
 } // end   MomPaylNamed::Getmagic
@@ -440,7 +447,7 @@ MomPaylSet::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const cha
 
 
 MomValue
-MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
+MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, int depth)
 {
   auto py = static_cast<const MomPaylSet*>(payl);
   MomObject*proxob=nullptr;
@@ -462,7 +469,7 @@ MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const Mom
 
 
 MomValue
-MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<const MomPaylSet*>(payl);
   MomObject*proxob=nullptr;
@@ -490,7 +497,7 @@ MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObje
 
 
 void
-MomPaylSet::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+MomPaylSet::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast< MomPaylSet*>(payl);
   MomObject*proxob=nullptr;
@@ -694,7 +701,7 @@ MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
 
 
 MomValue
-MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob)
+MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, int depth)
 {
   auto py = static_cast<const MomPaylStrobuf*>(payl);
   MomObject*proxob=nullptr;
@@ -714,7 +721,7 @@ MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const
 
 
 MomValue
-MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<const MomPaylStrobuf*>(payl);
   MomObject*proxob=nullptr;
@@ -734,7 +741,7 @@ MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
 
 
 void
-MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast< MomPaylStrobuf*>(payl);
   MomObject*proxob=nullptr;
@@ -971,7 +978,7 @@ MomPaylGenfile::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
 
 
 MomValue
-MomPaylGenfile::Getmagic (const struct MomPayload*payl, const MomObject*own, const MomObject*attrob)
+MomPaylGenfile::Getmagic (const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth)
 {
   auto py = static_cast<const MomPaylGenfile*>(payl);
   MomObject*proxob=nullptr;
@@ -990,7 +997,7 @@ MomPaylGenfile::Getmagic (const struct MomPayload*payl, const MomObject*own, con
 
 
 MomValue
-MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<const MomPaylGenfile*>(payl);
   MomObject*proxob=nullptr;
@@ -1010,7 +1017,7 @@ MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
 
 void
 MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob,
-                       const MomValue*vecarr, unsigned veclen)
+                       const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast< MomPaylGenfile*>(payl);
   MomObject*proxob=nullptr;
@@ -1436,7 +1443,7 @@ MomPaylEnvstack::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char con
 } // end MomPaylEnvstack::Loadfill
 
 MomValue
-MomPaylEnvstack::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob)
+MomPaylEnvstack::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth)
 {
   auto py = static_cast<const MomPaylEnvstack*>(payl);
   MomObject*proxob=nullptr;
@@ -1454,12 +1461,12 @@ MomPaylEnvstack::Getmagic(const struct MomPayload*payl, const MomObject*own, con
 
 #warning several MomPaylEnvstack::* routines unimplemented
 MomValue
-MomPaylEnvstack::Fetch(MomPayload const*, MomObject const*, MomObject const*, MomValue const*, unsigned int)
+MomPaylEnvstack::Fetch(MomPayload const*payl, MomObject const*own, MomObject const*attrob, MomValue const*vecarr, unsigned int veclen, int depth)
 {
 } // end MomPaylEnvstack::Fetch
 
 void
-MomPaylEnvstack::Update(MomPayload*, MomObject*, MomObject const*, MomValue const*, unsigned int)
+MomPaylEnvstack::Update(MomPayload*payl, MomObject*own, MomObject const*attrob, MomValue const*vecarr, unsigned int veclen, int depth)
 {
 } // end MomPaylEnvstack::Update
 
@@ -1788,7 +1795,7 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
 } // end MomPaylCode::Loadfill
 
 MomValue
-MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob)
+MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth)
 {
   auto py = static_cast<const MomPaylCode*>(payl);
   MomObject*proxob=nullptr;
@@ -1802,7 +1809,7 @@ MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const M
 
 
 MomValue
-MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<const MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
@@ -1812,7 +1819,7 @@ MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*own, const MomO
 } // end MomPaylCode::Fetch
 
 void
-MomPaylCode::Update(struct MomPayload*payl, MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen)
+MomPaylCode::Update(struct MomPayload*payl, MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
@@ -1822,7 +1829,7 @@ MomPaylCode::Update(struct MomPayload*payl, MomObject*own, const MomObject*attro
 
 
 void
-MomPaylCode::Step(struct MomPayload*payl, MomObject*own, const MomValue*vecarr, unsigned veclen)
+MomPaylCode::Step(struct MomPayload*payl, MomObject*own, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
