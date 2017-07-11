@@ -3583,7 +3583,7 @@ const AnyValType* MomAnyVal::MomPtrBag<AnyValType>::unsync_bag_make_from_hash(Mo
           return aval;
         }
     };
-  res = new(mom_newtg, mom_align(gap)) AnyValType(args..., h);
+  res = mom_new(mom_align(gap)) AnyValType(args..., h);
   _bag_map.insert({h,res});
   if (MOM_UNLIKELY(MomRandom::random_32u() % _bag_minbuckcount_ == 0))
     _bag_map.reserve(9*_bag_map.size()/8 + 5);
