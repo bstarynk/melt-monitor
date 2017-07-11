@@ -2090,6 +2090,7 @@ public:
     std::string pye_module;
     std::string pye_init;
     std::string pye_content;
+    std::string pye_proxyid;
   };
   ~MomObject();
   template<typename ResType>
@@ -2547,23 +2548,27 @@ public:
   }
 }; // class MomRegisterPayload
 
+
+////////////////
 struct MomPayload
 {
   friend class MomObject;
   const struct MomVtablePayload_st* _py_vtbl;
   MomObject* _py_owner;
-#warning should have a _py_proxy and change the dump format and routines for it
+  MomObject* _py_proxy;
   ~MomPayload()
   {
     auto ownob = _py_owner;
     _py_owner = nullptr;
     if (_py_vtbl->pyv_destroy)
       _py_vtbl->pyv_destroy(this,ownob);
+    _py_proxy = nullptr;
     if (ownob) const_cast<MomObject*>(ownob)->unsync_clear_payload();
   }
   MomPayload(const struct MomVtablePayload_st*vtbl, MomObject* owner) :
     _py_vtbl(vtbl),
-    _py_owner(owner)
+    _py_owner(owner),
+    _py_proxy(nullptr)
   {
     if (!vtbl)
       MOM_FAILURE("missing vtbl in MomPayload");
@@ -2576,6 +2581,8 @@ struct MomPayload
   {
     auto ownob = _py_owner;
     if (!ownob) return;
+    if (_py_proxy)
+      _py_proxy->scan_gc(gc);
     if (_py_vtbl->pyv_scangc)
       _py_vtbl->pyv_scangc(this,ownob,gc);
   }
@@ -2583,12 +2590,23 @@ struct MomPayload
   {
     auto ownob = _py_owner;
     if (!ownob) return;
+    if (_py_proxy)
+      _py_proxy->scan_dump(du);
     if (_py_vtbl->pyv_scandump)
       _py_vtbl->pyv_scandump(this,ownob,du);
   }
   MomObject* owner() const
   {
     return _py_owner;
+  };
+  MomObject* proxy() const
+  {
+    return _py_proxy;
+  };
+  void set_proxy(MomObject*proxob)
+  {
+    MOM_ASSERT (!proxob || proxob->vkind() == MomKind::TagObjectK, "set_proxy bad proxob");
+    _py_proxy = proxob;
   };
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
