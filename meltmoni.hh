@@ -2485,6 +2485,7 @@ typedef void MomPyv_scandump_sig(const struct MomPayload*payl,MomObject*own,MomD
 typedef void MomPyv_emitdump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont);
 typedef MomPayload* MomPyv_initload_sig(MomObject*own,MomLoader*ld,const char*inits);
 typedef void MomPyv_loadfill_sig(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills);
+#warning some signatures in payload should take a last depth argument
 typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob);
 typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
 typedef void MomPyv_update_sig(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
@@ -2551,6 +2552,7 @@ struct MomPayload
   friend class MomObject;
   const struct MomVtablePayload_st* _py_vtbl;
   MomObject* _py_owner;
+#warning should have a _py_proxy and change the dump format and routines for it
   ~MomPayload()
   {
     auto ownob = _py_owner;
