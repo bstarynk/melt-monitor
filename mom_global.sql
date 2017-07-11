@@ -1,4 +1,4 @@
--- dump 2017 Jul 10 from mom_global dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jul 11 from mom_global dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -74,7 +74,7 @@ INSERT INTO t_objects VALUES('_0LK4TzFd6u1_0JFUsrQ4odG', 1497705092.87,
 
 ',
 '', '', '' -- nopayl
-);
+);--'--
 ------'** end _0LK4TzFd6u1_0JFUsrQ4odG
 
 
@@ -87,7 +87,7 @@ INSERT INTO t_objects VALUES('_0vgCFjXblkx_4zCMhMAWjVK', 1497636292.47,
 'named', --- payl _0vgCFjXblkx_4zCMhMAWjVK
 'int',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _0vgCFjXblkx_4zCMhMAWjVK
 
 
@@ -100,7 +100,7 @@ INSERT INTO t_objects VALUES('_1JSykdLcLdl_8rWxtDBaPGN', 1497636292.47,
 'named', --- payl _1JSykdLcLdl_8rWxtDBaPGN
 'none',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _1JSykdLcLdl_8rWxtDBaPGN
 
 
@@ -113,7 +113,7 @@ INSERT INTO t_objects VALUES('_1jJjA6LcXiX_1V4ZcXlje09', 1493382726.98,
 'named', --- payl _1jJjA6LcXiX_1V4ZcXlje09
 'name',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _1jJjA6LcXiX_1V4ZcXlje09
 
 
@@ -125,7 +125,7 @@ INSERT INTO t_objects VALUES('_2QeF5dreQwf_51c3fAJEYqJ', 1499613379.2,
 'named', --- payl _2QeF5dreQwf_51c3fAJEYqJ
 'emit',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _2QeF5dreQwf_51c3fAJEYqJ
 
 
@@ -138,7 +138,7 @@ INSERT INTO t_objects VALUES('_2mYaTh9kH4I_7ENiXcymRmy', 1493382726.98,
 'named', --- payl _2mYaTh9kH4I_7ENiXcymRmy
 'set',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _2mYaTh9kH4I_7ENiXcymRmy
 
 
@@ -150,7 +150,7 @@ INSERT INTO t_objects VALUES('_33imugvOze0_0wdPqjmME0U', 1497705092.87,
 'named', --- payl _33imugvOze0_0wdPqjmME0U
 'embed',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _33imugvOze0_0wdPqjmME0U
 
 
@@ -163,7 +163,7 @@ INSERT INTO t_objects VALUES('_3SFtXTTy3kj_89fO24X2HFo', 1495430034.89,
 'named', --- payl _3SFtXTTy3kj_89fO24X2HFo
 'size',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _3SFtXTTy3kj_89fO24X2HFo
 
 
@@ -176,7 +176,7 @@ INSERT INTO t_objects VALUES('_3bMUJDWlMMQ_2j2bm7EeIbv', 1495430034.89,
 'named', --- payl _3bMUJDWlMMQ_2j2bm7EeIbv
 'put',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _3bMUJDWlMMQ_2j2bm7EeIbv
 
 
@@ -189,7 +189,7 @@ INSERT INTO t_objects VALUES('_45cnnX4v29t_9gZkfMOZj2Z', 1497636412.76,
 'named', --- payl _45cnnX4v29t_9gZkfMOZj2Z
 'intsq',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _45cnnX4v29t_9gZkfMOZj2Z
 
 
@@ -202,7 +202,7 @@ INSERT INTO t_objects VALUES('_4T8am97muLl_5969SR22Ecq', 1497636412.76,
 'named', --- payl _4T8am97muLl_5969SR22Ecq
 'string',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _4T8am97muLl_5969SR22Ecq
 
 
@@ -215,7 +215,7 @@ INSERT INTO t_objects VALUES('_4cCZc3Izgsr_7LsCkWW7flp', 1497636292.47,
 'named', --- payl _4cCZc3Izgsr_7LsCkWW7flp
 'doublesq',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _4cCZc3Izgsr_7LsCkWW7flp
 
 
@@ -228,7 +228,7 @@ INSERT INTO t_objects VALUES('_4w339hT5dXd_1tUZFvU4fWx', 1495430034.89,
 'named', --- payl _4w339hT5dXd_1tUZFvU4fWx
 'proxy',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _4w339hT5dXd_1tUZFvU4fWx
 
 
@@ -240,7 +240,7 @@ INSERT INTO t_objects VALUES('_5Wnb8RZdglo_9jkLPwTffMm', 1499684428.68,
 'named', --- payl _5Wnb8RZdglo_9jkLPwTffMm
 'the_system',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _5Wnb8RZdglo_9jkLPwTffMm
 
 
@@ -253,7 +253,7 @@ INSERT INTO t_objects VALUES('_6TmLNh9vtVY_0pwkHRtJ44k', 1497636292.47,
 'named', --- payl _6TmLNh9vtVY_0pwkHRtJ44k
 'tuple',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _6TmLNh9vtVY_0pwkHRtJ44k
 
 
@@ -262,7 +262,7 @@ INSERT INTO t_objects VALUES('_6ZpMq408eTN_8t3ZHpgCk3R', 1497636292.47,
 
 ',
 '', '', '' -- nopayl
-);
+);--'--
 ------'** end _6ZpMq408eTN_8t3ZHpgCk3R
 
 
@@ -275,7 +275,7 @@ INSERT INTO t_objects VALUES('_6ss8POQNnku_8e8woNsmvN9', 1496020871.11,
 'named', --- payl _6ss8POQNnku_8e8woNsmvN9
 'outputter',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _6ss8POQNnku_8e8woNsmvN9
 
 
@@ -284,7 +284,7 @@ INSERT INTO t_objects VALUES('_785pDebNo9y_1ugTc398Np4', 1497705092.87,
 
 ',
 '', '', '' -- nopayl
-);
+);--'--
 ------'** end _785pDebNo9y_1ugTc398Np4
 
 
@@ -297,7 +297,7 @@ INSERT INTO t_objects VALUES('_7D8xcWnEiys_8oqOVSkCxkA', 1497636412.76,
 'named', --- payl _7D8xcWnEiys_8oqOVSkCxkA
 'node',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _7D8xcWnEiys_8oqOVSkCxkA
 
 
@@ -310,7 +310,7 @@ INSERT INTO t_objects VALUES('_7QeFDN33m7B_3dQv2OqqbH6', 1493382726.98,
 'named', --- payl _7QeFDN33m7B_3dQv2OqqbH6
 'get',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _7QeFDN33m7B_3dQv2OqqbH6
 
 
@@ -323,7 +323,7 @@ INSERT INTO t_objects VALUES('_7T9OwSFlgov_0wVJaK1eZbn', 1497636292.47,
 'named', --- payl _7T9OwSFlgov_0wVJaK1eZbn
 'object',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _7T9OwSFlgov_0wVJaK1eZbn
 
 
@@ -335,7 +335,7 @@ INSERT INTO t_objects VALUES('_7hbSpcNUdHi_4QezAVr6Bgj', 1497636292.47,
 'named', --- payl _7hbSpcNUdHi_4QezAVr6Bgj
 'chunk',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _7hbSpcNUdHi_4QezAVr6Bgj
 
 
@@ -344,7 +344,7 @@ INSERT INTO t_objects VALUES('_7ld89d4lLTB_3596gc6hLFI', 1497636292.47,
 
 ',
 '', '', '' -- nopayl
-);
+);--'--
 ------'** end _7ld89d4lLTB_3596gc6hLFI
 
 
@@ -353,7 +353,7 @@ INSERT INTO t_objects VALUES('_8ZPtpM4JscH_1ViGLydV6mU', 1497705092.87,
 
 ',
 '', '', '' -- nopayl
-);
+);--'--
 ------'** end _8ZPtpM4JscH_1ViGLydV6mU
 
 
@@ -365,7 +365,7 @@ INSERT INTO t_objects VALUES('_8f7GaaT5WJK_01z8k1JztS6', 1497636292.47,
 'named', --- payl _8f7GaaT5WJK_01z8k1JztS6
 'dollar',
 '@NAMEDPROXY: __'
-);
+);--'--
 ------'** end _8f7GaaT5WJK_01z8k1JztS6
 
 
@@ -374,7 +374,7 @@ INSERT INTO t_objects VALUES('_8vdOBDVvgy8_5Hq3NM5whLJ', 1497636292.47,
 
 ',
 '', '', '' -- nopayl
-);
+);--'--
 ------'** end _8vdOBDVvgy8_5Hq3NM5whLJ
 
 
@@ -383,7 +383,7 @@ INSERT INTO t_objects VALUES('_9Cr5XlTL8lI_7ALESzYlXD7', 1497636292.47,
 
 ',
 '', '', '' -- nopayl
-);
+);--'--
 ------'** end _9Cr5XlTL8lI_7ALESzYlXD7
 
 

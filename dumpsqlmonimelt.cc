@@ -163,7 +163,8 @@ void dump_objects(sqlite::database& db)
       std::cout << "'" << paylkind << "', --- payl "<< oid << "\n"
                 << "'" << ShowQuoted(paylinit) << "',\n"
                 << "'" << ShowQuoted(paylcontent) << "'\n";
-    std::cout << ");\n" << "------'** end " << oid<< "\n\n"<< std::endl;
+    /// the single quote is on purpose, because it cannot appear in sqlite literal stringq
+    std::cout << ");--'--\n" << "------'** end " << oid<< "\n\n"<< std::endl;
   };
   std::cout << "\n\n" "END TRANSACTION; --- for t_objects\n\n" << std::endl;
 } // end dump_objects
