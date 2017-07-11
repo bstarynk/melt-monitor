@@ -149,20 +149,21 @@ void dump_objects(sqlite::database& db)
   std::cout << "\n" "--- TABLE t_objects @@@@@" << std::endl;
   std::cout << "BEGIN TRANSACTION;\n" << std::endl;
   db << "SELECT ob_id, ob_mtim, ob_content,"
-     "  ob_paylkind, ob_paylinit, ob_paylcontent"
+     "  ob_paylkind, ob_paylinit, ob_paylcontent, ob_paylpoxid"
      " FROM t_objects ORDER BY ob_id"
      >> [&](std::string oid, std::string mtim, std::string content,
-            std::string paylkind, std::string paylinit, std::string paylcontent)
+            std::string paylkind, std::string paylinit, std::string paylcontent, std::string paylproxid)
   {
     std::cout << "INSERT INTO t_objects VALUES('" << oid
               << "', " << mtim << ",\n'" << ShowQuoted(content)
               << "',\n";
-    if (paylkind.empty() && paylinit.empty() && paylcontent.empty())
-      std::cout << "'', '', '' -- nopayl\n";
+    if (paylkind.empty() && paylinit.empty() && paylcontent.empty() && paylproxid.empty())
+      std::cout << "'', '', '', '' -- nopayl\n";
     else
       std::cout << "'" << paylkind << "', --- payl "<< oid << "\n"
                 << "'" << ShowQuoted(paylinit) << "',\n"
-                << "'" << ShowQuoted(paylcontent) << "'\n";
+                << "'" << ShowQuoted(paylcontent) << "',\n"
+		<< "'" << paylproxid << "'";
     /// the single quote is on purpose, because it cannot appear in sqlite literal stringq
     std::cout << ");--'--\n" << "------'** end " << oid<< "\n\n"<< std::endl;
   };

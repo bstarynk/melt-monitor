@@ -1267,7 +1267,8 @@ CREATE TABLE IF NOT EXISTS t_objects
   ob_content TEXT NOT NULL,
   ob_paylkind VARCHAR(30) NOT NULL,
   ob_paylinit TEXT NOT NULL,
-  ob_paylcontent TEXT NOT NULL)
+  ob_paylcontent TEXT NOT NULL,
+  ob_paylproxid VARCHAR(30) NOT NULL)
 )!*";
     db << R"!*(
 CREATE TABLE IF NOT EXISTS t_names
