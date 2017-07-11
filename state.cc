@@ -1280,6 +1280,7 @@ CREATE TABLE IF NOT EXISTS t_globdata
   glob_oid  VARCHAR(30) NOT NULL)
 )!*";
     db << "BEGIN TRANSACTION";
+#warning we may want a t_modules table and a t_payloads associating payload names to modules
   } // end MomDumper::initialize_db
 
 
