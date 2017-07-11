@@ -689,9 +689,9 @@ void MomLoader::load_object_fill_payload(MomObject*pob, int thix, const std::str
   if (proxob)
     py->set_proxy(proxob);
   MOM_DEBUGLOG(load,"load_object_fill_payload end pob=" << MomShowObject(pob)
-	       << " thix=" << thix
+               << " thix=" << thix
                << " strfill=" << strfill
-	       << " proxob=" << MomShowObject(proxob));
+               << " proxob=" << MomShowObject(proxob));
 } // end MomLoader::load_object_fill_payload
 
 

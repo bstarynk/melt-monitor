@@ -294,13 +294,11 @@ public:
   friend void mom_unsync_pset_object_set_proxy(MomObject*objn, MomObject*obproxy);
 private:
   std::set<const MomObject*,MomObjptrLess> _pset_set;
-  MomObject* _pset_proxy;
   MomPaylSet(MomObject*own)
-    : MomPayload(&MOM_PAYLOADVTBL(set), own), _pset_set(), _pset_proxy(nullptr) {};
+    : MomPayload(&MOM_PAYLOADVTBL(set), own), _pset_set() {};
   ~MomPaylSet()
   {
     _pset_set.clear();
-    _pset_proxy = nullptr;
   };
 public:
   static MomPyv_destr_sig Destroy;
@@ -322,7 +320,7 @@ mom_unsync_pset_object_proxy(MomObject*objs)
   if (!objs) return nullptr;
   auto py = static_cast<MomPaylSet*>(objs->unsync_payload());
   if (py-> _py_vtbl !=  &MOM_PAYLOADVTBL(set)) return nullptr;
-  return py->_pset_proxy;
+  return py->proxy();
 } // end mom_unsync_pset_object_proxy
 
 void mom_unsync_pset_object_set_proxy(MomObject*objn, MomObject*obproxy)
@@ -330,7 +328,7 @@ void mom_unsync_pset_object_set_proxy(MomObject*objn, MomObject*obproxy)
   if (!objn) return;
   auto py = static_cast<MomPaylSet*>(objn->unsync_payload());
   if (py-> _py_vtbl !=  &MOM_PAYLOADVTBL(set)) return;
-  py->_pset_proxy = obproxy;
+  py->set_proxy(obproxy);
 }
 
 const struct MomVtablePayload_st MOM_PAYLOADVTBL(set) __attribute__((section(".rodata"))) =
@@ -371,8 +369,6 @@ MomPaylSet::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
   auto py = static_cast<const MomPaylSet*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
              "invalid set payload for own=" << own);
-  if (py->_pset_proxy)
-    gc->scan_object(py->_pset_proxy);
   for (const MomObject* pob : py->_pset_set)
     gc->scan_object(const_cast<MomObject*>(pob));
 } // end MomPaylSet::Scangc
@@ -382,9 +378,7 @@ MomPaylSet::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du)
 {
   auto py = static_cast<const MomPaylSet*>(payl);
   MOM_DEBUGLOG(dump, "MomPaylSet::Scandump own=" << own
-               << " proxy=" << py->_pset_proxy);
-  if (py->_pset_proxy)
-    py->_pset_proxy->scan_dump(du);
+               << " proxy=" << py->proxy());
   for (const MomObject* pob : py->_pset_set)
     pob->scan_dump(du);
 } // end MomPaylSet::Scandump
@@ -396,7 +390,7 @@ MomPaylSet::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, Mo
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
              "invalid pset payload for own=" << own);
   MOM_DEBUGLOG(dump, "MomPaylSet::Emitdump own=" << own
-               << " proxy=" << py->_pset_proxy);
+               << " proxy=" << py->proxy());
   empaylcont->out() << "@SET: ";
   for (const MomObject* pob : py->_pset_set)
     {
@@ -404,12 +398,6 @@ MomPaylSet::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, Mo
         continue;
       empaylcont->emit_space(1);
       empaylcont->emit_objptr(pob);
-    }
-  if (py->_pset_proxy)
-    {
-      empaylcont->emit_newline(0);
-      empaylcont->out() << "@SETPROXY: ";
-      empaylcont->emit_objptr(py->_pset_proxy);
     }
 } // end MomPaylSet::Emitdump
 
@@ -446,13 +434,6 @@ MomPaylSet::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const cha
             py->_pset_set.insert(pob);
         }
     };
-  if (fillpars.got_cstring("@SETPROXY:"))
-    {
-      bool gotpob = false;
-      MomObject* pob =fillpars.parse_objptr(&gotpob);
-      if (pob)
-        py->_pset_proxy = pob;
-    }
 } // end MomPaylSet::Loadfill
 
 
@@ -470,8 +451,8 @@ MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const Mom
   else if (attrob == MOMP_set)
     return MomSet::make_from_objptr_set(py->_pset_set);
   else if (attrob == MOMP_proxy)
-    return py->_pset_proxy;
-  else if ((proxob=py->_pset_proxy) != nullptr)
+    return py->proxy();
+  else if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
@@ -498,7 +479,7 @@ MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObje
         return elemob;
       else return nullptr;
     };
-  if ((proxob=py->_pset_proxy) != nullptr)
+  if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_fetch_owner(const_cast<MomObject*>(own),attrob,vecarr,veclen);
@@ -525,7 +506,7 @@ MomPaylSet::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, 
             py->_pset_set.insert(elemob);
         };
     }
-  if ((proxob=py->_pset_proxy) != nullptr)
+  if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       proxob->unsync_update_owner(own,attrob,vecarr,veclen);
@@ -547,14 +528,11 @@ public:
 private:
   std::ostringstream _pstrobuf_out;
   MomObject* _pstrobuf_starter;
-  MomObject* _pstrobuf_proxy;
   MomPaylStrobuf(MomObject*own)
     : MomPayload(&MOM_PAYLOADVTBL(strobuf), own), _pstrobuf_out(),
-      _pstrobuf_starter(nullptr),
-      _pstrobuf_proxy(nullptr) {};
+      _pstrobuf_starter(nullptr) {};
   ~MomPaylStrobuf()
   {
-    _pstrobuf_proxy = nullptr;
   };
 public:
   static MomPyv_destr_sig Destroy;
@@ -614,8 +592,6 @@ MomPaylStrobuf::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
   auto py = static_cast<const MomPaylStrobuf*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
              "invalid strobuf payload for own=" << own);
-  if (py->_pstrobuf_proxy)
-    gc->scan_object(py->_pstrobuf_proxy);
 } // end MomPaylStrobuf::Scangc
 
 void
@@ -623,9 +599,7 @@ MomPaylStrobuf::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du
 {
   auto py = static_cast<const MomPaylStrobuf*>(payl);
   MOM_DEBUGLOG(dump, "MomPaylStrobuf::Scandump own=" << own
-               << " proxy=" << py->_pstrobuf_proxy);
-  if (py->_pstrobuf_proxy)
-    py->_pstrobuf_proxy->scan_dump(du);
+               << " proxy=" << py->proxy());
 } // end MomPaylStrobuf::Scandump
 
 void
@@ -635,7 +609,7 @@ MomPaylStrobuf::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
              "invalid strobuf payload for own=" << own);
   MOM_DEBUGLOG(dump, "MomPaylStrobuf::Emitdump own=" << own
-               << " proxy=" << py->_pstrobuf_proxy);
+               << " proxy=" << py->proxy());
   const_cast<std::ostringstream&>(py->_pstrobuf_out).flush();
   auto strb = py->_pstrobuf_out.str();
   empaylcont->emit_newline(0);
@@ -669,12 +643,6 @@ MomPaylStrobuf::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
       empaylcont->emit_newline(0);
       empaylcont->out() << "@STROBUFSTARTER: ";
       empaylcont->emit_objptr(py->_pstrobuf_starter);
-    }
-  if (py->_pstrobuf_proxy)
-    {
-      empaylcont->emit_newline(0);
-      empaylcont->out() << "@STROBUFPROXY: ";
-      empaylcont->emit_objptr(py->_pstrobuf_proxy);
     }
 } // end MomPaylStrobuf::Emitdump
 
@@ -720,13 +688,6 @@ MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
       if (pob)
         py->_pstrobuf_starter = pob;
     }
-  if (fillpars.got_cstring("@STROBUFPROXY:"))
-    {
-      bool gotpob = false;
-      MomObject* pob =fillpars.parse_objptr(&gotpob);
-      if (pob)
-        py->_pstrobuf_proxy = pob;
-    }
 } // end MomPaylStrobuf::Loadfill
 
 
@@ -742,8 +703,8 @@ MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const
   if (attrob == MOMP_size)
     return MomValue{(intptr_t)(const_cast<MomPaylStrobuf*>(py)->_pstrobuf_out.tellp())};
   else if (attrob == MOMP_proxy)
-    return py->_pstrobuf_proxy;
-  else if ((proxob=py->_pstrobuf_proxy) != nullptr)
+    return py->proxy();
+  else if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
@@ -762,7 +723,7 @@ MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
   if (attrob == MOMP_get)
     {
     };
-  if ((proxob=py->_pstrobuf_proxy) != nullptr)
+  if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_fetch_owner(const_cast<MomObject*>(own),attrob,vecarr,veclen);
@@ -779,7 +740,7 @@ MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
              "MomPaylStrobuf::Update invalid strobuf payload for own=" << own);
-  if ((proxob=py->_pstrobuf_proxy) != nullptr)
+  if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       proxob->unsync_update_owner(own,attrob,vecarr,veclen);
@@ -886,13 +847,11 @@ public:
   friend class MomObject;
 private:
   const std::string _pgenfile_pathstr;
-  MomObject* _pgenfile_proxy;
   MomPaylGenfile(MomObject*own, const char*pathstr)
     : MomPayload(&MOM_PAYLOADVTBL(genfile), own),
-      _pgenfile_pathstr(pathstr), _pgenfile_proxy(nullptr) {};
+      _pgenfile_pathstr(pathstr) {};
   ~MomPaylGenfile()
   {
-    _pgenfile_proxy = nullptr;
   };
 public:
   static MomPyv_destr_sig Destroy;
@@ -945,8 +904,6 @@ MomPaylGenfile::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
   auto py = static_cast<const MomPaylGenfile*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
              "invalid genfile payload for own=" << own);
-  if (py->_pgenfile_proxy)
-    gc->scan_object(py->_pgenfile_proxy);
 } // end MomPaylGenfile::Scangc
 
 void
@@ -954,9 +911,7 @@ MomPaylGenfile::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du
 {
   auto py = static_cast<const MomPaylGenfile*>(payl);
   MOM_DEBUGLOG(dump, "MomPaylGenfile::Scandump own=" << own
-               << " proxy=" << py->_pgenfile_proxy);
-  if (py->_pgenfile_proxy)
-    py->_pgenfile_proxy->scan_dump(du);
+               << " proxy=" << py->proxy());
 } // end MomPaylGenfile::Scandump
 
 void
@@ -966,10 +921,8 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
              "invalid genfile payload for own=" << own);
   MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own
-               << " proxy=" << py->_pgenfile_proxy);
+               << " proxy=" << py->proxy());
   empaylinit->out() << py->_pgenfile_pathstr << std::flush;
-  empaylcont->out() << "@GENFILEPROXY: ";
-  empaylcont->emit_objptr(py->_pgenfile_proxy);
   auto pobuf = MomObject::make_object();
   std::lock_guard<std::recursive_mutex> gu{pobuf->get_recursive_mutex()};
   auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
@@ -1014,15 +967,6 @@ MomPaylGenfile::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
 #warning incomplete MomPaylGenfile::Loadfill
   if (fillpars.eof())
     return;
-  if (fillpars.got_cstring("@GENFILEPROXY:"))
-    {
-      bool gotproxy = false;
-      fillpars.skip_spaces();
-      MomObject* pobproxy = fillpars.parse_objptr(&gotproxy);
-      if (!gotproxy)
-        MOM_PARSE_FAILURE(&fillpars, "missing proxy for fill of genfile object " << own);
-      py->_pgenfile_proxy = pobproxy;
-    }
 } // end MomPaylGenfile::Loadfill
 
 
@@ -1034,8 +978,8 @@ MomPaylGenfile::Getmagic (const struct MomPayload*payl, const MomObject*own, con
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
              "MomPaylGenfile::Getmagic invalid genfile payload for own=" << own);
   if (attrob == MOMP_proxy)
-    return py->_pgenfile_proxy;
-  else if ((proxob=py->_pgenfile_proxy) != nullptr)
+    return py->proxy();
+  else if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
@@ -1055,7 +999,7 @@ MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
   if (attrob == MOMP_get)
     {
     };
-  if ((proxob=py->_pgenfile_proxy) != nullptr)
+  if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
 #warning incomplete MomPaylGenfile::Fetch
@@ -1099,7 +1043,7 @@ MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
           MOM_INFORMLOG("genfile update emit own=" << MomShowObject(own) << " updated file " << pathstr);
       }
     }
-  else if ((proxob=py->_pgenfile_proxy) != nullptr)
+  else if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
 #warning incomplete MomPaylGenfile::Update
@@ -1129,16 +1073,13 @@ public:
     MomEnv(MomEnv&&) = default;
   };
 private:
-  MomObject* _penvstack_proxy;
   std::vector<MomEnv> _penvstack_envs;
   MomPaylEnvstack(MomObject*own)
     : MomPayload(&MOM_PAYLOADVTBL(envstack), own),
-      _penvstack_proxy(nullptr),
       _penvstack_envs() {};
   ~MomPaylEnvstack()
   {
     _penvstack_envs.clear();
-    _penvstack_proxy = nullptr;
   };
 public:
   static constexpr const bool FAIL_NO_ENV=false;
@@ -1379,10 +1320,6 @@ MomPaylEnvstack::Scangc(MomPayload const*payl, MomObject*own, MomGC*gc)
   auto py = static_cast<const MomPaylEnvstack*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(envstack),
              "invalid envstack payload for own=" << own);
-  if (py->_penvstack_proxy)
-    {
-      gc->scan_object(py->_penvstack_proxy);
-    };
   for (auto& env: py->_penvstack_envs)
     {
       gc->scan_value(env.env_val);
@@ -1400,9 +1337,7 @@ MomPaylEnvstack::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
 {
   auto py = static_cast<const MomPaylEnvstack*>(payl);
   MOM_DEBUGLOG(dump, "MomPaylEnvstack::Scandump own=" << own
-               << " proxy=" << py->_penvstack_proxy);
-  if (py->_penvstack_proxy)
-    py->_penvstack_proxy->scan_dump(du);
+               << " proxy=" << py->proxy());
   for (auto& env: py->_penvstack_envs)
     {
       env.env_val.scan_dump(du);
@@ -1426,7 +1361,7 @@ MomPaylEnvstack::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, Mo
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(envstack),
              "invalid envstack payload for own=" << own);
   MOM_DEBUGLOG(dump, "MomPaylEnvstack::Emitdump own=" << own
-               << " proxy=" << py->_penvstack_proxy);
+               << " proxy=" << py->proxy());
   empaylcont->out() << "@ENVSTACK: " <<  py->_penvstack_envs.size();
   for (auto& env: py->_penvstack_envs)
     {
@@ -1444,9 +1379,6 @@ MomPaylEnvstack::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, Mo
           empaylcont->emit_value(p.second);
         }
     }
-  empaylcont->emit_newline(0);
-  empaylcont->out() << "@ENVPROXY ";
-  empaylcont->emit_value(py->_penvstack_proxy);
   empaylcont->emit_newline(0);
 } // end MomPaylEnvstack::Emitdump
 
@@ -1501,14 +1433,6 @@ MomPaylEnvstack::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char con
           py->last_env_bind(pob,val);
         }
     }
-  if (fillpars.skip_spaces(), fillpars.got_cstring("@ENVPROXY"))
-    {
-      bool gotobj = false;
-      MomObject* proxob = fillpars.parse_objptr(&gotobj);
-      if (!gotobj)
-        MOM_PARSE_FAILURE(&fillpars, "missing proxy of envstack object " << own);
-      py->_penvstack_proxy = proxob;
-    }
 } // end MomPaylEnvstack::Loadfill
 
 MomValue
@@ -1519,8 +1443,8 @@ MomPaylEnvstack::Getmagic(const struct MomPayload*payl, const MomObject*own, con
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(envstack),
              "MomPaylEnvstack::Getmagic invalid envstack payload for own=" << own);
   if (attrob == MOMP_proxy)
-    return py->_penvstack_proxy;
-  else if ((proxob=py->_penvstack_proxy) != nullptr)
+    return py->proxy();
+  else if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
@@ -1571,8 +1495,7 @@ MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, voi
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
     _pcode_basename(bases), _pcode_moduname(mods),
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_update_rout(nullptr),
-    _pcode_step_rout(nullptr),
-    _pcode_proxy(nullptr), _pcode_datavec()
+    _pcode_step_rout(nullptr), _pcode_datavec()
 {
   if (with_getmagic)
     {
@@ -1605,7 +1528,6 @@ MomPaylCode::~MomPaylCode()
   _pcode_getmagic_rout = nullptr;
   _pcode_update_rout = nullptr;
   _pcode_step_rout = nullptr;
-  _pcode_proxy = nullptr;
   _pcode_datavec.clear();
 } // end MomPaylCode::~MomPaylCode
 
@@ -1613,8 +1535,7 @@ MomPaylCode::MomPaylCode(MomObject*own,  const std::string&bases, const std::str
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
     _pcode_basename(bases), _pcode_moduname(mods),
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_update_rout(nullptr),
-    _pcode_step_rout(nullptr),
-    _pcode_proxy(nullptr), _pcode_datavec()
+    _pcode_step_rout(nullptr), _pcode_datavec()
 {
   void* modh = load_module(mods);
   if (!modh)
@@ -1629,8 +1550,7 @@ MomPaylCode::MomPaylCode(MomObject*own, MomPaylCode*orig)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
     _pcode_basename(orig?orig->_pcode_basename:nullptr), _pcode_moduname(orig?orig->_pcode_moduname:nullptr),
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_update_rout(nullptr),
-    _pcode_step_rout(nullptr),
-    _pcode_proxy(nullptr), _pcode_datavec()
+    _pcode_step_rout(nullptr), _pcode_datavec()
 {
   if (orig == nullptr || orig->_py_vtbl !=   &MOM_PAYLOADVTBL(code))
     MOM_FAILURE("bad origin for code owned by " << own);
@@ -1656,8 +1576,6 @@ MomPaylCode::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
   auto py = static_cast<const MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "invalid code payload for own=" << own);
-  if (py->_pcode_proxy)
-    gc->scan_object(py->_pcode_proxy);
   for (auto v : py->_pcode_datavec)
     gc->scan_value(v);
 } // end MomPaylCode::Scangc
@@ -1669,8 +1587,6 @@ MomPaylCode::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
   auto py = static_cast<const MomPaylCode*>(payl);
   MOM_DEBUGLOG(dump, "MomPaylCode::Scandump own=" << own
                << " proxy=" << py->_pcode_proxy);
-  if (py->_pcode_proxy)
-    py->_pcode_proxy->scan_dump(du);
   for (auto v : py->_pcode_datavec)
     v.scan_dump(du);
 } // end MomPaylCode::Scandump
@@ -1753,7 +1669,7 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "invalid code payload for own=" << own);
   MOM_DEBUGLOG(dump, "MomPaylCode::Emitdump own=" << own
-               << " proxy=" << py->_pcode_proxy);
+               << " proxy=" << py->proxy());
   if (!py->_pcode_moduname.empty())
     {
       empaylinit->out() << "@CODEMODULE: ";
@@ -1771,12 +1687,6 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
   if (py->_pcode_step_rout)
     empaylinit->out() << " @CODESTEP!";
   empaylinit->emit_newline(0);
-  if (py->_pcode_proxy)
-    {
-      empaylcont->out() << "@CODEPROXY ";
-      empaylcont->emit_objptr(py->_pcode_proxy);
-      empaylcont->emit_newline(0);
-    }
   if (!py->_pcode_datavec.empty())
     {
       empaylcont->out() << "@CODEDATA " << py->_pcode_datavec.size() << " (";
@@ -1855,14 +1765,6 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
   fillpars.set_loader_for_object(ld, own, "Code fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
-  if (fillpars.got_cstring("@CODEPROXY"))
-    {
-      bool gotobj = false;
-      MomObject* proxob = fillpars.parse_objptr(&gotobj);
-      if (!gotobj)
-        MOM_PARSE_FAILURE(&fillpars, "missing proxy of code object " << own);
-      py->_pcode_proxy = proxob;
-    }
   if (fillpars.got_cstring("@CODEDATA"))
     {
       bool gotsize = false;
@@ -1893,7 +1795,7 @@ MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const M
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "MomPaylCode::Getmagic invalid code payload for own=" << own);
   if (attrob == MOMP_proxy)
-    return py->_pcode_proxy;
+    return py->proxy();
 #warning incomplete MomPaylCode::Getmagic
   return nullptr;
 } // end MomPaylCode::Getmagic
