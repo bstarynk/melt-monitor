@@ -28,6 +28,13 @@
 MomIdent mom_load_spyid1; //see load_spyid1_breakpoint_at
 MomIdent mom_load_spyid2; //see load_spyid2_breakpoint_at
 
+
+struct MomLoaded_Content_Id_st
+{
+  std::string ldci_content;
+  MomIdent ldci_proxyid;
+};
+
 // we don't want to move MomLoader into meltmoni.hh because it uses sqlite::
 class MomLoader
 {
@@ -73,10 +80,12 @@ class MomLoader
   static void load_all_objects_payload_from_db(MomLoader*,sqlite::database* pdb, bool user);
   void load_all_objects_payload_fill(void);
   void load_object_content(MomObject*pob, int thix, const std::string&strcont);
-  void load_object_fill_payload(MomObject*pob, int thix, const std::string&strfill);
+  void load_object_fill_payload(MomObject*pob, int thix, const std::string&strfill, const MomIdent& proxid);
   void load_cold_globdata(const char*globnam, std::atomic<MomObject*>*pglob);
   static void thread_load_content_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&getglobfun,const std::function<std::string(MomObject*)>&getuserfun);
-  static void thread_load_fill_payload_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu, const std::function<std::string(MomObject*)>&fillglobfun,const std::function<std::string(MomObject*)>&filluserfun);
+  static void thread_load_fill_payload_objects (MomLoader*ld, int thix, std::deque<MomObject*>*obqu,
+      const std::function<MomLoaded_Content_Id_st(MomObject*)>&fillglobfun,
+      const std::function<MomLoaded_Content_Id_st(MomObject*)>&filluserfun);
   static void load_touch_objects_from_db(MomLoader*ld, sqlite::database* pdb, bool user);
 public:
   MomLoader(const std::string&dirnam);
@@ -535,38 +544,50 @@ MomLoader::load_all_objects_payload_fill(void)
 {
   MOM_DEBUGLOG(load,"load_all_objects_payload_fill start");
   /// prepare the payload filling statements
-  auto globstmt = ((*_ld_globdbp)
-                   << "SELECT /*globaldb*/ ob_paylcontent FROM t_objects WHERE ob_id = ?");
-  std::function<std::string(MomObject*)> fillglobfun =
+  sqlite::database_binder globstmt = ((*_ld_globdbp)
+                                      << "SELECT /*globaldb*/ ob_paylcontent, ob_paylproxid FROM t_objects WHERE ob_id = ?");
+  std::function<MomLoaded_Content_Id_st(MomObject*)> fillglobfun =
     [&](MomObject*pob)
   {
     std::lock_guard<std::mutex> gu(_ld_mtxglobdb);
-    std::string res;
-    globstmt << pob->id().to_string() >> res;
-    MOM_DEBUGLOG(load,"load_all_objects_payload_fill fillglobfun pob=" << pob << " res=" << res);
+    MomLoaded_Content_Id_st resld;
     if (load_got_spyid1(pob))
       LOAD_SPYID1_BREAKPOINT("load_all_objects_payload_fill fillglobfun id1");
     else if (load_got_spyid2(pob))
       LOAD_SPYID2_BREAKPOINT("load_all_objects_payload_fill fillglobfun id2");
-    return res;
+    globstmt << (pob->id().to_string())
+             >> [&](std::string contstr, std::string proxidstr)
+    {
+      MOM_DEBUGLOG(load,"load_all_objects_payload_fill fillglobfun pob=" << pob << " contstr=" << contstr
+                   << std::endl << "... proxidstr=" << proxidstr);
+      resld.ldci_content = contstr;
+      resld.ldci_proxyid = MomIdent::make_from_string(proxidstr);
+    };
+    return resld;
   };
-  std::function<std::string(MomObject*)> filluserfun;
-  auto userstmt = ((*(_ld_userdbp?:_ld_globdbp))
-                   << "SELECT  /*userdb*/ ob_paylcontent FROM t_objects WHERE ob_id = ?");
+  std::function<MomLoaded_Content_Id_st(MomObject*)> filluserfun;
+  sqlite::database_binder userstmt = ((*(_ld_userdbp?:_ld_globdbp))
+                                      << "SELECT  /*userdb*/ ob_paylcontent, ob_paylproxid FROM t_objects WHERE ob_id = ?");
   if (_ld_userdbp)
     {
       filluserfun =
         [&](MomObject*pob)
       {
         std::lock_guard<std::mutex> gu(_ld_mtxuserdb);
-        std::string res;
-        userstmt << pob->id().to_string() >> res;
+        MomLoaded_Content_Id_st resld;
         if (load_got_spyid1(pob))
           LOAD_SPYID1_BREAKPOINT("load_all_objects_payload_fill filluserfun id1");
         else if (load_got_spyid2(pob))
           LOAD_SPYID2_BREAKPOINT("load_all_objects_payload_fill filluserfun id2");
-        MOM_DEBUGLOG(load,"load_all_objects_payload_fill filluserfun pob=" << pob << " res=" << res);
-        return res;
+        userstmt << pob->id().to_string()
+                 >> [&](std::string contstr, std::string proxidstr)
+        {
+          MOM_DEBUGLOG(load,"load_all_objects_payload_fill filluserfun pob=" << pob << " contstr=" << contstr
+                       << std::endl << "... proxidstr=" << proxidstr);
+          resld.ldci_content = contstr;
+          resld.ldci_proxyid = MomIdent::make_from_string(proxidstr);
+        };
+        return resld;
       };
     }
   /// build a vector of queue of objects to be filled
@@ -611,8 +632,8 @@ MomLoader::load_all_objects_payload_fill(void)
 
 void
 MomLoader::thread_load_fill_payload_objects(MomLoader*ld, int thix, std::deque<MomObject*>*obpqu,
-    const std::function<std::string(MomObject*)>&fillglobfun,
-    const std::function<std::string(MomObject*)>&filluserfun)
+    const std::function<MomLoaded_Content_Id_st(MomObject*)>&fillglobfun,
+    const std::function<MomLoaded_Content_Id_st(MomObject*)>&filluserfun)
 {
   if (!ld->_ld_sequential)
     {
@@ -640,20 +661,21 @@ MomLoader::thread_load_fill_payload_objects(MomLoader*ld, int thix, std::deque<M
         ld->LOAD_SPYID1_BREAKPOINT("thread_load_fill_payload_objects id1");
       else if (ld->load_got_spyid2(pob))
         ld->LOAD_SPYID2_BREAKPOINT("thread_load_fill_payload_objects id2");
-      std::string strfill;
+      MomLoaded_Content_Id_st contidfill;
       if (pob->space() == MomSpace::UserSp)
-        strfill = filluserfun(pob);
+        contidfill = filluserfun(pob);
       else
-        strfill = fillglobfun(pob);
+        contidfill = fillglobfun(pob);
       MOM_DEBUGLOG(load,"thread_load_fill_payload_objects thix=#" << thix << " pob=" << pob
-                   << " strfill=" << strfill);
-      ld->load_object_fill_payload(pob, thix, strfill);
+                   << " contidfill cont=" << contidfill.ldci_content << std::endl
+                   << ".. proxyid=" << contidfill.ldci_proxyid);
+      ld->load_object_fill_payload(pob, thix, contidfill.ldci_content, contidfill.ldci_proxyid);
     };
   MOM_DEBUGLOG(load,"thread_load_fill_payload_objects done thix=#" << thix << std::endl);
 } // end MomLoader::thread_load_content_objects
 
 
-void MomLoader::load_object_fill_payload(MomObject*pob, int thix, const std::string&strfill)
+void MomLoader::load_object_fill_payload(MomObject*pob, int thix, const std::string&strfill, const MomIdent&proxid)
 {
   MOM_DEBUGLOG(load,"load_object_fill_payload start pob=" << pob << " thix=" << thix
                << " strfill=" << strfill);
@@ -663,8 +685,13 @@ void MomLoader::load_object_fill_payload(MomObject*pob, int thix, const std::str
     LOAD_SPYID2_BREAKPOINT("load_object_fill_payload id2");
   auto py = pob->_ob_payl;
   py->_py_vtbl->pyv_loadfill(py, pob, this, strfill.c_str());
-  MOM_DEBUGLOG(load,"load_object_fill_payload end pob=" << pob << " thix=" << thix
-               << " strfill=" << strfill);
+  MomObject* proxob = load_find_object_by_id(proxid);
+  if (proxob)
+    py->set_proxy(proxob);
+  MOM_DEBUGLOG(load,"load_object_fill_payload end pob=" << MomShowObject(pob)
+	       << " thix=" << thix
+               << " strfill=" << strfill
+	       << " proxob=" << MomShowObject(proxob));
 } // end MomLoader::load_object_fill_payload
 
 
@@ -1517,7 +1544,7 @@ MomDumper::dump_emit_loop(void) {
   MOM_DEBUGLOG(dump,"dump_emit_loop start");
   momdumpinsertfunction_t dumpglobf;
   momdumpinsertfunction_t dumpuserf;
-  auto globstmt = (*_du_globdbp) << "INSERT /*globaldb*/ INTO t_objects VALUES(?,?,?,?,?,?)";
+  auto globstmt = (*_du_globdbp) << "INSERT /*globaldb*/ INTO t_objects VALUES(?,?,?,?,?,?,?)";
   MOM_DEBUGLOG(dump,"dump_emit_loop globstmt=" << globstmt.sql());
   dumpglobf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
@@ -1525,18 +1552,19 @@ MomDumper::dump_emit_loop(void) {
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpglobf thix#" << thix << " pob=" << pob << " mtim=" << mtim
 		 << " contentstr=" << contentstr
 		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
-		 << ", content=" << pyem.pye_content << ")"
+		 << ", content=" << pyem.pye_content
+		 << ", proxyid=" << pyem.pye_proxyid << ")"
 		 << std::endl << " globstmt=" << globstmt.sql());
     char mtimbuf[40];
     memset(mtimbuf, 0, sizeof(mtimbuf));
     snprintf(mtimbuf, sizeof(mtimbuf), "%.2f", mtim);
     globstmt << pob->id().to_string() << mtimbuf << contentstr
-    << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
+	     << pyem.pye_kind << pyem.pye_init << pyem.pye_content << pyem.pye_proxyid;
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf pob=" << pob << " globstmt=" << globstmt.sql());
     globstmt.execute();
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpglobf did thix#" << thix << " pob=" << pob);
   };
-  auto userstmt = *_du_userdbp  << "INSERT /*userdb*/ INTO t_objects VALUES(?,?,?,?,?,?)";
+  auto userstmt = *_du_userdbp  << "INSERT /*userdb*/ INTO t_objects VALUES(?,?,?,?,?,?,?)";
   MOM_DEBUGLOG(dump,"dump_emit_loop userstmt=" << userstmt.sql());
   dumpuserf = [&] (MomObject*pob,int thix,double mtim,
 		   const std::string&contentstr, const MomObject::PayloadEmission& pyem) {
@@ -1544,13 +1572,15 @@ MomDumper::dump_emit_loop(void) {
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf thix#" << thix << " pob=" << pob << " mtim=" << mtim
 		 << " contentstr=" << contentstr
 		 << " pyem=(kind:" << pyem.pye_kind << ", init=" << pyem.pye_init
-		 << ", content=" << pyem.pye_content << ")"
+		 << ", content=" << pyem.pye_content
+		 << ", proxyid=" << pyem.pye_proxyid
+		 << ")"
 		 << std::endl << " userstmt=" << userstmt.sql());
     char mtimbuf[40];
     memset(mtimbuf, 0, sizeof(mtimbuf));
     snprintf(mtimbuf, sizeof(mtimbuf), "%.2f", mtim);
     userstmt << pob->id().to_string() << mtimbuf << contentstr
-    << pyem.pye_kind << pyem.pye_init << pyem.pye_content;
+    << pyem.pye_kind << pyem.pye_init << pyem.pye_content << pyem.pye_proxyid;
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf pob=" << pob << " userstmt=" << userstmt.sql());
     userstmt.execute();
     MOM_DEBUGLOG(dump,"dump_emit_loop dumpuserf did thix#" << thix << " pob=" << pob);
@@ -1735,10 +1765,16 @@ MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pye
     pyem.pye_init = outinit.str();
     outcontent.flush();
     pyem.pye_content = outcontent.str();
+    MomObject* proxob = _ob_payl->proxy();
+    if (proxob && du->is_dumped(proxob)) 
+      pyem.pye_proxyid = proxob->id().to_string();
+    else
+      pyem.pye_proxyid = "";
     MOM_DEBUGLOG(dump, "unsync_emit_dump_payload done this=" <<this
 		 << " /pynam=" << vt->pyv_name <<std::endl
 		 << ".. init=" << pyem.pye_init <<std::endl
-		 << ".. content=" << pyem.pye_content <<std::endl);
+		 << ".. content=" << pyem.pye_content <<std::endl
+		 << ".. proxid=" <<  pyem.pye_proxyid <<std::endl);
   }
   else    
     MOM_DEBUGLOG(dump, "unsync_emit_dump_payload nondumpable payload this=" << this
