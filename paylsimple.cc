@@ -40,15 +40,13 @@ public:
   typedef std::string stringty;
 private:
   const stringty _nam_str;
-  MomObject* _nam_proxy;
   static std::mutex _nam_mtx_;
   static std::map<std::string,MomObject*> _nam_dict_;
   MomPaylNamed(MomObject*own, const char*name)
-    : MomPayload(&MOM_PAYLOADVTBL(named), own), _nam_str(name), _nam_proxy(nullptr) {};
+    : MomPayload(&MOM_PAYLOADVTBL(named), own), _nam_str(name) {};
   ~MomPaylNamed()
   {
     (const_cast<stringty*>(&_nam_str))->clear();
-    _nam_proxy = nullptr;
   };
 public:
   static MomPyv_destr_sig Destroy;
@@ -95,7 +93,7 @@ mom_unsync_named_object_set_proxy(MomObject*objn, MomObject*obproxy)
       if (obproxy->vkind() != MomKind::TagObjectK)
         MOM_FAILURE("mom_unsync_named_object_set_proxy objn=" << objn << " bad proxy");
     }
-  py->_nam_proxy = obproxy;
+  py->set_proxy(obproxy);
 } // end mom_unsync_named_object_set_proxy
 
 MomObject*
@@ -104,7 +102,7 @@ mom_unsync_named_object_proxy(MomObject*objn)
   if (!objn) return nullptr;
   auto py = static_cast<MomPaylNamed*>(objn->unsync_payload());
   if (py-> _py_vtbl !=  &MOM_PAYLOADVTBL(named)) return nullptr;
-  return py->_nam_proxy;
+  return py->proxy();
 } // end mom_unsync_named_object_proxy
 
 MomObject*
@@ -207,8 +205,6 @@ MomPaylNamed::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
   auto py = static_cast<const MomPaylNamed*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
              "invalid named payload for own=" << own);
-  if (py->_nam_proxy)
-    gc->scan_object(py->_nam_proxy);
 } // end MomPaylNamed::Scangc
 
 
@@ -217,9 +213,7 @@ MomPaylNamed::Scandump(const struct MomPayload*payl,MomObject*own,MomDumper*du)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
   MOM_DEBUGLOG(dump, "MomPaylNamed::Scandump own=" << own << " name=" << py->_nam_str
-               << " proxy=" << py->_nam_proxy);
-  if (py->_nam_proxy)
-    py->_nam_proxy->scan_dump(du);
+               << " proxy=" << py->proxy());
 } // end MomPaylNamed::Scandump
 
 
@@ -230,11 +224,9 @@ MomPaylNamed::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du, 
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
              "invalid named payload for own=" << own);
   MOM_DEBUGLOG(dump, "PaylNamed::Emitdump own=" << own << " name=" << py->_nam_str
-               << " proxy=" << py->_nam_proxy);
+               << " proxy=" << py->proxy());
   mom_dump_named_update_defer(du, own, py->_nam_str);
   empaylinit->out() << py->_nam_str;
-  empaylcont->out() << "@NAMEDPROXY: ";
-  empaylcont->emit_objptr(py->_nam_proxy);
 } // end MomPaylNamed::Emitdump
 
 
@@ -265,15 +257,6 @@ MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const c
   fillpars.skip_spaces();
   if (fillpars.eof())
     return;
-  if (fillpars.got_cstring("@NAMEDPROXY:"))
-    {
-      bool gotproxy = false;
-      fillpars.skip_spaces();
-      MomObject* pobproxy = fillpars.parse_objptr(&gotproxy);
-      if (!gotproxy)
-        MOM_PARSE_FAILURE(&fillpars, "missing proxy for fill of named object " << own);
-      py->_nam_proxy = pobproxy;
-    }
 } // end MomPaylNamed::Loadfill
 
 
@@ -287,9 +270,9 @@ MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*own,const M
   if (attrob == MOMP_name)
     return MomString::make_from_string(py->_nam_str);
   else if (attrob == MOMP_proxy)
-    return py->_nam_proxy;
+    return py->proxy();
 #warning perhaps we need to have some lazy pseudo-value. What about cycles of proxys and locking...
-  else if ((proxob=py->_nam_proxy) != nullptr)
+  else if ((proxob=py->proxy()) != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
       return proxob->unsync_get_magic_attr(attrob);
