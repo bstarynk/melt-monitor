@@ -149,7 +149,7 @@ void dump_objects(sqlite::database& db)
   std::cout << "\n" "--- TABLE t_objects @@@@@" << std::endl;
   std::cout << "BEGIN TRANSACTION;\n" << std::endl;
   db << "SELECT ob_id, ob_mtim, ob_content,"
-     "  ob_paylkind, ob_paylinit, ob_paylcontent, ob_paylpoxid"
+     "  ob_paylkind, ob_paylinit, ob_paylcontent, ob_paylproxid"
      " FROM t_objects ORDER BY ob_id"
      >> [&](std::string oid, std::string mtim, std::string content,
             std::string paylkind, std::string paylinit, std::string paylcontent, std::string paylproxid)
