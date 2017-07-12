@@ -912,6 +912,7 @@ typedef std::function<void(MomObject*pob,int thix,double mtim,const std::string&
 class MomDumper
 {
   friend void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam);
+  friend void MomObject::scan_dump_module_for(MomDumper*du, const void*addr);
   std::mutex _du_mtx;
   const double _du_startrealtime;
   const double _du_startcputime;
@@ -1724,6 +1725,51 @@ MomObject::scan_dump(MomDumper*du) const
   du->add_scanned_object(this);
 } // end MomObject::scan_dump
 
+void
+MomObject::scan_dump_module_for(MomDumper*du, const void*addr)
+{
+  MOM_ASSERT(du && du->_du_state == dus_scan, "MomDumper::scan_dump_module_for not scanning");
+  if (!du->is_dumped(this) || space() == MomSpace::TransientSp || !addr)
+    return;
+  bool glob = (space() == MomSpace::GlobalSp);
+  Dl_info dlinf = {};
+  if (dladdr(addr, &dlinf)) {
+    MOM_DEBUGLOG(dump, "scan_dump_module_for this=" << MomShowObject(this) << " addr=" << addr
+		 << " dli_fname=" << (dlinf.dli_fname?:"*null*")
+		 << " dli_sname=" << (dlinf.dli_sname?:"*null*"));
+    if (dlinf.dli_fname) {
+      const char*obf = strstr(dlinf.dli_fname, "/momg_");
+      if (obf)
+	obf++;
+      else obf = strstr(dlinf.dli_fname, "momg_");
+      if (!obf) return;
+      MomIdent modid = MomIdent::make_from_cstr(obf+strlen("momg_"));
+      MomObject* modpob = nullptr;
+      if (modid)
+	modpob = MomObject::find_object_of_id(modid);
+      MOM_DEBUGLOG(dump, "scan_dump_module_for this=" << MomShowObject(this) << " addr=" << addr
+		   << " modid=" << modid << " modpob=" << MomShowObject(modpob));
+      if (modpob)
+	const_cast<const MomObject*>(modpob)->scan_dump(du);
+      if (du->is_dumped(modpob)) {
+	if (glob) {
+	  MOM_DEBUGLOG(dump, "scan_dump_module_for this=" << MomShowObject(this) << " addr=" << addr
+		       << " global modpob=" << modpob);
+	  du->add_glob_module_id(modpob->id());
+	}
+	else {
+	  MOM_DEBUGLOG(dump, "scan_dump_module_for this=" << MomShowObject(this) << " addr=" << addr
+		       << " user modpob=" << modpob);
+	  du->add_user_module_id(modpob->id());
+	}
+      }
+      else
+	  MOM_DEBUGLOG(dump, "scan_dump_module_for this=" << MomShowObject(this) << " addr=" << addr
+		       << " nondumped modpob=" << modpob);
+	
+    }
+  };
+} // end MomObject::scan_dump_module_for
 
 void
 MomObject::scan_dump_content(MomDumper*du) const
@@ -1825,6 +1871,7 @@ MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pye
     _ob_payl->_py_vtbl->pyv_emitdump(_ob_payl,const_cast<MomObject*>(this),du,&emitinit,&emitcontent);
     pyem.pye_kind = _ob_payl->_py_vtbl->pyv_name;
     if (_ob_payl->_py_vtbl->pyv_module != nullptr)
+#warning should probably call add_user_module_id or add_glob_module_id
       pyem.pye_module = _ob_payl->_py_vtbl->pyv_module;
     outinit.flush();
     pyem.pye_init = outinit.str();

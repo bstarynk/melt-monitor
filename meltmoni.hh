@@ -2202,6 +2202,8 @@ public:
   virtual void scan_gc(MomGC*) const;
   virtual void scan_dump(MomDumper*du) const; // in state.cc
   virtual void scan_dump_content(MomDumper*du) const; // in state.cc
+  /// assert that the C++ function near address addr is relevant to this object, so find its module if any
+  void scan_dump_module_for(MomDumper*du, const void*addr); // in state.cc
   virtual std::mutex* valmtx() const;
   void unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const; // in state.cc
   void unsync_emit_dump_payload(MomDumper*du, PayloadEmission&) const; // in state.cc
