@@ -538,7 +538,6 @@ MomLoader::load_all_objects_payload_from_db(MomLoader*ld, sqlite::database* pdb,
 
 
 
-
 void
 MomLoader::load_all_objects_payload_fill(void)
 {
@@ -936,14 +935,14 @@ class MomDumper
   std::set<MomIdent> _du_usermoduleidset;
   unsigned _du_scanfunh;
   void initialize_db(sqlite::database &db, bool isglobal);
-  void add_user_module_id(MomIdent);
-  void add_glob_module_id(MomIdent);
   static void dump_scan_thread(MomDumper*du, int ix);
   static void dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
   void dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
   std::function<void(MomDumper*)> pop_locked_todo_emit(void);
   void scan_for_gc(MomGC*);
 public:
+  void add_user_module_id(MomIdent);
+  void add_glob_module_id(MomIdent);
   void todo_scan(std::function<void(MomDumper*)> todoscanfun);
   void todo_emit(std::function<void(MomDumper*)> todoemitfun);
   std::string temporary_file_path(const std::string& path);
@@ -1166,6 +1165,23 @@ MomDumper::close_and_dump_databases(void)
   if (waitpid(userpid, &userstatus, 0) < 0 || !WIFEXITED(userstatus) || WEXITSTATUS(userstatus)>0)
     MOM_FAILURE("MomDumper::close_and_dump_databases in " << _du_dirname << " failed to dump user");
 } // end MomDumper::close_and_dump_databases
+
+void MomPayload::scan_dump_module_payl(MomDumper*du) const
+{
+  MomIdent modid = MomIdent::make_from_cstr(_py_vtbl->pyv_module);
+  MomObject* modpob = modid?MomObject::find_object_of_id(modid):nullptr;
+  if (modpob)
+    {
+      modpob->scan_dump(du);
+      if (du->is_dumped(modpob))
+        {
+          if (owner()->space() == MomSpace::UserSp)
+            du->add_user_module_id(modpob->id());
+          else
+            du->add_glob_module_id(modpob->id());
+        }
+    }
+} // end MomPayload::scan_dump_module_payl
 
 void
 MomDumper::todo_scan(std::function<void(MomDumper*)> todoscanfun)
@@ -1870,9 +1886,12 @@ MomObject::unsync_emit_dump_payload(MomDumper*du, MomObject::PayloadEmission&pye
     MomDumpEmitter emitcontent(outcontent, du);
     _ob_payl->_py_vtbl->pyv_emitdump(_ob_payl,const_cast<MomObject*>(this),du,&emitinit,&emitcontent);
     pyem.pye_kind = _ob_payl->_py_vtbl->pyv_name;
-    if (_ob_payl->_py_vtbl->pyv_module != nullptr)
-#warning should probably call add_user_module_id or add_glob_module_id
-      pyem.pye_module = _ob_payl->_py_vtbl->pyv_module;
+    if (_ob_payl->_py_vtbl->pyv_module != nullptr) {
+      MomIdent modid = MomIdent::make_from_cstr(_ob_payl->_py_vtbl->pyv_module);
+      MomObject* modpob = modid?MomObject::find_object_of_id(modid):nullptr;
+      if (du->is_dumped(modpob)) 
+	pyem.pye_module = modpob->id().to_string();
+    }
     outinit.flush();
     pyem.pye_init = outinit.str();
     outcontent.flush();

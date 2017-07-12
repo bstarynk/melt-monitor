@@ -2556,6 +2556,7 @@ public:
 struct MomPayload
 {
   friend class MomObject;
+  friend class MomDumper;
   const struct MomVtablePayload_st* _py_vtbl;
   MomObject* _py_owner;
   MomObject* _py_proxy;
@@ -2598,7 +2599,10 @@ struct MomPayload
       _py_proxy->scan_dump(du);
     if (_py_vtbl->pyv_scandump)
       _py_vtbl->pyv_scandump(this,ownob,du);
+    if (_py_vtbl->pyv_module)
+      this->scan_dump_module_payl(du);
   }
+  void scan_dump_module_payl(MomDumper*) const;
   MomObject* owner() const
   {
     return _py_owner;
