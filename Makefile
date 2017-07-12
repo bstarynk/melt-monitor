@@ -62,7 +62,7 @@ OBJECTS= $(patsubst %.c,%.o,$(CSOURCES))  $(patsubst %.cc,%.o,$(CXXSOURCES))
 RM= rm -fv
 
 
-.PHONY: all checkgithooks installgithooks dump restore 
+.PHONY: all checkgithooks installgithooks dump restore modules
 .PHONY: dumpuserstate dumpglobstate restoreuserstate restoreglobstate
 .PHONY: tags modules plugins clean tests loadthendump
 
@@ -166,5 +166,7 @@ restoreglobstate:
 	touch -r  mom_global.sql  mom_global.sqlite
 
 
-modules/momg_%.so: modules/momg_%.cc $(OBJECTS)
-	$(LINK.cc) -fPIC -shared $< -o $@
+modules/momg_%.so: modules/momg_%.cc $(OBJECTS) meltmoni.hh.gch
+	$(LINK.cc) -fPIC -shared -DMOM_MODULEID=$(patsubst  modules/momg_%.cc,_%,$<) $< -o $@ 
+
+modules: $(MODULES)
