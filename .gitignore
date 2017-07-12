@@ -20,3 +20,4 @@ vgcore*
 
 ## sqlite db
 *.sqlite
+*sqlite*~-journal

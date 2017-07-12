@@ -905,7 +905,10 @@ std::string mom_random_temporary_file_suffix(void)
 // we don't want to move MomDumper into meltmoni.hh because it uses sqlite::
 enum MomDumpState { dus_none, dus_scan, dus_emit };
 
+
+////////////////////////////////////////////////////////////////
 typedef std::function<void(MomObject*pob,int thix,double mtim,const std::string&contentstr,const MomObject::PayloadEmission& pyem)> momdumpinsertfunction_t;
+
 class MomDumper
 {
   friend void mom_dump_named_update_defer(MomDumper*du, MomObject*pob, std::string nam);
@@ -928,8 +931,12 @@ class MomDumper
   std::atomic_ulong _du_scancount;
   const MomSet* _du_predefvset;
   std::map<std::string,MomObject*> _du_globmap;
+  std::set<MomIdent> _du_globmoduleidset;
+  std::set<MomIdent> _du_usermoduleidset;
   unsigned _du_scanfunh;
-  void initialize_db(sqlite::database &db);
+  void initialize_db(sqlite::database &db, bool isglobal);
+  void add_user_module_id(MomIdent);
+  void add_glob_module_id(MomIdent);
   static void dump_scan_thread(MomDumper*du, int ix);
   static void dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
   void dump_emit_object(MomObject*pob, int thix,momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf);
@@ -954,6 +961,7 @@ public:
   void dump_scan_loop(void);
   void dump_emit_loop(void);
   void dump_emit_globdata(void);
+  void dump_emit_modules(void);
   void scan_inside_object(MomObject*pob);
   void add_scanned_object(const MomObject*pob)
   {
@@ -1021,7 +1029,9 @@ MomDumper::MomDumper(const std::string&dirnam)
     _du_globdbmtx(), _du_userdbmtx(),
     _du_addedcondvar(),
     _du_setobj(), _du_queobj(), _du_scancount(ATOMIC_VAR_INIT(0ul)),
-    _du_predefvset(nullptr), _du_globmap{}, _du_scanfunh(0)
+    _du_predefvset(nullptr), _du_globmap{},
+    _du_globmoduleidset(), _du_usermoduleidset(),
+    _du_scanfunh(0)
 {
   struct stat dirstat;
   memset (&dirstat, 0, sizeof(dirstat));
@@ -1048,6 +1058,21 @@ MomDumper::MomDumper(const std::string&dirnam)
   });
 } // end MomDumper::MomDumper
 
+void
+MomDumper::add_user_module_id(MomIdent modid)
+{
+  MOM_ASSERT(modid, "add_user_module_id bad modid");
+  std::lock_guard<std::mutex> gu(_du_mtx);
+  _du_usermoduleidset.insert(modid);
+} // end MomDumper::add_user_module_id
+
+void
+MomDumper::add_glob_module_id(MomIdent modid)
+{
+  MOM_ASSERT(modid, "add_glob_module_id bad modid");
+  std::lock_guard<std::mutex> gu(_du_mtx);
+  _du_globmoduleidset.insert(modid);
+} // end MomDumper::add_glob_module_id
 
 std::string
 MomDumper::temporary_file_path(const std::string& path)
@@ -1064,12 +1089,15 @@ MomDumper::open_databases(void)
   auto globdbpath = temporary_file_path(MOM_GLOBAL_DB ".sqlite");
   auto userdbpath = temporary_file_path(MOM_USER_DB ".sqlite");
   sqlite::sqlite_config dbconfig;
-  dbconfig.flags = sqlite::OpenFlags::CREATE | sqlite::OpenFlags::READWRITE| sqlite::OpenFlags::NOMUTEX;
+  dbconfig.flags = sqlite::OpenFlags::CREATE | sqlite::OpenFlags::READWRITE | sqlite::OpenFlags::NOMUTEX;
   dbconfig.encoding = sqlite::Encoding::UTF8;
+  MOM_DEBUGLOG(dump, "open_databases initializing global globdbpath=" << globdbpath);
   _du_globdbp = std::make_unique<sqlite::database>(globdbpath, dbconfig);
+  initialize_db(*_du_globdbp, true);
+  MOM_DEBUGLOG(dump, "open_databases initializing user userdbpath=" << userdbpath);
   _du_userdbp = std::make_unique<sqlite::database>(userdbpath, dbconfig);
-  initialize_db(*_du_globdbp);
-  initialize_db(*_du_userdbp);
+  initialize_db(*_du_userdbp, false);
+  MOM_DEBUGLOG(dump, "open_databases done");
 } // end MomDumper::open_databases
 
 
@@ -1121,9 +1149,9 @@ MomDumper::close_and_dump_databases(void)
   auto userdbpath = temporary_file_path(MOM_USER_DB ".sqlite");
   auto globsqlpath = temporary_file_path(MOM_GLOBAL_DB ".sql");
   auto usersqlpath = temporary_file_path(MOM_USER_DB ".sql");
-  *_du_globdbp << "END /*global*/ TRANSACTION";
+  *_du_globdbp << "END TRANSACTION /*global*/"; /* ending the mega transaction from initialize_db */
   if (_du_userdbp)
-    *_du_userdbp << "END /*user*/ TRANSACTION";
+    *_du_userdbp << "END TRANSACTION /*user*/"; /* ending the mega transaction from initialize_db */
   _du_globdbp.reset();
   _du_userdbp.reset();
   pid_t globpid = fork_dump_database(globdbpath, globsqlpath, MOM_GLOBAL_DB);
@@ -1283,7 +1311,7 @@ MomDumper::rename_temporary_files(void)
 } // end MomDumper::rename_temporary_files
 
 void
-MomDumper::initialize_db(sqlite::database &db)
+MomDumper::initialize_db(sqlite::database &db, bool isglobal)
 {
   /// keep this in sync with monimelt-dump-state.sh script
   /// and with dumpsqlmonimelt.cc file
@@ -1307,8 +1335,12 @@ CREATE TABLE IF NOT EXISTS t_globdata
  (glob_namestr VARCHAR(80) NOT NULL UNIQUE,
   glob_oid  VARCHAR(30) NOT NULL)
 )!*";
-    db << "BEGIN TRANSACTION";
-#warning we may want a t_modules table and a t_payloads associating payload names to modules
+    db << R"!*(
+CREATE TABLE IF NOT EXISTS t_modules
+ (mod_id VARCHAR(30) NOT NULL UNIQUE)
+)!*";
+    db << (isglobal ? "BEGIN TRANSACTION /*global*/" : "BEGIN TRANSACTION /*user*/");
+    // the corresponding end of transaction is in close_and_dump_databases
   } // end MomDumper::initialize_db
 
 
@@ -1342,6 +1374,8 @@ MomDumper::scan_globdata(void) {
       return false;
     });
 } // end MomDumper::scan_globdata
+
+
 
 void
 MomDumper::dump_emit_globdata(void) {
@@ -1380,6 +1414,37 @@ MomDumper::dump_emit_globdata(void) {
   userstmt.used(true);
   MOM_DEBUGLOG(dump, "dump_emit_globdata end");
 } // end MomDumper::dump_emit_globdata
+
+
+void
+MomDumper::dump_emit_modules(void) {
+  MOM_DEBUGLOG(dump, "dump_emit_modules start;" << MOM_SHOW_BACKTRACE("dump_emit_modules"));
+  auto du = this;
+  std::lock_guard<std::mutex> gu_d{_du_mtx};
+  MOM_DEBUGLOG(dump, "dump_emit_modules " << du->_du_globmoduleidset.size() << " global modules");
+  {
+    std::lock_guard<std::mutex> gu_g{_du_globdbmtx};
+    sqlite::database_binder globstmt = (*_du_globdbp) << "INSERT /*globaldb*/ INTO t_modules VALUES(?)";
+    for (auto gmodid: du->_du_globmoduleidset) {
+      MOM_DEBUGLOG(dump, "dump_emit_modules glob gmodid=" << gmodid);
+      globstmt << gmodid.to_string();
+    }
+    globstmt.used(true);
+  }
+  MOM_DEBUGLOG(dump, "dump_emit_modules after globals");
+  {
+    MOM_DEBUGLOG(dump, "dump_emit_modules " << du->_du_usermoduleidset.size() << " user modules");
+    std::lock_guard<std::mutex> gu_u{_du_userdbmtx};
+    sqlite::database_binder userstmt = (*_du_userdbp) << "INSERT /*userdb*/ INTO t_modules VALUES(?)";
+    for (auto umodid: du->_du_usermoduleidset) {
+      MOM_DEBUGLOG(dump, "dump_emit_modules user modid=" << umodid);
+      userstmt << umodid.to_string();
+    }
+    userstmt.used(true);
+  }
+  MOM_DEBUGLOG(dump, "dump_emit_modules end");
+} // end MomDumper::dump_emit_modules
+
 
 
 void
@@ -1791,12 +1856,14 @@ mom_dump_in_directory(const char*dirname)
   dumper.dump_scan_loop();	// multi-threaded
   dumper.dump_emit_loop();	// multi-threaded
   dumper.dump_emit_globdata();
+  dumper.dump_emit_modules();
   dumper.close_and_dump_databases(); // forks two sqlite3 processes
   dumper.rename_temporary_files();
   long nbob = dumper.nb_objects();
   double rt = dumper.dump_real_time();
   double cpu = dumper.dump_cpu_time();
-  MOM_INFORMPRINTF("dumped %ld objects in directory %s in %.2f real, %.3f cpu seconds",
-		   nbob, dirname, rt, cpu);
+  MOM_INFORMPRINTF("dumped %ld objects in directory %s in %.3f real, %.4f cpu seconds\n"
+		   ".. [%.3f real µs, %.3f cpu µs /ob]",
+		   nbob, dirname, rt, cpu, (rt*1.0e6)/nbob, (cpu*1.0e6)/nbob);
   return nbob;
 } // end mom_dump_in_directory

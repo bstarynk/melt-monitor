@@ -170,6 +170,21 @@ void dump_objects(sqlite::database& db)
   std::cout << "\n\n" "END TRANSACTION; --- for t_objects\n\n" << std::endl;
 } // end dump_objects
 
+
+void dump_modules(sqlite::database& db)
+{
+  std::cout << "\n" "--- TABLE t_modules @@@@@" << std::endl;
+  std::cout << "BEGIN TRANSACTION;\n" << std::endl;
+  db << "SELECT mod_id FROM t_modules ORDER BY mod_id"
+     >> [&](std::string modid)
+  {
+    std::cout << "INSERT INTO t_modules VALUES('" << modid << "');" << std::endl;
+  };
+  std::cout << "\n\n" "END TRANSACTION; --- for t_modules\n\n" << std::endl;
+} // end dump_modules
+
+
+
 int main(int argc, char**argv)
 {
   if (argc != 2)
@@ -197,6 +212,7 @@ int main(int argc, char**argv)
   dump_globdata(db);
   dump_names(db);
   dump_objects(db);
+  dump_modules(db);
   std::cout << "-- end dump of " << basestr
             << " by dumpsqlmonimelt" << std::endl;
   return 0;

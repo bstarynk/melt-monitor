@@ -1,4 +1,4 @@
--- dump 2017 Jul 11 from mom_global dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jul 12 from mom_global dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -25,6 +25,8 @@ BEGIN TRANSACTION;
 CREATE TABLE t_globdata
  (glob_namestr VARCHAR(80) NOT NULL UNIQUE,
   glob_oid  VARCHAR(30) NOT NULL);
+CREATE TABLE t_modules
+ (mod_id VARCHAR(30) NOT NULL UNIQUE);
 CREATE TABLE t_names
  (nam_oid VARCHAR(30) NOT NULL UNIQUE,
   nam_str TEXT PRIMARY KEY ASC NOT NULL UNIQUE);
@@ -391,6 +393,15 @@ INSERT INTO t_objects VALUES('_9Cr5XlTL8lI_7ALESzYlXD7', 1497636292.47,
 
 
 END TRANSACTION; --- for t_objects
+
+
+
+--- TABLE t_modules @@@@@
+BEGIN TRANSACTION;
+
+
+
+END TRANSACTION; --- for t_modules
 
 
 -- end dump of mom_global by dumpsqlmonimelt
