@@ -2375,13 +2375,7 @@ public:
     auto py = _ob_payl = new PaylClass(this,args...);
     return static_cast<PaylClass*>(py);
   }
-  template<class PaylClass> PaylClass* unsync_runcast_payload(const struct MomVtablePayload_st&vt) const
-  {
-    if (_ob_payl && _ob_payl->_py_vtbl == &vt)
-      return reinterpret_cast<PaylClass*>(_ob_payl);
-    else
-      return nullptr;
-  }
+  template<class PaylClass> inline PaylClass* unsync_runcast_payload(const struct MomVtablePayload_st&vt) const;
   // check if a prefix is valid, at least four char starting with an
   // underscore
   static bool valid_prefixid(const char*prefixid);
@@ -3789,6 +3783,15 @@ MomObject::unsync_update_arg(const MomObject*pobattr, ArgPack... args)
 } // end  MomObject::unsync_update_arg
 
 ////
+
+template<class PaylClass> PaylClass*
+MomObject::unsync_runcast_payload(const struct MomVtablePayload_st&vt) const
+{
+  if (_ob_payl && _ob_payl->_py_vtbl == &vt)
+    return reinterpret_cast<PaylClass*>(_ob_payl);
+  else
+    return nullptr;
+}
 
 inline void
 MomObject::unsync_step_owner(MomObject*own,const MomValue*vecarr, unsigned veclen)
