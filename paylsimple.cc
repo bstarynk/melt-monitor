@@ -963,14 +963,15 @@ MomPaylGenfile::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
   auto py = static_cast< MomPaylGenfile*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
              "MomPaylGenfile::Loadfill invalid genfile payload for own=" << own);
-  MOM_DEBUGLOG(load,"MomPaylGenfile::Loadfill own=" << own
-               << " fills='" << fills << "'");
   std::string fillstr{fills};
+  MOM_DEBUGLOG(load,"MomPaylGenfile::Loadfill own=" << MomShowObject(own)
+               << " fills=" << MomShowString(fillstr));
   std::istringstream infill(fillstr);
   MomParser fillpars(infill);
   fillpars.set_loader_for_object(ld, own, "Genfile fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
+  MOM_WARNLOG("incomplete MomPaylGenfile::Loadfill owner=" << MomShowObject(own));
 #warning incomplete MomPaylGenfile::Loadfill
   if (fillpars.eof())
     return;

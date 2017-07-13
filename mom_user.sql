@@ -1,4 +1,4 @@
--- dump 2017 Jul 12 from mom_user dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jul 13 from mom_user dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -360,8 +360,10 @@ INSERT INTO t_objects VALUES('_4SCyZfyLX4u_38OYdt3f0wJ', 1499690053.01,
 @: _3xRwKNR8Txl_0wsckeKslWS "the genfile proxy of test1gen"
 
 ',
-'', '', '', '' -- nopayl
-);--'--
+'genfile', --- payl _4SCyZfyLX4u_38OYdt3f0wJ
+'_test1gen.out',
+'',
+'');--'--
 ------'** end _4SCyZfyLX4u_38OYdt3f0wJ
 
 

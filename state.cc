@@ -1474,10 +1474,16 @@ MomDumper::scan_inside_object(MomObject*pob) {
 void 
 MomDumper::dump_scan_thread(MomDumper*du, int ix)
 {
+  if (ix>0) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "moduscan%d", ix);
+    pthread_setname_np(pthread_self(),buf);
+    MomAnyVal::enable_allocation();
+  }
   MOM_ASSERT(du != nullptr, "MomDumper::dump_scan_thread null dumper");
   MOM_ASSERT(du->_du_state == dus_scan,
 	     "MomDumper::dump_scan_thread bad state#" << (int)du->_du_state);
-  MOM_ASSERT(ix>0 && ix<=(int)mom_nb_jobs, "MomDumper::dump_scan_thread bad ix="<< ix);
+  MOM_ASSERT(ix>=0 && ix<=(int)mom_nb_jobs, "MomDumper::dump_scan_thread bad ix="<< ix);
   bool endedscan = false;
   while (!endedscan) {
     const MomObject* ob1 = nullptr;
@@ -1601,6 +1607,12 @@ MomDumper::pop_locked_todo_emit(void)
 void
 MomDumper::dump_emit_thread(MomDumper*du, int ix, std::vector<MomObject*>* pvec, momdumpinsertfunction_t* dumpglobf, momdumpinsertfunction_t* dumpuserf)
 {
+  if (ix>0) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "moduemit%d", ix);
+    pthread_setname_np(pthread_self(),buf);
+    MomAnyVal::enable_allocation();
+  }
   MOM_DEBUGLOG(dump,"dump_emit_thread start ix#" << ix);
   std::sort(pvec->begin(), pvec->end(), MomObjptrLess{});
   unsigned long todocount=0;

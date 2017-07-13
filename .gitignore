@@ -21,3 +21,6 @@ vgcore*
 ## sqlite db
 *.sqlite
 *sqlite*~-journal
+
+## emitted test output
+_test*.out
