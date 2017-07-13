@@ -2375,9 +2375,12 @@ public:
     auto py = _ob_payl = new PaylClass(this,args...);
     return static_cast<PaylClass*>(py);
   }
-  template<class PaylClass> PaylClass* unsync_dyncast_payload() const
+  template<class PaylClass> PaylClass* unsync_runcast_payload(const struct MomVtablePayload_st&vt) const
   {
-    return dynamic_cast<PaylClass*>(_ob_payl);
+    if (_ob_payl && _ob_payl->_py_vtbl == &vt)
+      return reinterpret_cast<PaylClass*>(_ob_payl);
+    else
+      return nullptr;
   }
   // check if a prefix is valid, at least four char starting with an
   // underscore
