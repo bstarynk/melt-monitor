@@ -1148,9 +1148,13 @@ MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
   MOM_DEBUGLOG(gencod,
                "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << MomShowObject(own)
                << " forpob=" << MomShowObject(forpob)
-               << " starter=" << MomShowObject(_pstrobuf_starter));
+               << " starter=" << MomShowObject(_pstrobuf_starter)
+	       << MOM_SHOW_BACKTRACE("unsync_output_all_to_buffer"));
   MomObject* ctxob = MomObject::make_object();
   ctxob->unsync_make_payload<MomPaylEnvstack>();
+  MOM_DEBUGLOG(gencod,
+               "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << MomShowObject(own)
+	       << " ctxob=" << MomShowObject(ctxob));
   if (_pstrobuf_starter != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{_pstrobuf_starter->get_recursive_mutex()};
