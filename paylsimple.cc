@@ -846,7 +846,7 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
 ////////////////////////////////////////////////////////////////
 
 extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(genfile);
-
+class MomPaylStrobuf;
 class MomPaylGenfile: public MomPayload
 {
 public:
@@ -860,6 +860,7 @@ private:
   ~MomPaylGenfile()
   {
   };
+  MomObject* generated_strbuf_object(void); // gives an object with strbuf payload containing the generated stuff
 public:
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
@@ -896,6 +897,21 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(genfile) __attribute__((section
 
 MomRegisterPayload mompy_genfile(MOM_PAYLOADVTBL(genfile));
 
+MomObject*
+MomPaylGenfile::generated_strbuf_object(void)
+{
+  MomObject* pobown = owner();
+  MomObject* pobuf= MomObject::make_object();
+  auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
+  MOM_DEBUGLOG(gencod, "generated_strbuf_object pobown=" << MomShowObject(pobown)
+               << " pobuf=" << MomShowObject(pobuf)
+               << MOM_SHOW_BACKTRACE("generated_strbuf_object"));
+#warning MomPaylGenfile::generated_strbuf_object incomplete
+  MOM_WARNLOG("MomPaylGenfile::generated_strbuf_object incomplete pobown=" << MomShowObject(pobown)
+              << " pobuf=" << MomShowObject(pobuf));
+  return pobuf;
+} // end of MomPaylGenfile::generated_strbuf_object
+
 void
 MomPaylGenfile::Destroy (struct MomPayload*payl,MomObject*own)
 {
@@ -927,20 +943,24 @@ MomPaylGenfile::Emitdump(const struct MomPayload*payl,MomObject*own,MomDumper*du
   auto py = static_cast<const MomPaylGenfile*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
              "invalid genfile payload for own=" << own);
-  MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own
-               << " proxy=" << py->proxy());
+  MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << MomShowObject(own)
+               << " proxy=" << MomShowObject(py->proxy()));
   empaylinit->out() << py->_pgenfile_pathstr << std::flush;
-  auto pobuf = MomObject::make_object();
+  auto pobuf = const_cast<MomPaylGenfile*>(py)->generated_strbuf_object();
+  MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << MomShowObject(own)
+               << " pobuf=" << MomShowObject(pobuf));
+  MOM_ASSERT(pobuf != nullptr && pobuf->vkind() == MomKind::TagObjectK, "genfile emitdump bad pobuf");
   std::lock_guard<std::recursive_mutex> gu{pobuf->get_recursive_mutex()};
-  auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
-  MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << own
-               << " pobuf=" << pobuf);
+  auto pystrobuf = pobuf->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
+  MOM_ASSERT(pystrobuf != nullptr, "genfile emitdump bad pystrobuf for pobuf=" << pobuf);
   pystrobuf->unsync_output_all_to_buffer(own);
+  MOM_DEBUGLOG(dump, "MomPaylGenfile::Emitdump own=" << MomShowObject(own)
+               << " after unsync_output_all_to_buffer pobuf=" << MomShowObject(pobuf));
   auto tmpath = mom_dump_temporary_file_path(du, py->_pgenfile_pathstr);
   {
     std::ofstream out(tmpath);
     if (!out)
-      MOM_WARNLOG("genfile emitdump own=" << own << " failed to open tmpath=" << tmpath << " (" << strerror(errno) << ")");
+      MOM_WARNLOG("genfile emitdump own=" << MomShowObject(own) << " failed to open tmpath=" << tmpath << " (" << strerror(errno) << ")");
     auto bfstr = pystrobuf->buffer_string();
     out.write(bfstr.c_str(), bfstr.size());
     out.close();
@@ -1028,10 +1048,11 @@ MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
     {
       if (veclen>0)
         MOM_FAILURE("genfile update emit got " << veclen << " arguments wanted none");
-      auto pobuf = MomObject::make_object();
+      auto pobuf = py->generated_strbuf_object();
+      MOM_DEBUGLOG(gencod, "genfile update emit own=" << MomShowObject(own) << " pobuf=" << MomShowObject(pobuf));
       std::lock_guard<std::recursive_mutex> gu{pobuf->get_recursive_mutex()};
-      auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
-      MOM_DEBUGLOG(gencod, "genfile update emit pobuf=" << MomShowObject(pobuf) << " own=" << MomShowObject(own));
+      auto pystrobuf = pobuf->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
+      MOM_ASSERT(pystrobuf != nullptr, "genfile update emit bad pystrobuf for pobuf=" << pobuf);
       pystrobuf->unsync_output_all_to_buffer(own);
       std::string pathstr = py->_pgenfile_pathstr;
       {
@@ -1124,8 +1145,10 @@ void
 MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
 {
   auto own = owner();
-  MOM_DEBUGLOG(gencod, "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << own << " forpob=" << forpob
-               << " starter=" << _pstrobuf_starter);
+  MOM_DEBUGLOG(gencod,
+               "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << MomShowObject(own)
+               << " forpob=" << MomShowObject(forpob)
+               << " starter=" << MomShowObject(_pstrobuf_starter));
   MomObject* ctxob = MomObject::make_object();
   ctxob->unsync_make_payload<MomPaylEnvstack>();
   if (_pstrobuf_starter != nullptr)
