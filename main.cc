@@ -1277,7 +1277,6 @@ static const struct option mom_long_options[] =
   {nullptr, no_argument, nullptr, 0},
 };
 
-#warning should add a --parse-command-file and --parse-command arguments
 static void
 usage_mom (const char *argv0)
 {
@@ -1580,6 +1579,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           MOM_INFORMLOG("parse-id '" << optarg << "'" << std::endl
                         << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
                         << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
+	  std::cout << "MOM_HAS_PREDEF("<< idp << "," << idp.hi().serial() << "," << idp.lo().serial()
+		    << "," << idp.hash() << ")" << std::endl;
         }
         break;
         case xtraopt_parseval:
