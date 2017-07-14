@@ -897,6 +897,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(genfile) __attribute__((section
 
 MomRegisterPayload mompy_genfile(MOM_PAYLOADVTBL(genfile));
 
+
 MomObject*
 MomPaylGenfile::generated_strbuf_object(void)
 {
@@ -904,13 +905,18 @@ MomPaylGenfile::generated_strbuf_object(void)
   MomObject* pobuf= MomObject::make_object();
   auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
   MOM_DEBUGLOG(gencod, "generated_strbuf_object pobown=" << MomShowObject(pobown)
-               << " pobuf=" << MomShowObject(pobuf)
+               << " made pobuf=" << MomShowObject(pobuf)
                << MOM_SHOW_BACKTRACE("generated_strbuf_object"));
+  pobown->unsync_update_arg(MOMP_start_generation, pobuf);
+  MOM_DEBUGLOG(gencod, "generated_strbuf_object after start_generation pobown=" << MomShowObject(pobown)
+               << " made pobuf=" << MomShowObject(pobuf));
 #warning MomPaylGenfile::generated_strbuf_object incomplete
   MOM_WARNLOG("MomPaylGenfile::generated_strbuf_object incomplete pobown=" << MomShowObject(pobown)
               << " pobuf=" << MomShowObject(pobuf));
   return pobuf;
 } // end of MomPaylGenfile::generated_strbuf_object
+
+
 
 void
 MomPaylGenfile::Destroy (struct MomPayload*payl,MomObject*own)
@@ -1149,12 +1155,12 @@ MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
                "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << MomShowObject(own)
                << " forpob=" << MomShowObject(forpob)
                << " starter=" << MomShowObject(_pstrobuf_starter)
-	       << MOM_SHOW_BACKTRACE("unsync_output_all_to_buffer"));
+               << MOM_SHOW_BACKTRACE("unsync_output_all_to_buffer"));
   MomObject* ctxob = MomObject::make_object();
   ctxob->unsync_make_payload<MomPaylEnvstack>();
   MOM_DEBUGLOG(gencod,
                "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << MomShowObject(own)
-	       << " ctxob=" << MomShowObject(ctxob));
+               << " ctxob=" << MomShowObject(ctxob));
   if (_pstrobuf_starter != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{_pstrobuf_starter->get_recursive_mutex()};

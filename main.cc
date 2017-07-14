@@ -1579,8 +1579,8 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
           MOM_INFORMLOG("parse-id '" << optarg << "'" << std::endl
                         << " ... idp= " << idp << " =(" << idp.hi().serial() << "," << idp.lo().serial()
                         << ")/h" << idp.hash() << ",b#" << idp.bucketnum());
-	  std::cout << "MOM_HAS_PREDEF("<< idp << "," << idp.hi().serial() << "," << idp.lo().serial()
-		    << "," << idp.hash() << ")" << std::endl;
+          std::cout << "MOM_HAS_PREDEF("<< idp << "," << idp.hi().serial() << "," << idp.lo().serial()
+                    << "," << idp.hash() << ")" << std::endl;
         }
         break;
         case xtraopt_parseval:
