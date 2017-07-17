@@ -75,6 +75,8 @@ class MomLoader
 #define LOAD_SPYID2_BREAKPOINT(Msg) load_spyid2_breakpoint_at(__LINE__, (Msg))
   long load_empty_objects_from_db(sqlite::database* pdb, bool user);
   void load_all_globdata(void);
+  void load_all_modules(void);
+  void load_module_of_id(MomIdent);
   void load_all_objects_content(void);
   void load_all_objects_payload_make(void);
   static void load_all_objects_payload_from_db(MomLoader*,sqlite::database* pdb, bool user);
@@ -275,6 +277,7 @@ MomLoader::load(void)
       globthr.join();
     }
   load_all_globdata();
+  load_all_modules();
   load_all_objects_content();
   load_all_objects_payload_make();
   load_all_objects_payload_fill();
@@ -359,6 +362,91 @@ MomLoader::load_all_globdata(void)
 #include "_mom_globdata.h"
 } // end MomLoader::load_all_globdata
 
+
+
+void
+MomLoader::load_all_modules(void)
+{
+  MOM_DEBUGLOG(load,"load_all_modules start");
+  int nbmod = 0;
+  std::set<MomIdent> modidset;
+  {
+    std::lock_guard<std::mutex> gu{_ld_mtxglobdb};
+    auto globstmt = ((*_ld_globdbp)
+                     << "SELECT /*globaldb*/ mod_id FROM t_modules");
+    globstmt >> [&](const std::string &idstr)
+    {
+      nbmod++;
+      MOM_DEBUGLOG(load,"load_all_modules #" << nbmod
+                   << " global idstr=" << idstr);
+      MomIdent modid = MomIdent::make_from_string(idstr);
+      if (!modid)
+        MOM_FATALOG("load_all_modules invalid global module " << idstr);
+      modidset.insert(modid);
+    };
+  }
+  if (_ld_userdbp)
+    {
+      std::lock_guard<std::mutex> gu{_ld_mtxuserdb};
+      auto userstmt = ((*_ld_userdbp)
+                       << "SELECT /*userdb*/ mod_id FROM t_modules");
+      userstmt >> [&](const std::string &idstr)
+      {
+        nbmod++;
+        MOM_DEBUGLOG(load,"load_all_modules #" << nbmod
+                     << " user idstr=" << idstr);
+        MomIdent modid = MomIdent::make_from_string(idstr);
+        if (!modid)
+          MOM_FATALOG("load_all_modules invalid user module " << idstr);
+        modidset.insert(modid);
+      };
+    }
+  MOM_ASSERT((int)modidset.size() == nbmod,
+             "load_all_modules duplicate module ids");
+  for (MomIdent modid : modidset)
+    load_module_of_id(modid);
+  if (nbmod > 0)
+    MOM_INFORMLOG("loaded " << nbmod << " modules");
+  MOM_DEBUGLOG(load,"load_all_modules end");
+} // end  MomLoader::load_all_modules
+
+
+void
+MomLoader::load_module_of_id(MomIdent modid)
+{
+  MOM_DEBUGLOG(load, "load_module_of_id start modid=" << modid);
+  MOM_ASSERT(modid, "load_module_of_id no modid");
+  std::string modidstr = modid.to_string();
+  std::string modsopath = _ld_dirname + "/modules/momg" + modidstr + ".so";
+  std::string modccpath = _ld_dirname + "/modules/momg" + modidstr + ".cc";
+  struct stat modsostat = {};
+  struct stat modccstat = {};
+  if (stat(modsopath.c_str(), &modsostat))
+    MOM_FATALOG("load_module_of_id modid=" << modid << " missing module shared object " << modsopath);
+  if (stat(modccpath.c_str(), &modccstat))
+    MOM_FATALOG("load_module_of_id modid=" << modid << " missing module source code " << modccpath);
+  if (modccstat.st_mtime > modsostat.st_mtime)
+    {
+      struct tm modcctm = {};
+      struct tm modsotm = {};
+      localtime_r (&modccstat.st_mtime, &modcctm);
+      localtime_r (&modsostat.st_mtime, &modsotm);
+      char sotibuf[64];
+      char cctibuf[64];
+      memset (sotibuf, 0, sizeof(sotibuf));
+      memset (cctibuf, 0, sizeof(cctibuf));
+      strftime(sotibuf, sizeof(sotibuf), "%c %Z", &modsotm);
+      strftime(cctibuf, sizeof(cctibuf), "%c %Z", &modcctm);
+      MOM_FATALOG("load_module_of_id module " << modid<< " has its source code " << modccpath
+                  << " newer (" << cctibuf << ") that its shared object " << modsopath
+                  << " (" << sotibuf << ")");
+    }
+  void *modlh = dlopen(modsopath.c_str(), RTLD_NOW | RTLD_GLOBAL);
+  if (!modlh)
+    MOM_FATALOG("load_module_of_id module " << modid << " dlopen " << modsopath << " failure : "
+                << dlerror());
+  MOM_DEBUGLOG(load, "load_module_of_id end modid=" << modid);
+} // end MomLoader::load_module_of_id
 
 void
 MomLoader::load_all_objects_content(void)
