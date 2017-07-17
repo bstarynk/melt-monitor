@@ -316,7 +316,7 @@ public:
   static MomPyv_loadfill_sig Loadfill;
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
-  static MomPyv_update_sig Update;
+  static MomPyv_updated_sig Updated;
 }; // end class MomPaylSet
 
 
@@ -352,7 +352,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(set) __attribute__((section(".r
   /**   .pyv_loadfill=   */       MomPaylSet::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylSet::Getmagic,
   /**   .pyv_fetch=      */       MomPaylSet::Fetch,
-  /**   .pyv_update=     */       MomPaylSet::Update,
+  /**   .pyv_update=     */       MomPaylSet::Updated,
   /**   .pyv_step=       */       nullptr,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
@@ -503,13 +503,13 @@ MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*targpob,const Mom
 
 
 
-void
-MomPaylSet::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
+bool
+MomPaylSet::Updated(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast< MomPaylSet*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
-             "MomPaylSet::Update invalid set payload for own=" << own);
+             "MomPaylSet::Updated invalid set payload for own=" << own);
   if (attrob == MOMP_put)
     {
       for (unsigned ix=0; ix<veclen; ix++)
@@ -519,13 +519,10 @@ MomPaylSet::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, 
           if (elemob)
             py->_pset_set.insert(elemob);
         };
+      return true;
     }
-  if ((proxob=py->proxy()) != nullptr)
-    {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      proxob->unsync_update_owner(own,attrob,vecarr,veclen);
-    }
-} // end MomPaylSet::Update
+  return false;
+} // end MomPaylSet::Updated
 
 ////////////////////////////////////////////////////////////////
 
@@ -557,7 +554,7 @@ public:
   static MomPyv_loadfill_sig Loadfill;
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
-  static MomPyv_update_sig Update;
+  static MomPyv_updated_sig Updated;
   void output_value_to_buffer(MomObject*forpob, const MomValue v, MomObject*ctxob=nullptr, int depth=0);
   void unsync_output_all_to_buffer(MomObject*forpob);
   std::string buffer_string()
@@ -582,7 +579,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(strobuf) __attribute__((section
   /**   .pyv_loadfill=   */       MomPaylStrobuf::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylStrobuf::Getmagic,
   /**   .pyv_fetch=      */       MomPaylStrobuf::Fetch,
-  /**   .pyv_update=     */       MomPaylStrobuf::Update,
+  /**   .pyv_update=     */       MomPaylStrobuf::Updated,
   /**   .pyv_step=       */       nullptr,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
@@ -750,19 +747,16 @@ MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
 
 
 
-void
-MomPaylStrobuf::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
+bool
+MomPaylStrobuf::Updated(struct MomPayload*payl,MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast< MomPaylStrobuf*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
-             "MomPaylStrobuf::Update invalid strobuf payload for own=" << own);
-  if ((proxob=py->proxy()) != nullptr)
-    {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      proxob->unsync_update_owner(own,attrob,vecarr,veclen);
-    }
-} // end MomPaylStrobuf::Update
+             "MomPaylStrobuf::Updated invalid strobuf payload for own=" << own);
+#warning incomplete MomPaylStrobuf::Updated
+  return false;
+} // end MomPaylStrobuf::Updated
 
 
 
@@ -880,7 +874,7 @@ public:
   static MomPyv_loadfill_sig Loadfill;
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
-  static MomPyv_update_sig Update;
+  static MomPyv_updated_sig Updated;
 }; // end class MomPaylGenfile
 
 
@@ -898,7 +892,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(genfile) __attribute__((section
   /**   .pyv_loadfill=   */       MomPaylGenfile::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylGenfile::Getmagic,
   /**   .pyv_fetch=      */       MomPaylGenfile::Fetch,
-  /**   .pyv_update=     */       MomPaylGenfile::Update,
+  /**   .pyv_update=     */       MomPaylGenfile::Updated,
   /**   .pyv_step=       */       nullptr,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
@@ -1048,14 +1042,14 @@ MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
 } // end MomPaylGenfile::Fetch
 
 
-void
-MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attrob,
-                       const MomValue*vecarr, unsigned veclen, int depth)
+bool
+MomPaylGenfile::Updated(struct MomPayload*payl,MomObject*own,const MomObject*attrob,
+                        const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast< MomPaylGenfile*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
-             "MomPaylGenfile::Update invalid genfile payload for own=" << own);
+             "MomPaylGenfile::Updated invalid genfile payload for own=" << own);
   if (attrob == MOMP_emit)
     {
       if (veclen>0)
@@ -1083,13 +1077,12 @@ MomPaylGenfile::Update(struct MomPayload*payl,MomObject*own,const MomObject*attr
         else
           MOM_INFORMLOG("genfile update emit own=" << MomShowObject(own) << " updated file " << pathstr);
       }
+      return true;
     }
-  else if ((proxob=py->proxy()) != nullptr)
-    {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-#warning incomplete MomPaylGenfile::Update
-    }
-} // end MomPaylGenfile::Update
+#warning incomplete MomPaylGenfile::Updated
+  else
+    return false;
+} // end MomPaylGenfile::Updated
 
 
 
@@ -1149,7 +1142,7 @@ public:
   static MomPyv_loadfill_sig Loadfill;
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
-  static MomPyv_update_sig Update;
+  static MomPyv_updated_sig Updated;
 }; // end class MomPaylEnvstack
 
 
@@ -1204,7 +1197,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(envstack) __attribute__((sectio
   /**   .pyv_loadfill=   */       MomPaylEnvstack::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylEnvstack::Getmagic,
   /**   .pyv_fetch=      */       MomPaylEnvstack::Fetch,
-  /**   .pyv_update=     */       MomPaylEnvstack::Update,
+  /**   .pyv_update=     */       MomPaylEnvstack::Updated,
   /**   .pyv_step=       */       nullptr,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
@@ -1506,10 +1499,12 @@ MomPaylEnvstack::Fetch(MomPayload const*payl, MomObject const*own, MomObject con
 {
 } // end MomPaylEnvstack::Fetch
 
-void
-MomPaylEnvstack::Update(MomPayload*payl, MomObject*own, MomObject const*attrob, MomValue const*vecarr, unsigned int veclen, int depth)
+bool
+MomPaylEnvstack::Updated(MomPayload*payl, MomObject*own, MomObject const*attrob, MomValue const*vecarr, unsigned int veclen, int depth)
 {
-} // end MomPaylEnvstack::Update
+#warning MomPaylEnvstack::Updated unimplemented
+  return false;
+} // end MomPaylEnvstack::Updated
 
 
 ////////////////////////////////////////////////////////////////
@@ -1530,7 +1525,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(code) __attribute__((section(".
   /**   .pyv_loadfill=   */       MomPaylCode::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylCode::Getmagic,
   /**   .pyv_fetch=      */       MomPaylCode::Fetch,
-  /**   .pyv_update=     */       MomPaylCode::Update,
+  /**   .pyv_update=     */       MomPaylCode::Updated,
   /**   .pyv_step=       */       MomPaylCode::Step,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
@@ -1542,7 +1537,7 @@ MomRegisterPayload mompy_code(MOM_PAYLOADVTBL(code));
 MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, void*modh, const std::string&mods, bool with_getmagic, bool with_fetch, bool with_update, bool with_step)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
     _pcode_basename(bases), _pcode_moduname(mods),
-    _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_update_rout(nullptr),
+    _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
     _pcode_step_rout(nullptr), _pcode_datavec()
 {
   if (with_getmagic)
@@ -1559,8 +1554,8 @@ MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, voi
     }
   if (with_update)
     {
-      _pcode_update_rout =  (MomCod_Update_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_UPDATE);
-      if (!_pcode_update_rout)
+      _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_UPDATE);
+      if (!_pcode_updated_rout)
         MOM_FATALOG("get_symbol failed for update of " << own);
     }
   if (with_step)
@@ -1574,7 +1569,7 @@ MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, voi
 MomPaylCode::~MomPaylCode()
 {
   _pcode_getmagic_rout = nullptr;
-  _pcode_update_rout = nullptr;
+  _pcode_updated_rout = nullptr;
   _pcode_step_rout = nullptr;
   _pcode_datavec.clear();
 } // end MomPaylCode::~MomPaylCode
@@ -1582,7 +1577,7 @@ MomPaylCode::~MomPaylCode()
 MomPaylCode::MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
     _pcode_basename(bases), _pcode_moduname(mods),
-    _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_update_rout(nullptr),
+    _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
     _pcode_step_rout(nullptr), _pcode_datavec()
 {
   void* modh = load_module(mods);
@@ -1590,21 +1585,21 @@ MomPaylCode::MomPaylCode(MomObject*own,  const std::string&bases, const std::str
     MOM_FAILURE("failed to load module " << mods << " for code base " << bases << " owned by " << own);
   _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_GETMAGIC);
   _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_FETCH);
-  _pcode_update_rout =  (MomCod_Update_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_UPDATE);
+  _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_UPDATE);
   _pcode_step_rout =  (MomPyv_step_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_STEP);
 } // end  MomPaylCode::MomPaylCode for autodiscovering
 
 MomPaylCode::MomPaylCode(MomObject*own, MomPaylCode*orig)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
     _pcode_basename(orig?orig->_pcode_basename:nullptr), _pcode_moduname(orig?orig->_pcode_moduname:nullptr),
-    _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_update_rout(nullptr),
+    _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
     _pcode_step_rout(nullptr), _pcode_datavec()
 {
   if (orig == nullptr || orig->_py_vtbl !=   &MOM_PAYLOADVTBL(code))
     MOM_FAILURE("bad origin for code owned by " << own);
   _pcode_getmagic_rout = orig->_pcode_getmagic_rout;
   _pcode_fetch_rout = orig->_pcode_fetch_rout;
-  _pcode_update_rout =  orig->_pcode_update_rout;
+  _pcode_updated_rout =  orig->_pcode_updated_rout;
   _pcode_step_rout =  orig->_pcode_step_rout;
 } // end MomPaylCode::MomPaylCode copying from origin
 
@@ -1730,7 +1725,7 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
     empaylinit->out() << " @CODEGETMAGIC!";
   if (py->_pcode_fetch_rout)
     empaylinit->out() << " @CODEFETCH!";
-  if (py->_pcode_update_rout)
+  if (py->_pcode_updated_rout)
     empaylinit->out() << " @CODEUPDATE!";
   if (py->_pcode_step_rout)
     empaylinit->out() << " @CODESTEP!";
@@ -1866,14 +1861,15 @@ MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*own, const MomO
   return nullptr;
 } // end MomPaylCode::Fetch
 
-void
-MomPaylCode::Update(struct MomPayload*payl, MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
+bool
+MomPaylCode::Updated(struct MomPayload*payl, MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
-             "MomPaylCode::Update invalid code payload for own=" << own);
-#warning incomplete MomPaylCode::Update
-} // end MomPaylCode::Update
+             "MomPaylCode::Updated invalid code payload for own=" << own);
+#warning incomplete MomPaylCode::Updated
+  return false;
+} // end MomPaylCode::Updated
 
 
 void

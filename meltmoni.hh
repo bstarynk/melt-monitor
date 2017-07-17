@@ -2223,14 +2223,14 @@ public:
   template <typename ... ArgPack>
   inline MomValue unsync_fetch_arg(const MomObject*pobattr, ArgPack... args);
   ///
-  inline void unsync_update_owner(MomObject*own,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen);
+  inline void unsync_update_target(MomObject*own,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen);
   inline void unsync_update(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
   {
-    unsync_update_owner(this,pobattr,vecarr,veclen);
+    unsync_update_target(this,pobattr,vecarr,veclen);
   };
   inline void unsync_update(const MomObject*pobattr, const std::vector<MomValue>&vec)
   {
-    unsync_update_owner(this,pobattr,vec.data(),vec.size());
+    unsync_update_target(this,pobattr,vec.data(),vec.size());
   };
   inline void unsync_update(const MomObject*pobattr, const std::initializer_list<MomValue>& il)
   {
@@ -2489,7 +2489,7 @@ typedef void MomPyv_loadfill_sig(struct MomPayload*payl,MomObject*own,MomLoader*
 // notice the depth argument below
 typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, int depth, bool *pgotit);
 typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgotit);
-typedef void MomPyv_update_sig(struct MomPayload*payl,MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
+typedef bool MomPyv_updated_sig(struct MomPayload*payl,MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
 typedef void MomPyv_step_sig(struct MomPayload*payl,MomObject*target,const MomValue*vecarr, unsigned veclen, int depth);
 //
 #define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
@@ -2510,7 +2510,7 @@ struct MomVtablePayload_st // explicit "vtable-like" of payload
   const MomPyv_loadfill_sig*const pyv_loadfill;
   const MomPyv_getmagic_sig*const pyv_getmagic;
   const MomPyv_fetch_sig*const pyv_fetch;
-  const MomPyv_update_sig*const pyv_update;
+  const MomPyv_updated_sig*const pyv_updated;
   const MomPyv_step_sig*const pyv_step;
   const void*const pyv__spare1;
   const void*const pyv__spare2;
@@ -2615,7 +2615,8 @@ struct MomPayload
     _py_proxy = proxob;
   };
   MomValue payl_getmagic_deep(MomObject*targetob, const MomObject*attrob, int depth, bool *pgot=nullptr);
-  MomValue payl_fetch_deep(MomObject*targetob,  const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgot=nullptr);
+  MomValue payl_fetch_deep(MomObject*targetob,  const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgot);
+  bool payl_updated_deep(MomObject*targetob, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
 
@@ -3746,7 +3747,7 @@ MomObject::unsync_fetch_arg(const MomObject*pobattr, ArgPack... args)
 ////
 
 inline void
-MomObject::unsync_update_owner(MomObject*own,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
+MomObject::unsync_update_target(MomObject*targetob,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
 {
   if (!vecarr)
     veclen=0;
@@ -3756,10 +3757,10 @@ MomObject::unsync_update_owner(MomObject*own,const MomObject*pobattr, const MomV
       const MomVtablePayload_st*pyvt = payl->_py_vtbl;
       MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
                  "unsync_update bad pyvt");
-      if (pyvt->pyv_update)
-        pyvt->pyv_update(payl,own,pobattr,vecarr,veclen,0);
+      payl->payl_updated_deep(targetob, pobattr, vecarr,veclen, 0);
+      return;
     };
-} // end MomObject::unsync_update_owner
+} // end MomObject::unsync_update_target
 
 template <typename ... ArgPack>
 inline void
@@ -3813,7 +3814,7 @@ public:
   // when these function return true, the proxy is used
   typedef bool MomCod_Getmagic_sig (MomValue*res, const struct MomPayload*payl,const MomObject*targetob,const MomObject*attrob);
   typedef bool MomCod_Fetch_sig(MomValue*res, const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
-  typedef bool MomCod_Update_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
+  typedef bool MomCod_Updated_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
 private:
   static std::mutex _pcode_modumtx_;
   static std::map<std::string,void*> _pcode_modudict_;
@@ -3831,10 +3832,10 @@ private:
 #define MOMCOD_FETCH(Base) MomC__##Base##__Fetch
   MomCod_Fetch_sig* _pcode_fetch_rout;
   ///
-  /// update conventionally named MomC__<base>__Update
-#define MOMCOD_SUFFIX_UPDATE "__Update"
-#define MOMCOD_UPDATE(Base) MomC__##Base##__Update
-  MomCod_Update_sig* _pcode_update_rout;
+  /// update conventionally named MomC__<base>__Updated
+#define MOMCOD_SUFFIX_UPDATE "__Updated"
+#define MOMCOD_UPDATE(Base) MomC__##Base##__Updated
+  MomCod_Updated_sig* _pcode_updated_rout;
   ///
   /// step conventionally named MomC__<base>__Step
 #define MOMCOD_SUFFIX_STEP "__Step"
@@ -3858,7 +3859,7 @@ public:
   static MomPyv_loadfill_sig Loadfill;
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
-  static MomPyv_update_sig Update;
+  static MomPyv_updated_sig Updated;
   static MomPyv_step_sig Step;
 }; // end class MomPaylCode
 

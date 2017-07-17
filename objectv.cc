@@ -708,6 +708,8 @@ MomPayload::payl_getmagic_deep(MomObject*targetob, const MomObject*attrob, int d
   bool got = false;
   MOM_ASSERT(targetob && targetob->vkind() == MomKind::TagObjectK, "payl_getmagic bad targetob");
   MOM_ASSERT(attrob && attrob->vkind() == MomKind::TagObjectK, "payl_getmagic bad attrob");
+  MOM_ASSERT(_py_vtbl && _py_vtbl->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
+             "payl_getmagic bad payload");
   if (depth >= MomPayload::_py_max_proxdepth_)
     MOM_FAILURE("too deep named getmagic targetob=" << MomShowObject(targetob) << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
                 << " owner=" << MomShowObject(owner()));
@@ -742,3 +744,92 @@ MomPayload::payl_getmagic_deep(MomObject*targetob, const MomObject*attrob, int d
     *pgot = false;
   return nullptr;
 } // end MomPayload::payl_getmagic_deep
+
+
+
+MomValue
+MomPayload::payl_fetch_deep(MomObject*targetob,  const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgot)
+{
+  MomValue res = nullptr;
+  if (!vecarr)
+    veclen = 0;
+  MOM_ASSERT(targetob && targetob->vkind() == MomKind::TagObjectK, "payl_getmagic bad targetob");
+  MOM_ASSERT(attrob && attrob->vkind() == MomKind::TagObjectK, "payl_getmagic bad attrob");
+  MOM_ASSERT(_py_vtbl && _py_vtbl->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
+             "payl_fetch bad payload");
+  MOM_ASSERT(pgot, "payl_fetch no pgot");
+  if (depth >= MomPayload::_py_max_proxdepth_)
+    MOM_FAILURE("too deep named fetch targetob=" << MomShowObject(targetob) << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
+                << " owner=" << MomShowObject(owner()));
+  if (_py_vtbl->pyv_fetch)
+    {
+      bool got = false;
+      res = _py_vtbl->pyv_fetch(this, targetob, attrob,
+                                vecarr, veclen, depth, &got);
+      if (got)
+        {
+          *pgot = true;
+          return res;
+        };
+    }
+  MomObject*pobproxy = _py_proxy;
+  if (pobproxy)
+    {
+      MOM_ASSERT(pobproxy->vkind() == MomKind::TagObjectK, "bad proxy");
+      std::lock_guard<std::recursive_mutex> gu{pobproxy->get_recursive_mutex()};
+      MomPayload*paylproxy = pobproxy->unsync_payload();
+      if (paylproxy)
+        {
+          bool got = false;
+          res = paylproxy->payl_fetch_deep(targetob, attrob,
+                                           vecarr, veclen,
+                                           depth+1, &got);
+          if (got)
+            {
+              *pgot = true;
+              return res;
+            }
+        }
+    }
+  *pgot = false;
+  return nullptr;
+} // end MomPayload::payl_fetch_deep
+
+
+
+bool
+MomPayload::payl_updated_deep(MomObject*targetob, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
+{
+
+  MOM_ASSERT(targetob && targetob->vkind() == MomKind::TagObjectK,
+             "payl_update_deep bad targetob");
+  MOM_ASSERT(attrob && attrob->vkind() == MomKind::TagObjectK,
+             "payl_update_deep bad attrob");
+  MOM_ASSERT(_py_vtbl && _py_vtbl->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
+             "payl_update bad payload");
+  if (depth >= MomPayload::_py_max_proxdepth_)
+    MOM_FAILURE("too deep named update targetob=" << MomShowObject(targetob) << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
+                << " owner=" << MomShowObject(owner()));
+  if (_py_vtbl->pyv_updated)
+    {
+      bool got = _py_vtbl->pyv_updated(this, targetob, attrob, vecarr, veclen, depth);
+      if (got)
+        {
+          return true;
+        }
+    }
+  MomObject*pobproxy = _py_proxy;
+  if (pobproxy)
+    {
+      MOM_ASSERT(pobproxy->vkind() == MomKind::TagObjectK, "bad proxy");
+      std::lock_guard<std::recursive_mutex> gu{pobproxy->get_recursive_mutex()};
+      MomPayload*paylproxy = pobproxy->unsync_payload();
+      if (paylproxy)
+        {
+          return paylproxy->payl_updated_deep(targetob, attrob,
+                                              vecarr, veclen,
+                                              depth+1);
+        }
+    };
+  return false;
+} // end MomPayload::payl_updated_deep
