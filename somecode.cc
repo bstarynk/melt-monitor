@@ -28,7 +28,7 @@ extern "C" bool MOMCOD_UPDATED(test1generator)
   MOM_ASSERT(py && py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "MOMCOD_UPDATED(test1generator) invalid code payload for targpob=" << targpob);
   MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(test1generator) targpob=" << MomShowObject(targpob)
-	       << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob)));
+               << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob)));
   MOM_WARNLOG("incomplete MOMCOD_UPDATED(test1generator) targob="<< targpob
               << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
               << MOM_SHOW_BACKTRACE("from MOMCOD_UPDATED(test1generator)"));
