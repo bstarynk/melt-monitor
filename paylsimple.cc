@@ -1580,9 +1580,6 @@ MomPaylCode::MomPaylCode(MomObject*own,  const std::string&bases, const std::str
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
     _pcode_stepped_rout(nullptr), _pcode_datavec()
 {
-  void* modh = load_module(mods);
-  if (!modh)
-    MOM_FAILURE("failed to load module " << mods << " for code base " << bases << " owned by " << own);
   _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(bases, MOMCOD_SUFFIX_GETMAGIC);
   _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(bases, MOMCOD_SUFFIX_FETCH);
   _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(bases, MOMCOD_SUFFIX_UPDATE);
@@ -1658,65 +1655,6 @@ MomPaylCode::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
 
 std::mutex MomPaylCode::_pcode_modumtx_;
 std::map<std::string,void*> MomPaylCode::_pcode_modudict_;
-
-void*
-MomPaylCode::load_module(const std::string& modname)
-{
-  if (modname.empty())
-    return mom_prog_dlhandle;
-  for (char c : modname)
-    if (!isalnum(c) && c != '_')
-      MOM_FAILURE("load_module: invalid modname " << modname);
-  std::lock_guard<std::mutex> gu(_pcode_modumtx_);
-  auto it = _pcode_modudict_.find(modname);
-  if (it != _pcode_modudict_.end())
-    return it->second;
-  std::string modudir{monimelt_directory};
-  modudir += "/modules/";
-  std::string moduso = modudir + "momg_" + modname + ".so";
-  std::string modccx = modudir + "momg_" + modname + ".cc";
-  std::string modqcc = modudir + "momg_" + modname + ".qcc";
-  if (::access(moduso.c_str(), F_OK))
-    {
-      MOM_WARNPRINTF("load_module no file %s (%m)", moduso.c_str());
-      return nullptr;
-    }
-  struct stat ccxstat = {};
-  struct stat qccstat = {};
-  struct stat sostat = {};
-  if (stat(moduso.c_str(), &sostat))
-    MOM_FATAPRINTF("load_module stat %s failed (%m)", moduso.c_str());
-  bool gotccx = !stat(modccx.c_str(), &ccxstat);
-  bool gotqcc = !stat(modqcc.c_str(), &qccstat);
-  if (gotccx && gotqcc)
-    {
-      MOM_WARNPRINTF("load_module module %s with both %s and %s", moduso.c_str(), modccx.c_str(), modqcc.c_str());
-      return nullptr;
-    }
-  else if (gotccx && ccxstat.st_mtime > sostat.st_mtime)
-    {
-      MOM_WARNPRINTF("load_module module %s older than C++ file %s", moduso.c_str(), modccx.c_str());
-      return nullptr;
-    }
-  else if (gotqcc && qccstat.st_mtime > sostat.st_mtime)
-    {
-      MOM_WARNPRINTF("load_module module %s older than QtC++ file %s", moduso.c_str(), modqcc.c_str());
-      return nullptr;
-    }
-  else if (!gotccx && !gotqcc)
-    MOM_WARNPRINTF("load_module module %s without source", moduso.c_str());
-  void *dlh = dlopen(moduso.c_str(), RTLD_GLOBAL | RTLD_NOW);
-  if (!dlh)
-    {
-      MOM_WARNPRINTF("load_module module %s dlopen failed: %s",
-                     moduso.c_str(), dlerror());
-      MOM_BACKTRACELOG("load_module module " << moduso << " dlopen failure");
-      return nullptr;
-    }
-  _pcode_modudict_[modname] = dlh;
-  MOM_INFORMPRINTF("load_module loaded %s", moduso.c_str());
-  return dlh;
-} // end MomPaylCode::load_module
 
 void*
 MomPaylCode::get_symbol(const std::string& basename, const char*suffix)

@@ -3845,7 +3845,6 @@ private:
   MomPaylCode(MomObject*own, MomLoader*ld, const std::string&bases, bool with_getmagic, bool with_fetch, bool with_update, bool with_step);
   ~MomPaylCode();
 public:
-  static void* load_module(const std::string& modname);
   static void* get_symbol(const std::string& basename, const char*suffix);
   MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods); // autodiscovering
   MomPaylCode(MomObject*own, MomPaylCode*orig); // copying from orig
