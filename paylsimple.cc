@@ -1756,7 +1756,7 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
                << " with_step=" << (with_step?"yes":"no"));
   if (!with_getmagic && !with_fetch && !with_update && !with_step)
     MOM_WARNLOG("MomPaylCode::Initload empty own=" << MomShowObject(own)
-		<< " basestr=" << basestr);
+                << " basestr=" << basestr);
   auto py = own->unsync_make_payload<MomPaylCode>(ld, basestr,
             with_getmagic, with_fetch, with_update, with_step);
   return py;

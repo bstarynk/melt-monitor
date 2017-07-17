@@ -27,11 +27,16 @@ extern "C" bool MOMCOD_UPDATED(test1generator)
   auto py = static_cast<MomPaylCode*>(const_cast<MomPayload*>(payl));
   MOM_ASSERT(py && py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "MOMCOD_UPDATED(test1generator) invalid code payload for targpob=" << targpob);
+  MomObject*ownpob = py->owner();
   MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(test1generator) targpob=" << MomShowObject(targpob)
+               << " ownpob=" << MomShowObject(ownpob)
                << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
+               << " args=" << MomShowVectorValues(vecarr, veclen)
                << MOM_SHOW_BACKTRACE("from MOMCOD_UPDATED(test1generator)"));
   MOM_WARNLOG("Incomplete MOMCOD_UPDATED(test1generator) targob="<< MomShowObject(targpob)
+              << " ownpob=" << MomShowObject(ownpob)
               << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
+              << " args=" << MomShowVectorValues(vecarr, veclen)
               << MOM_SHOW_BACKTRACE("from MOMCOD_UPDATED(test1generator)"));
 #warning incomplete  MOMCOD_UPDATED(test1generator)
   return false;

@@ -512,6 +512,7 @@ std::ostream& operator << (std::ostream& out, const MomShowObject sho)
   return out;
 }
 
+
 class MomShowBacktraceAt
 {
   const char*_sb_fil;
@@ -2023,6 +2024,40 @@ protected:
 
 
 
+class MomShowVectorValues
+{
+  std::vector<MomValue>_shvec;
+public:
+  explicit inline MomShowVectorValues(const MomValue*vecarr, unsigned veclen)
+    : _shvec()
+  {
+    if (vecarr && veclen>0)
+      {
+        _shvec.reserve(veclen);
+        for (unsigned ix=0; ix<veclen; ix++)
+          _shvec.push_back(vecarr[ix]);
+      };
+  }
+  explicit inline MomShowVectorValues(const std::vector<MomValue>& vec)
+    : MomShowVectorValues(vec.data(), (unsigned)vec.size()) {};
+  explicit inline MomShowVectorValues(const std::initializer_list<MomValue>& il)
+    : MomShowVectorValues(il.begin(), (unsigned)il.size()) {};
+  ~MomShowVectorValues()
+  {
+    _shvec.clear();
+  };
+  MomShowVectorValues(const MomShowVectorValues&src) : _shvec(src._shvec) {};
+  MomShowVectorValues(MomShowVectorValues&& src) : _shvec(std::move(src._shvec)) {};
+  void output(std::ostream& os) const; /// in nodev.cc
+}; // end MomShowVectorValues
+
+
+inline
+std::ostream& operator << (std::ostream& out, const MomShowVectorValues& shv)
+{
+  shv.output(out);
+  return out;
+}
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
 

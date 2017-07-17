@@ -154,3 +154,17 @@ MomNode::gc_todo_sweep_destroy_slot(MomGC*gc,unsigned slotix)
   curbag.unsync_bag_gc_delete_unmarked_values(gc);
   MOM_DEBUGLOG(garbcoll, "MomNode::gc_todo_sweep_destroy_slot end slotix=" << slotix);
 } // end MomNode::gc_todo_clear_mark_slot
+
+
+void
+MomShowVectorValues::output(std::ostream&out) const
+{
+  unsigned nbv = (unsigned) _shvec.size();
+  out << "|" << nbv << "!/| (";
+  for (unsigned ix = 0; ix<nbv; ix++)
+    {
+      out << std::endl;
+      out << "|#" << ix << ":| " << _shvec[ix];
+    }
+  out << ")" << std::endl;
+}
