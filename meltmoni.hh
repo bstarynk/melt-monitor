@@ -2490,7 +2490,7 @@ typedef void MomPyv_loadfill_sig(struct MomPayload*payl,MomObject*own,MomLoader*
 typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, int depth, bool *pgotit);
 typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgotit);
 typedef bool MomPyv_updated_sig(struct MomPayload*payl,MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
-typedef void MomPyv_step_sig(struct MomPayload*payl,MomObject*target,const MomValue*vecarr, unsigned veclen, int depth);
+typedef bool MomPyv_stepped_sig(struct MomPayload*payl,MomObject*target,const MomValue*vecarr, unsigned veclen, int depth);
 //
 #define MOM_PAYLOADVTBL_MAGIC 0x1aef1d65 /* 451878245 */
 /// a payloadvtbl named FOO is declared as mompyvtl_FOO
@@ -2511,7 +2511,7 @@ struct MomVtablePayload_st // explicit "vtable-like" of payload
   const MomPyv_getmagic_sig*const pyv_getmagic;
   const MomPyv_fetch_sig*const pyv_fetch;
   const MomPyv_updated_sig*const pyv_updated;
-  const MomPyv_step_sig*const pyv_step;
+  const MomPyv_stepped_sig*const pyv_step;
   const void*const pyv__spare1;
   const void*const pyv__spare2;
   const void*const pyv__spare3;
@@ -3819,7 +3819,6 @@ private:
   static std::mutex _pcode_modumtx_;
   static std::map<std::string,void*> _pcode_modudict_;
   const std::string _pcode_basename;
-  const std::string _pcode_moduname;
   /////////
 #define MOMCOD_PREFIX "MomC__"
   /// getmagic conventionally named MomC__<base>__GetMagic
@@ -3840,15 +3839,14 @@ private:
   /// step conventionally named MomC__<base>__Step
 #define MOMCOD_SUFFIX_STEP "__Step"
 #define MOMCOD_STEP(Base) MomC__##Base##__Update
-  MomPyv_step_sig* _pcode_step_rout;
+  MomPyv_stepped_sig* _pcode_stepped_rout;
   ////////
-  MomObject* _pcode_proxy;
   std::vector<MomValue> _pcode_datavec;
-  MomPaylCode(MomObject*own, MomLoader*ld, const std::string&bases, void*modh, const std::string&mods, bool with_getmagic, bool with_fetch, bool with_update, bool with_step);
+  MomPaylCode(MomObject*own, MomLoader*ld, const std::string&bases, bool with_getmagic, bool with_fetch, bool with_update, bool with_step);
   ~MomPaylCode();
 public:
   static void* load_module(const std::string& modname);
-  static void* get_symbol(void*dlh, const std::string& basename, const char*suffix);
+  static void* get_symbol(const std::string& basename, const char*suffix);
   MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods); // autodiscovering
   MomPaylCode(MomObject*own, MomPaylCode*orig); // copying from orig
   static MomPyv_destr_sig Destroy;
@@ -3860,7 +3858,7 @@ public:
   static MomPyv_getmagic_sig Getmagic;
   static MomPyv_fetch_sig Fetch;
   static MomPyv_updated_sig Updated;
-  static MomPyv_step_sig Step;
+  static MomPyv_stepped_sig Stepped;
 }; // end class MomPaylCode
 
 MomShowObject::MomShowObject(MomObject*pob)

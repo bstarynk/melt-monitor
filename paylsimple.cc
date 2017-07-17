@@ -178,7 +178,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(named) __attribute__((section("
   /**   .pyv_loadfill=   */       MomPaylNamed::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylNamed::Getmagic,
   /**   .pyv_fetch=      */       nullptr,
-  /**   .pyv_update=     */       nullptr,
+  /**   .pyv_updated=     */       nullptr,
   /**   .pyv_step=       */       nullptr,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
@@ -352,7 +352,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(set) __attribute__((section(".r
   /**   .pyv_loadfill=   */       MomPaylSet::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylSet::Getmagic,
   /**   .pyv_fetch=      */       MomPaylSet::Fetch,
-  /**   .pyv_update=     */       MomPaylSet::Updated,
+  /**   .pyv_updated=    */       MomPaylSet::Updated,
   /**   .pyv_step=       */       nullptr,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
@@ -1525,8 +1525,8 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(code) __attribute__((section(".
   /**   .pyv_loadfill=   */       MomPaylCode::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylCode::Getmagic,
   /**   .pyv_fetch=      */       MomPaylCode::Fetch,
-  /**   .pyv_update=     */       MomPaylCode::Updated,
-  /**   .pyv_step=       */       MomPaylCode::Step,
+  /**   .pyv_updated=    */       MomPaylCode::Updated,
+  /**   .pyv_stepped=    */       MomPaylCode::Stepped,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
   /**   .pyv_spare3=     */       nullptr,
@@ -1534,35 +1534,35 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(code) __attribute__((section(".
 
 MomRegisterPayload mompy_code(MOM_PAYLOADVTBL(code));
 
-MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, void*modh, const std::string&mods, bool with_getmagic, bool with_fetch, bool with_update, bool with_step)
+MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, bool with_getmagic, bool with_fetch, bool with_update, bool with_step)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
-    _pcode_basename(bases), _pcode_moduname(mods),
+    _pcode_basename(bases),
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
-    _pcode_step_rout(nullptr), _pcode_datavec()
+    _pcode_stepped_rout(nullptr), _pcode_datavec()
 {
   if (with_getmagic)
     {
-      _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_GETMAGIC);
+      _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(bases, MOMCOD_SUFFIX_GETMAGIC);
       if (!_pcode_getmagic_rout)
         MOM_FATALOG("get_symbol failed for getmagic of " << own);
     }
   if (with_fetch)
     {
-      _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_FETCH);
+      _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(bases, MOMCOD_SUFFIX_FETCH);
       if (!_pcode_fetch_rout)
         MOM_FATALOG("get_symbol failed for fetch of " << own);
     }
   if (with_update)
     {
-      _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_UPDATE);
+      _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(bases, MOMCOD_SUFFIX_UPDATE);
       if (!_pcode_updated_rout)
         MOM_FATALOG("get_symbol failed for update of " << own);
     }
   if (with_step)
     {
-      _pcode_step_rout =  (MomPyv_step_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_STEP);
-      if (!_pcode_step_rout)
-        MOM_FATALOG("get_symbol failed for step of " << own);
+      _pcode_stepped_rout =  (MomPyv_stepped_sig*)get_symbol(bases, MOMCOD_SUFFIX_STEP);
+      if (!_pcode_stepped_rout)
+        MOM_FATALOG("get_symbol failed for stepped of " << own);
     }
 } // end MomPaylCode::MomPaylCode for loading
 
@@ -1570,37 +1570,37 @@ MomPaylCode::~MomPaylCode()
 {
   _pcode_getmagic_rout = nullptr;
   _pcode_updated_rout = nullptr;
-  _pcode_step_rout = nullptr;
+  _pcode_stepped_rout = nullptr;
   _pcode_datavec.clear();
 } // end MomPaylCode::~MomPaylCode
 
 MomPaylCode::MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
-    _pcode_basename(bases), _pcode_moduname(mods),
+    _pcode_basename(bases),
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
-    _pcode_step_rout(nullptr), _pcode_datavec()
+    _pcode_stepped_rout(nullptr), _pcode_datavec()
 {
   void* modh = load_module(mods);
   if (!modh)
     MOM_FAILURE("failed to load module " << mods << " for code base " << bases << " owned by " << own);
-  _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_GETMAGIC);
-  _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_FETCH);
-  _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_UPDATE);
-  _pcode_step_rout =  (MomPyv_step_sig*)get_symbol(modh, bases, MOMCOD_SUFFIX_STEP);
+  _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(bases, MOMCOD_SUFFIX_GETMAGIC);
+  _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(bases, MOMCOD_SUFFIX_FETCH);
+  _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(bases, MOMCOD_SUFFIX_UPDATE);
+  _pcode_stepped_rout =  (MomPyv_stepped_sig*)get_symbol(bases, MOMCOD_SUFFIX_STEP);
 } // end  MomPaylCode::MomPaylCode for autodiscovering
 
 MomPaylCode::MomPaylCode(MomObject*own, MomPaylCode*orig)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
-    _pcode_basename(orig?orig->_pcode_basename:nullptr), _pcode_moduname(orig?orig->_pcode_moduname:nullptr),
+    _pcode_basename(orig?orig->_pcode_basename:nullptr),
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
-    _pcode_step_rout(nullptr), _pcode_datavec()
+    _pcode_stepped_rout(nullptr), _pcode_datavec()
 {
   if (orig == nullptr || orig->_py_vtbl !=   &MOM_PAYLOADVTBL(code))
     MOM_FAILURE("bad origin for code owned by " << own);
   _pcode_getmagic_rout = orig->_pcode_getmagic_rout;
   _pcode_fetch_rout = orig->_pcode_fetch_rout;
   _pcode_updated_rout =  orig->_pcode_updated_rout;
-  _pcode_step_rout =  orig->_pcode_step_rout;
+  _pcode_stepped_rout =  orig->_pcode_stepped_rout;
 } // end MomPaylCode::MomPaylCode copying from origin
 
 
@@ -1629,7 +1629,29 @@ MomPaylCode::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
 {
   auto py = static_cast<const MomPaylCode*>(payl);
   MOM_DEBUGLOG(dump, "MomPaylCode::Scandump own=" << own
-               << " proxy=" << py->_pcode_proxy);
+               << " proxy=" << py->proxy());
+  if (py->_pcode_getmagic_rout)
+    {
+      own->scan_dump_module_for
+      (du,
+       reinterpret_cast<void*>(py->_pcode_getmagic_rout));
+    };
+  if (py->_pcode_fetch_rout)
+    {
+      own->scan_dump_module_for
+      (du, reinterpret_cast<void*>(py->_pcode_fetch_rout));
+    };
+  if (py->_pcode_updated_rout)
+    {
+      own->scan_dump_module_for
+      (du, reinterpret_cast<void*>(py->_pcode_updated_rout));
+    };
+  if (py->_pcode_stepped_rout)
+    {
+      own->scan_dump_module_for
+      (du, reinterpret_cast<void*>(py->_pcode_stepped_rout));
+    };
+
   for (auto v : py->_pcode_datavec)
     v.scan_dump(du);
 } // end MomPaylCode::Scandump
@@ -1697,12 +1719,12 @@ MomPaylCode::load_module(const std::string& modname)
 } // end MomPaylCode::load_module
 
 void*
-MomPaylCode::get_symbol(void*dlh, const std::string& basename, const char*suffix)
+MomPaylCode::get_symbol(const std::string& basename, const char*suffix)
 {
   std::string fullnam{MOMCOD_PREFIX};
   fullnam += basename;
   fullnam += suffix;
-  return dlsym(dlh, fullnam.c_str());
+  return dlsym(mom_prog_dlhandle, fullnam.c_str());
 } // end  MomPaylCode::get_symbol
 
 void
@@ -1713,12 +1735,6 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
              "invalid code payload for own=" << own);
   MOM_DEBUGLOG(dump, "MomPaylCode::Emitdump own=" << own
                << " proxy=" << py->proxy());
-  if (!py->_pcode_moduname.empty())
-    {
-      empaylinit->out() << "@CODEMODULE: ";
-      empaylinit->emit_string(py->_pcode_moduname);
-      empaylinit->emit_newline(0);
-    }
   empaylinit->out() << "@CODEBASE: ";
   empaylinit->emit_string(py->_pcode_basename);
   if (py->_pcode_getmagic_rout)
@@ -1727,7 +1743,7 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
     empaylinit->out() << " @CODEFETCH!";
   if (py->_pcode_updated_rout)
     empaylinit->out() << " @CODEUPDATE!";
-  if (py->_pcode_step_rout)
+  if (py->_pcode_stepped_rout)
     empaylinit->out() << " @CODESTEP!";
   empaylinit->emit_newline(0);
   if (!py->_pcode_datavec.empty())
@@ -1761,13 +1777,6 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
   initpars.skip_spaces();
   std::string modustr;
   std::string basestr;
-  if (initpars.got_cstring("@CODEMODULE:"))
-    {
-      bool gotmodule = false;
-      modustr = initpars.parse_string(&gotmodule);
-      if (!gotmodule)
-        MOM_PARSE_FAILURE(&initpars, "missing module name for init of code object " << own);
-    }
   if (initpars.got_cstring("@CODEBASE:"))
     {
       bool gotbase = false;
@@ -1785,10 +1794,7 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
     with_update = true;
   if (initpars.got_cstring("@CODESTEP!"))
     with_step = true;
-  auto modh = load_module(modustr);
-  if (!modh)
-    MOM_FATALOG("missing module " << modustr << " for code object " << own);
-  auto py = own->unsync_make_payload<MomPaylCode>(ld,basestr, modh, modustr, with_getmagic, with_fetch, with_update, with_step);
+  auto py = own->unsync_make_payload<MomPaylCode>(ld,basestr,  with_getmagic, with_fetch, with_update, with_step);
   return py;
 } // end MomPaylEnvstack::Initload
 
@@ -1900,11 +1906,14 @@ MomPaylCode::Updated(struct MomPayload*payl, MomObject*targetob, const MomObject
 } // end MomPaylCode::Updated
 
 
-void
-MomPaylCode::Step(struct MomPayload*payl, MomObject*targetob, const MomValue*vecarr, unsigned veclen, int depth)
+bool
+MomPaylCode::Stepped(struct MomPayload*payl, MomObject*targetob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "MomPaylCode::Step invalid code payload for targetob=" << targetob);
+  if (py->_pcode_stepped_rout)
+    return py->_pcode_stepped_rout(py, targetob, vecarr, veclen, depth);
+  return false;
 #warning incomplete MomPaylCode::Step
-} // end MomPaylCode::Step
+} // end MomPaylCode::Stepped
