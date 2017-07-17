@@ -1546,25 +1546,25 @@ MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, boo
 {
   if (with_getmagic)
     {
-      _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(bases, MOMCOD_SUFFIX_GETMAGIC);
+      _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(this, bases, MOMCOD_SUFFIX_GETMAGIC);
       if (!_pcode_getmagic_rout)
         MOM_FATALOG("get_symbol failed for getmagic of " << own);
     }
   if (with_fetch)
     {
-      _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(bases, MOMCOD_SUFFIX_FETCH);
+      _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(this, bases, MOMCOD_SUFFIX_FETCH);
       if (!_pcode_fetch_rout)
         MOM_FATALOG("get_symbol failed for fetch of " << own);
     }
   if (with_update)
     {
-      _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(bases, MOMCOD_SUFFIX_UPDATED);
+      _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(this, bases, MOMCOD_SUFFIX_UPDATED);
       if (!_pcode_updated_rout)
         MOM_FATALOG("get_symbol failed for update of " << own);
     }
   if (with_step)
     {
-      _pcode_stepped_rout =  (MomPyv_stepped_sig*)get_symbol(bases, MOMCOD_SUFFIX_STEP);
+      _pcode_stepped_rout =  (MomPyv_stepped_sig*)get_symbol(this, bases, MOMCOD_SUFFIX_STEP);
       if (!_pcode_stepped_rout)
         MOM_FATALOG("get_symbol failed for stepped of " << own);
     }
@@ -1661,14 +1661,15 @@ std::mutex MomPaylCode::_pcode_modumtx_;
 std::map<std::string,void*> MomPaylCode::_pcode_modudict_;
 
 void*
-MomPaylCode::get_symbol(const std::string& basename, const char*suffix)
+MomPaylCode::get_symbol(MomPaylCode*py, const std::string& basename, const char*suffix)
 {
   std::string fullnam{MOMCOD_PREFIX};
   fullnam += basename;
   fullnam += suffix;
   void* ad = dlsym(mom_prog_dlhandle, fullnam.c_str());
+  MomObject* own = py?py->owner():nullptr;
   if (!ad)
-    MOM_FATALOG("paylcode dlsym " << fullnam.c_str()
+    MOM_FATALOG("paylcode dlsym " << fullnam.c_str() << " own=" << MomShowObject(own)
                 << " failure " << dlerror());
   return ad;
 } // end  MomPaylCode::get_symbol
