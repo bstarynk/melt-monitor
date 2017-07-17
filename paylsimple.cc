@@ -1673,8 +1673,7 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
              "invalid code payload for own=" << own);
   MOM_DEBUGLOG(dump, "MomPaylCode::Emitdump own=" << own
                << " proxy=" << py->proxy());
-  empaylinit->out() << "@CODEBASE: ";
-  empaylinit->emit_string(py->_pcode_basename);
+  empaylinit->out() << "@CODEBASE: " << py->_pcode_basename;
   if (py->_pcode_getmagic_rout)
     empaylinit->out() << " @CODEGETMAGIC!";
   if (py->_pcode_fetch_rout)
@@ -1721,8 +1720,8 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
       basestr = initpars.parse_name(&gotbase);
       if (!gotbase)
         MOM_PARSE_FAILURE(&initpars,
-			  "missing base name for init of code object " << own
-			  << " curbytes=" << MomShowString(initpars.curbytes()));
+                          "missing base name for init of code object " << own
+                          << " curbytes=" << MomShowString(initpars.curbytes()));
     }
   else
     MOM_PARSE_FAILURE(&initpars, "missing @CODEBASE: for init of code object " << own);
