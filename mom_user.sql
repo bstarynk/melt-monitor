@@ -207,8 +207,7 @@ INSERT INTO t_objects VALUES('_1TaJYE9mf5h_41UzXi1vTBb', 1500301533.05,
 
 ',
 'code', --- payl _1TaJYE9mf5h_41UzXi1vTBb
-'@CODEBASE: test1generator
-@CODEUPDATE!
+'@CODEBASE: test1generator @CODEUPDATE!
 ',
 '',
 '');--'--
