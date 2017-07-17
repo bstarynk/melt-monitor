@@ -1742,8 +1742,6 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
       empaylcont->out() << ")";
       empaylcont->emit_newline(0);
     }
-  /// should emit the content
-#warning incomplete MomPaylCode::Emitdump
 } // end MomPaylCode::Emitdump
 
 
@@ -1831,52 +1829,82 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
 } // end MomPaylCode::Loadfill
 
 MomValue
-MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth, bool *pgotit)
+MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*targetob, const MomObject*attrob, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylCode*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
-             "MomPaylCode::Getmagic invalid code payload for own=" << own);
+             "MomPaylCode::Getmagic invalid code payload for targetob=" << targetob);
+  MOM_ASSERT(targetob && targetob->vkind() == MomKind::TagObjectK, "paylcode getmagic bad targetob");
+  MOM_ASSERT(attrob && attrob->vkind() == MomKind::TagObjectK, "paylcode getmagic bad attrob");
+  MOM_ASSERT(pgotit, "paylcode getmagic bad pgotit");
   if (attrob == MOMP_proxy)
     {
-      if (pgotit)
-        *pgotit = true;
+      *pgotit = true;
       return py->proxy();
+    }
+  if (py->_pcode_getmagic_rout)
+    {
+      MomValue resval = nullptr;
+      bool got = py->_pcode_getmagic_rout(&resval, payl, targetob, attrob);
+      if (got)
+        {
+          *pgotit = true;
+          return resval;
+        }
     }
   if (pgotit)
     *pgotit = false;
-#warning incomplete MomPaylCode::Getmagic
   return nullptr;
 } // end MomPaylCode::Getmagic
 
 
 MomValue
-MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgotit)
+MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*targetob, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
-             "MomPaylCode::Fetch invalid code payload for own=" << own);
+             "MomPaylCode::Fetch invalid code payload for targetob=" << targetob);
+  MOM_ASSERT(targetob && targetob->vkind() == MomKind::TagObjectK, "paylcode fetch bad targetob");
+  MOM_ASSERT(attrob && attrob->vkind() == MomKind::TagObjectK, "paylcode fetch bad attrob");
   MOM_ASSERT(pgotit, "MomPaylCode::Fetch pgotit");
-#warning incomplete MomPaylCode::Fetch
+  if (py->_pcode_fetch_rout)
+    {
+      MomValue res = nullptr;
+      bool fetched = py->_pcode_fetch_rout(&res, payl, targetob, attrob, vecarr, veclen);
+      if (fetched)
+        {
+          *pgotit = true;
+          return res;
+        }
+    }
+  *pgotit = false;
   return nullptr;
 } // end MomPaylCode::Fetch
 
 bool
-MomPaylCode::Updated(struct MomPayload*payl, MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
+MomPaylCode::Updated(struct MomPayload*payl, MomObject*targetob, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
-             "MomPaylCode::Updated invalid code payload for own=" << own);
-#warning incomplete MomPaylCode::Updated
+             "MomPaylCode::Updated invalid code payload for targetob=" << targetob);
+  if (vecarr==nullptr)
+    veclen=0;
+  MOM_ASSERT(targetob && targetob->vkind() == MomKind::TagObjectK, "paylcode updated bad targetob");
+  MOM_ASSERT(attrob && attrob->vkind() == MomKind::TagObjectK, "paylcode updated bad attrob");
+  if (py->_pcode_updated_rout)
+    {
+      return py->_pcode_updated_rout(py, targetob, attrob, vecarr, veclen);
+    }
   return false;
 } // end MomPaylCode::Updated
 
 
 void
-MomPaylCode::Step(struct MomPayload*payl, MomObject*own, const MomValue*vecarr, unsigned veclen, int depth)
+MomPaylCode::Step(struct MomPayload*payl, MomObject*targetob, const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast<MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
-             "MomPaylCode::Step invalid code payload for own=" << own);
+             "MomPaylCode::Step invalid code payload for targetob=" << targetob);
 #warning incomplete MomPaylCode::Step
 } // end MomPaylCode::Step

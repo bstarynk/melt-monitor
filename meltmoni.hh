@@ -3813,7 +3813,7 @@ public:
   friend class MomObject;
   // when these function return true, the proxy is used
   typedef bool MomCod_Getmagic_sig (MomValue*res, const struct MomPayload*payl,const MomObject*targetob,const MomObject*attrob);
-  typedef bool MomCod_Fetch_sig(MomValue*res, const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
+  typedef bool MomCod_Fetch_sig(MomValue*res, const struct MomPayload*payl,const MomObject*targetob,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
   typedef bool MomCod_Updated_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
 private:
   static std::mutex _pcode_modumtx_;
