@@ -38,6 +38,16 @@ extern "C" bool MOMCOD_UPDATED(test1generator)
               << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
               << " args=" << MomShowVectorValues(vecarr, veclen)
               << MOM_SHOW_BACKTRACE("from MOMCOD_UPDATED(test1generator)"));
+  if (attrob == MOMP_start_generation && veclen == 1)
+    {
+      MomValue vstart = vecarr[0];
+      MomObject*pobstart = const_cast<MomObject*>(vstart.to_val()->as_object());
+      {
+        std::lock_guard<std::recursive_mutex> gu{pobstart->get_recursive_mutex()};
+        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(test1generator) start_generation pobstart=" << MomShowObject(pobstart)
+                     << " of paylname=" << pobstart->unsync_paylname());
+      }
+    }
 #warning incomplete  MOMCOD_UPDATED(test1generator)
   return false;
 } // end  MOMCOD_UPDATED(test1generator)
