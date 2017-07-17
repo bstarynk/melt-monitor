@@ -3851,7 +3851,8 @@ private:
   ~MomPaylCode();
 public:
   static void* get_symbol(MomPaylCode*py, const std::string& basename, const char*suffix);
-  static void* get_symbol(const std::string& basename, const char*suffix) {
+  static void* get_symbol(const std::string& basename, const char*suffix)
+  {
     return get_symbol(nullptr, basename, suffix);
   };
   MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods); // autodiscovering

@@ -1666,8 +1666,9 @@ MomPaylCode::get_symbol(MomPaylCode*py, const std::string& basename, const char*
   std::string fullnam{MOMCOD_PREFIX};
   fullnam += basename;
   fullnam += suffix;
-  void* ad = dlsym(mom_prog_dlhandle, fullnam.c_str());
   MomObject* own = py?py->owner():nullptr;
+  MOM_DEBUGLOG(gencod, "paylcod::get_symbol fullnam="<< MomShowString(fullnam) << " own=" << MomShowObject(own));
+  void* ad = dlsym(mom_prog_dlhandle, fullnam.c_str());
   if (!ad)
     MOM_FATALOG("paylcode dlsym " << fullnam.c_str() << " own=" << MomShowObject(own)
                 << " failure " << dlerror());
@@ -1734,17 +1735,32 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
     }
   else
     MOM_PARSE_FAILURE(&initpars, "missing @CODEBASE: for init of code object " << own);
+  initpars.skip_spaces();
   if (initpars.got_cstring("@CODEGETMAGIC!"))
     with_getmagic = true;
+  initpars.skip_spaces();
   if (initpars.got_cstring("@CODEFETCH!"))
     with_fetch = true;
+  initpars.skip_spaces();
   if (initpars.got_cstring("@CODEUPDATE!"))
     with_update = true;
+  initpars.skip_spaces();
   if (initpars.got_cstring("@CODESTEP!"))
     with_step = true;
-  auto py = own->unsync_make_payload<MomPaylCode>(ld,basestr,  with_getmagic, with_fetch, with_update, with_step);
+  initpars.skip_spaces();
+  MOM_DEBUGLOG(gencod, "MomPaylCode::Initload own=" << MomShowObject(own)
+               << " basestr=" << basestr
+               << " with_getmagic=" << (with_getmagic?"yes":"no")
+               << " with_fetch=" << (with_fetch?"yes":"no")
+               << " with_update=" << (with_update?"yes":"no")
+               << " with_step=" << (with_step?"yes":"no"));
+  if (!with_getmagic && !with_fetch && !with_update && !with_step)
+    MOM_WARNLOG("MomPaylCode::Initload empty own=" << MomShowObject(own)
+		<< " basestr=" << basestr);
+  auto py = own->unsync_make_payload<MomPaylCode>(ld, basestr,
+            with_getmagic, with_fetch, with_update, with_step);
   return py;
-} // end MomPaylEnvstack::Initload
+} // end MomPaylCode::Initload
 
 
 void
