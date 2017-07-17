@@ -145,6 +145,7 @@ mom_each_name_prefixed(const char*prefix,
     }
 } // end mom_each_name_prefixed
 
+
 const char*
 mom_get_unsync_name(const MomObject*obj)
 {
@@ -910,6 +911,7 @@ MomPaylGenfile::generated_strbuf_object(void)
   auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
   MOM_DEBUGLOG(gencod, "generated_strbuf_object pobown=" << MomShowObject(pobown)
                << " made pobuf=" << MomShowObject(pobuf)
+               << " before start_generation "
                << MOM_SHOW_BACKTRACE("generated_strbuf_object"));
   pobown->unsync_update_arg(MOMP_start_generation, pobuf);
   MOM_DEBUGLOG(gencod, "generated_strbuf_object after start_generation pobown=" << MomShowObject(pobown)
@@ -1737,6 +1739,7 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
   return py;
 } // end MomPaylEnvstack::Initload
 
+
 void
 MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*fills)
 {
@@ -1772,6 +1775,7 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
         MOM_PARSE_FAILURE(&fillpars, "missing rightparen after @CODEDATA of code object " << own);
     }
 } // end MomPaylCode::Loadfill
+
 
 MomValue
 MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*targetob, const MomObject*attrob, int depth, bool *pgotit)
