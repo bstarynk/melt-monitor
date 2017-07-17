@@ -3832,8 +3832,8 @@ private:
   MomCod_Fetch_sig* _pcode_fetch_rout;
   ///
   /// update conventionally named MomC__<base>__Updated
-#define MOMCOD_SUFFIX_UPDATE "__Updated"
-#define MOMCOD_UPDATE(Base) MomC__##Base##__Updated
+#define MOMCOD_SUFFIX_UPDATED "__Updated"
+#define MOMCOD_UPDATED(Base) MomC__##Base##__Updated
   MomCod_Updated_sig* _pcode_updated_rout;
   ///
   /// step conventionally named MomC__<base>__Step

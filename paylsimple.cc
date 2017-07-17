@@ -1554,7 +1554,7 @@ MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, boo
     }
   if (with_update)
     {
-      _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(bases, MOMCOD_SUFFIX_UPDATE);
+      _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(bases, MOMCOD_SUFFIX_UPDATED);
       if (!_pcode_updated_rout)
         MOM_FATALOG("get_symbol failed for update of " << own);
     }
@@ -1582,7 +1582,7 @@ MomPaylCode::MomPaylCode(MomObject*own,  const std::string&bases, const std::str
 {
   _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(bases, MOMCOD_SUFFIX_GETMAGIC);
   _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(bases, MOMCOD_SUFFIX_FETCH);
-  _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(bases, MOMCOD_SUFFIX_UPDATE);
+  _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(bases, MOMCOD_SUFFIX_UPDATED);
   _pcode_stepped_rout =  (MomPyv_stepped_sig*)get_symbol(bases, MOMCOD_SUFFIX_STEP);
 } // end  MomPaylCode::MomPaylCode for autodiscovering
 
@@ -1718,9 +1718,11 @@ MomPaylCode::Initload(MomObject*own, MomLoader*ld, char const*inits)
   if (initpars.got_cstring("@CODEBASE:"))
     {
       bool gotbase = false;
-      basestr = initpars.parse_string(&gotbase);
+      basestr = initpars.parse_name(&gotbase);
       if (!gotbase)
-        MOM_PARSE_FAILURE(&initpars, "missing base name for init of code object " << own);
+        MOM_PARSE_FAILURE(&initpars,
+			  "missing base name for init of code object " << own
+			  << " curbytes=" << MomShowString(initpars.curbytes()));
     }
   else
     MOM_PARSE_FAILURE(&initpars, "missing @CODEBASE: for init of code object " << own);
