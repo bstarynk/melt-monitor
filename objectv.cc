@@ -698,3 +698,47 @@ MomShowObject::output(std::ostream& os) const
     }
   else os << _shob;
 } // end MomShowObject::output
+
+
+
+MomValue
+MomPayload::payl_getmagic_deep(MomObject*targetob, const MomObject*attrob, int depth, bool *pgot)
+{
+  MomValue res = nullptr;
+  bool got = false;
+  MOM_ASSERT(targetob && targetob->vkind() == MomKind::TagObjectK, "payl_getmagic bad targetob");
+  MOM_ASSERT(attrob && attrob->vkind() == MomKind::TagObjectK, "payl_getmagic bad attrob");
+  if (depth >= MomPayload::_py_max_proxdepth_)
+    MOM_FAILURE("too deep named getmagic targetob=" << MomShowObject(targetob) << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
+                << " owner=" << MomShowObject(owner()));
+  if (_py_vtbl->pyv_getmagic)
+    {
+      res = _py_vtbl->pyv_getmagic(this, targetob, attrob, depth, &got);
+      if (got)
+        {
+          if (pgot)
+            *pgot = true;
+          return res;
+        }
+    };
+  MomObject*pobproxy = _py_proxy;
+  if (pobproxy)
+    {
+      MOM_ASSERT(pobproxy->vkind() == MomKind::TagObjectK, "bad proxy");
+      std::lock_guard<std::recursive_mutex> gu{pobproxy->get_recursive_mutex()};
+      MomPayload*paylproxy = pobproxy->unsync_payload();
+      if (paylproxy)
+        {
+          res = paylproxy->payl_getmagic_deep(targetob, attrob, depth+1, &got);
+          if (got)
+            {
+              if (pgot)
+                *pgot = true;
+              return res;
+            }
+        }
+    }
+  if (pgot)
+    *pgot = false;
+  return nullptr;
+} // end MomPayload::payl_getmagic_deep

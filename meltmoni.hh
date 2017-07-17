@@ -2486,7 +2486,7 @@ typedef void MomPyv_emitdump_sig(const struct MomPayload*payl,MomObject*own,MomD
 typedef MomPayload* MomPyv_initload_sig(MomObject*own,MomLoader*ld,const char*inits);
 typedef void MomPyv_loadfill_sig(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills);
 // notice the depth argument below
-typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, int depth);
+typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, int depth, bool *pgotit);
 typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
 typedef void MomPyv_update_sig(struct MomPayload*payl,MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
 typedef void MomPyv_step_sig(struct MomPayload*payl,MomObject*target,const MomValue*vecarr, unsigned veclen, int depth);
@@ -2613,26 +2613,7 @@ struct MomPayload
     MOM_ASSERT (!proxob || proxob->vkind() == MomKind::TagObjectK, "set_proxy bad proxob");
     _py_proxy = proxob;
   };
-  MomValue payl_getmagic_deep(MomObject*targetob, MomObject*attrob, int depth, bool *pgot=nullptr)
-  {
-    MOM_ASSERT(targetob && targetob->vkind() == MomKind::TagObjectK, "payl_getmagic bad targetob");
-    MOM_ASSERT(attrob && attrob->vkind() == MomKind::TagObjectK, "payl_getmagic bad attrob");
-    if (depth >= MomPayload::_py_max_proxdepth_)
-      MOM_FAILURE("too deep named getmagic targetob=" << MomShowObject(targetob) << " attrob=" << MomShowObject(attrob)
-                  << " owner=" << MomShowObject(owner()));
-    if (_py_vtbl->pyv_getmagic)
-      {
-        if (pgot)
-          *pgot = true;
-        return _py_vtbl->pyv_getmagic(this, targetob, attrob, depth);
-      }
-    else
-      {
-        if (pgot)
-          *pgot = false;
-        return nullptr;
-      }
-  }
+  MomValue payl_getmagic_deep(MomObject*targetob, const MomObject*attrob, int depth, bool *pgot=nullptr);
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
 
@@ -3722,11 +3703,13 @@ MomObject::unsync_get_magic_attr(const MomObject*pobattr) const
   auto payl = _ob_payl;
   if (payl)
     {
+      bool got=false;
       const MomVtablePayload_st*pyvt = payl->_py_vtbl;
       MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
                  "unsync_get_magic_attr bad pyvt");
-      if (pyvt->pyv_getmagic)
-        return pyvt->pyv_getmagic(payl,this,pobattr,0);
+      MomValue val = payl->payl_getmagic_deep(const_cast<MomObject*>(this),pobattr,0,&got);
+      if (got)
+        return val;
     };
   return nullptr;
 } // end MomObject::unsync_get_magic_attr

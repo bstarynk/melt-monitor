@@ -3453,21 +3453,26 @@ MomPaylMainWindow::Destroy(struct MomPayload*payl,MomObject*own)
 
 
 MomValue
-MomPaylMainWindow::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, int depth)
+MomPaylMainWindow::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, int depth, bool *pgot)
 {
   auto py = static_cast<const MomPaylMainWindow*>(payl);
   MomObject*proxob = nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(main_window),
              "MomPaylMainWindow::Getmagic invalid main_win payload for own=" << own);
   if (attrob == MOMP_int)
-    return py->_pymw_win?py->_pymw_win->rank():0;
-  else if (attrob == MOMP_proxy)
-    return py->_pymw_proxy;
-  else if ((proxob=py->_pymw_proxy) != nullptr)
     {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      return proxob->unsync_get_magic_attr(attrob);
+      if (pgot)
+        *pgot = true;;
+      return py->_pymw_win?py->_pymw_win->rank():0;
     }
+  else if (attrob == MOMP_proxy)
+    {
+      if (pgot)
+        *pgot = true;
+      return py->_py_proxy;
+    }
+  if (pgot)
+    *pgot = false;
   return nullptr;
 } // end of MomPaylMainWindow::Getmagic
 

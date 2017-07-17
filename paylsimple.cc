@@ -261,7 +261,7 @@ MomPaylNamed::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const c
 
 
 MomValue
-MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*targetob,const MomObject*attrob, int depth)
+MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*targetob,const MomObject*attrob, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylNamed*>(payl);
   if (depth >= MomPayload::_py_max_proxdepth_)
@@ -271,19 +271,19 @@ MomPaylNamed::Getmagic (const struct MomPayload*payl,const MomObject*targetob,co
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(named),
              "MomPaylNamed::Getmagic invalid named payload for own=" << payl->owner());
   if (attrob == MOMP_name)
-    return MomString::make_from_string(py->_nam_str);
-  else if (attrob == MOMP_proxy)
-    return py->proxy();
-  else if ((proxob=py->proxy()) != nullptr)
     {
-#warning MomPaylNamed::Getmagic wrong code here
-      /*
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      MomPayload*proxpayl = proxob->unsync_payload();
-      if (proxpayl)
-      return proxpayl->payl_getmagic_deep(targetob, attrob, depth+1);
-      */
+      if (pgotit)
+        *pgotit = true;
+      return MomString::make_from_string(py->_nam_str);
     }
+  else if (attrob == MOMP_proxy)
+    {
+      if (pgotit)
+        *pgotit = true;
+      return py->proxy();
+    }
+  if (pgotit)
+    *pgotit = false;
   return nullptr;
 } // end   MomPaylNamed::Getmagic
 
@@ -447,23 +447,32 @@ MomPaylSet::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const cha
 
 
 MomValue
-MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, int depth)
+MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylSet*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
              "MomPaylSet::Getmagic invalid set payload for own=" << own);
   if (attrob == MOMP_size)
-    return MomValue{(intptr_t)(py->_pset_set.size())};
-  else if (attrob == MOMP_set)
-    return MomSet::make_from_objptr_set(py->_pset_set);
-  else if (attrob == MOMP_proxy)
-    return py->proxy();
-  else if ((proxob=py->proxy()) != nullptr)
     {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      return proxob->unsync_get_magic_attr(attrob);
+      if (pgotit)
+        *pgotit = true;
+      return MomValue{(intptr_t)(py->_pset_set.size())};
     }
+  else if (attrob == MOMP_set)
+    {
+      if (pgotit)
+        *pgotit = true;
+      return MomSet::make_from_objptr_set(py->_pset_set);
+    }
+  else if (attrob == MOMP_proxy)
+    {
+      if (pgotit)
+        *pgotit = true;
+      return py->proxy();
+    }
+  if (pgotit)
+    *pgotit = false;
   return nullptr;
 } // end   MomPaylSet::Getmagic
 
@@ -701,21 +710,26 @@ MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
 
 
 MomValue
-MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, int depth)
+MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylStrobuf*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
              "MomPaylStrobuf::Getmagic invalid strobuf payload for own=" << own);
   if (attrob == MOMP_size)
-    return MomValue{(intptr_t)(const_cast<MomPaylStrobuf*>(py)->_pstrobuf_out.tellp())};
-  else if (attrob == MOMP_proxy)
-    return py->proxy();
-  else if ((proxob=py->proxy()) != nullptr)
     {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      return proxob->unsync_get_magic_attr(attrob);
+      if (pgotit)
+        *pgotit = true;
+      return MomValue{(intptr_t)(const_cast<MomPaylStrobuf*>(py)->_pstrobuf_out.tellp())};
     }
+  else if (attrob == MOMP_proxy)
+    {
+      if (pgotit)
+        *pgotit = true;
+      return py->proxy();
+    }
+  if (pgotit)
+    *pgotit = false;
   return nullptr;
 } // end   MomPaylStrobuf::Getmagic
 
@@ -1005,19 +1019,20 @@ MomPaylGenfile::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
 
 
 MomValue
-MomPaylGenfile::Getmagic (const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth)
+MomPaylGenfile::Getmagic (const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylGenfile*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
              "MomPaylGenfile::Getmagic invalid genfile payload for own=" << own);
   if (attrob == MOMP_proxy)
-    return py->proxy();
-  else if ((proxob=py->proxy()) != nullptr)
     {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      return proxob->unsync_get_magic_attr(attrob);
+      if (pgotit)
+        *pgotit = true;
+      return py->proxy();
     }
+  if (pgotit)
+    *pgotit = false;
   return nullptr;
 #warning incomplete MomPaylGenfile::Getmagic
 } // end MomPaylGenfile::Getmagic
@@ -1477,19 +1492,20 @@ MomPaylEnvstack::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char con
 } // end MomPaylEnvstack::Loadfill
 
 MomValue
-MomPaylEnvstack::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth)
+MomPaylEnvstack::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylEnvstack*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(envstack),
              "MomPaylEnvstack::Getmagic invalid envstack payload for own=" << own);
   if (attrob == MOMP_proxy)
-    return py->proxy();
-  else if ((proxob=py->proxy()) != nullptr)
     {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      return proxob->unsync_get_magic_attr(attrob);
+      if (pgotit)
+        *pgotit = true;
+      return py->proxy();
     }
+  if (pgotit)
+    *pgotit = false;
   return nullptr;
 } // end MomPaylEnvstack::Getmagic
 
@@ -1829,14 +1845,20 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
 } // end MomPaylCode::Loadfill
 
 MomValue
-MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth)
+MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylCode*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "MomPaylCode::Getmagic invalid code payload for own=" << own);
   if (attrob == MOMP_proxy)
-    return py->proxy();
+    {
+      if (pgotit)
+        *pgotit = true;
+      return py->proxy();
+    }
+  if (pgotit)
+    *pgotit = false;
 #warning incomplete MomPaylCode::Getmagic
   return nullptr;
 } // end MomPaylCode::Getmagic
