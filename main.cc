@@ -971,13 +971,14 @@ mom_warnprintf_at (const char *fil, int lin, const char *fmt, ...)
     }
   else
     {
+      bool termerr = isatty(STDERR_FILENO);
       if (err)
-        fprintf (stderr, "MONIMELT WARNING#%d @%s:%d <%s:%d> %s %s (%s)\n",
-                 nbwarn, fil, lin, thrname, (int) mom_gettid (), timbuf,
+        fprintf (stderr, "MONIMELT %sWARNING#%d%s @%s:%d <%s:%d> %s %s (%s)\n",
+                 termerr?MOMTTY_ITALIC:"", nbwarn, termerr?MOMTTY_NORMAL:"", fil, lin, thrname, (int) mom_gettid (), timbuf,
                  msg, strerror (err));
       else
-        fprintf (stderr, "MONIMELT WARNING#%d @%s:%d <%s:%d> %s %s\n",
-                 nbwarn, fil, lin, thrname, (int) mom_gettid (), timbuf, msg);
+        fprintf (stderr, "MONIMELT %sWARNING#%d%s @%s:%d <%s:%d> %s %s\n",
+                 termerr?MOMTTY_ITALIC:"", nbwarn,  termerr?MOMTTY_NORMAL:"", fil, lin, thrname, (int) mom_gettid (), timbuf, msg);
       fflush (nullptr);
     }
   if (bigbuf)
@@ -1032,12 +1033,15 @@ mom_fataprintf_at (const char *fil, int lin, const char *fmt, ...)
     }
   else
     {
+      bool errterm = isatty(STDERR_FILENO);
       if (err)
-        fprintf (stderr, "MONIMELT FATAL @%s:%d <%s:%d> %s %s (%s)\n",
+        fprintf (stderr, "MONIMELT %sFATAL%s @%s:%d <%s:%d> %s %s (%s)\n",
+                 errterm?MOMTTY_BOLD:"", errterm?MOMTTY_NORMAL:"",
                  fil, lin, thrname, (int) mom_gettid (), timbuf,
                  msg, strerror (err));
       else
-        fprintf (stderr, "MONIMELT FATAL @%s:%d <%s:%d> %s %s\n",
+        fprintf (stderr, "MONIMELT %sFATAL%s @%s:%d <%s:%d> %s %s\n",
+                 errterm?MOMTTY_BOLD:"", errterm?MOMTTY_NORMAL:"",
                  fil, lin, thrname, (int) mom_gettid (), timbuf, msg);
       fflush (nullptr);
     }
