@@ -2211,10 +2211,10 @@ public:
   void unsync_clear_all();
   inline MomValue unsync_get_magic_attr(const MomObject*pobattr) const;
   ///
-  inline MomValue unsync_fetch_owner(MomObject*ob,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen, int depth=0);
+  inline MomValue unsync_fetch_target(MomObject*targpob,const MomObject*pobattr, const MomValue*vecarr, unsigned veclen, int depth=0);
   inline MomValue unsync_fetch(const MomObject*pobattr, const MomValue*vecarr, unsigned veclen)
   {
-    return unsync_fetch_owner(this, pobattr, vecarr, veclen, 0);
+    return unsync_fetch_target(this, pobattr, vecarr, veclen, 0);
   };
   inline MomValue unsync_fetch(const MomObject*pobattr, const std::initializer_list<MomValue>& il)
   {
@@ -2485,9 +2485,10 @@ typedef void MomPyv_scandump_sig(const struct MomPayload*payl,MomObject*own,MomD
 typedef void MomPyv_emitdump_sig(const struct MomPayload*payl,MomObject*own,MomDumper*du, MomEmitter*empaylinit, MomEmitter*empaylcont);
 typedef MomPayload* MomPyv_initload_sig(MomObject*own,MomLoader*ld,const char*inits);
 typedef void MomPyv_loadfill_sig(struct MomPayload*payl,MomObject*own,MomLoader*ld,const char*fills);
+//////
 // notice the depth argument below
 typedef MomValue MomPyv_getmagic_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, int depth, bool *pgotit);
-typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
+typedef MomValue MomPyv_fetch_sig(const struct MomPayload*payl,const MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgotit);
 typedef void MomPyv_update_sig(struct MomPayload*payl,MomObject*target,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth);
 typedef void MomPyv_step_sig(struct MomPayload*payl,MomObject*target,const MomValue*vecarr, unsigned veclen, int depth);
 //
@@ -2614,6 +2615,7 @@ struct MomPayload
     _py_proxy = proxob;
   };
   MomValue payl_getmagic_deep(MomObject*targetob, const MomObject*attrob, int depth, bool *pgot=nullptr);
+  MomValue payl_fetch_deep(MomObject*targetob,  const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgot=nullptr);
 };    // end MomPayload
 ////////////////////////////////////////////////////////////////
 
@@ -3717,21 +3719,22 @@ MomObject::unsync_get_magic_attr(const MomObject*pobattr) const
 ////
 
 inline MomValue
-MomObject::unsync_fetch_owner(MomObject*owner, const MomObject*pobattr, const MomValue*vecarr, unsigned veclen, int depth)
+MomObject::unsync_fetch_target(MomObject*targpob, const MomObject*pobattr, const MomValue*vecarr, unsigned veclen, int depth)
 {
   if (!vecarr)
     veclen=0;
   auto payl = _ob_payl;
   if (payl)
     {
-      const MomVtablePayload_st*pyvt = payl->_py_vtbl;
-      MOM_ASSERT(pyvt && pyvt->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
-                 "unsync_fetch bad pyvt");
-      if (pyvt->pyv_fetch)
-        return pyvt->pyv_fetch(payl,owner,pobattr,vecarr,veclen,depth);
+      bool gotit = false;
+      MomValue val = payl->payl_fetch_deep(targpob, pobattr,
+                                           vecarr,veclen,
+                                           depth, &gotit);
+      if (gotit)
+        return val;
     };
   return nullptr;
-} // end MomObject::unsync_fetch_owner
+} // end MomObject::unsync_fetch_target
 
 template <typename ... ArgPack>
 inline MomValue

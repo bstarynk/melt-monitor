@@ -478,12 +478,13 @@ MomPaylSet::Getmagic (const struct MomPayload*payl,const MomObject*own,const Mom
 
 
 MomValue
-MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
+MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*targpob,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylSet*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(set),
-             "MomPaylSet::Fetch invalid set payload for own=" << own);
+             "MomPaylSet::Fetch invalid set payload for targpob=" << targpob << " own=" << py->owner());
+  MOM_ASSERT(pgotit, "MomPaylSet::Fetch no pgotit");
   if (attrob == MOMP_get)
     {
       auto elemval = vecarr[0].to_val();
@@ -491,15 +492,12 @@ MomPaylSet::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObje
         elemval
         ?const_cast<MomObject*>(elemval->to_object())
         :nullptr;
+      *pgotit = true;
       if (elemob && py->_pset_set.find(elemob) != py->_pset_set.end())
         return elemob;
       else return nullptr;
     };
-  if ((proxob=py->proxy()) != nullptr)
-    {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      return proxob->unsync_fetch_owner(const_cast<MomObject*>(own),attrob,vecarr,veclen);
-    }
+  *pgotit = false;
   return nullptr;
 } // end MomPaylSet::Fetch
 
@@ -735,20 +733,18 @@ MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const
 
 
 MomValue
-MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
+MomPaylStrobuf::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylStrobuf*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(strobuf),
              "MomPaylStrobuf::Fetch invalid strobuf payload for own=" << own);
+  MOM_ASSERT(pgotit, "MomPaylStrobuf::Fetch no pgotit");
   if (attrob == MOMP_get)
     {
+#warning MomPaylStrobuf::Fetch incomplete
     };
-  if ((proxob=py->proxy()) != nullptr)
-    {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
-      return proxob->unsync_fetch_owner(const_cast<MomObject*>(own),attrob,vecarr,veclen);
-    }
+  *pgotit = false;
   return nullptr;
 } // end MomPaylStrobuf::Fetch
 
@@ -1039,20 +1035,15 @@ MomPaylGenfile::Getmagic (const struct MomPayload*payl, const MomObject*own, con
 
 
 MomValue
-MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
+MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylGenfile*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
              "MomPaylGenfile::Fetch invalid genfile payload for own=" << own);
-  if (attrob == MOMP_get)
-    {
-    };
-  if ((proxob=py->proxy()) != nullptr)
-    {
-      std::lock_guard<std::recursive_mutex> gu{proxob->get_recursive_mutex()};
+  MOM_ASSERT(pgotit, "MomPaylGenfile::Fetch no pgotit");
 #warning incomplete MomPaylGenfile::Fetch
-    }
+  *pgotit = false;
   return nullptr;
 } // end MomPaylGenfile::Fetch
 
@@ -1511,7 +1502,7 @@ MomPaylEnvstack::Getmagic(const struct MomPayload*payl, const MomObject*own, con
 
 #warning several MomPaylEnvstack::* routines unimplemented
 MomValue
-MomPaylEnvstack::Fetch(MomPayload const*payl, MomObject const*own, MomObject const*attrob, MomValue const*vecarr, unsigned int veclen, int depth)
+MomPaylEnvstack::Fetch(MomPayload const*payl, MomObject const*own, MomObject const*attrob, MomValue const*vecarr, unsigned int veclen, int depth, bool *pgotit)
 {
 } // end MomPaylEnvstack::Fetch
 
@@ -1865,11 +1856,12 @@ MomPaylCode::Getmagic(const struct MomPayload*payl, const MomObject*own, const M
 
 
 MomValue
-MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth)
+MomPaylCode::Fetch(const struct MomPayload*payl, const MomObject*own, const MomObject*attrob, const MomValue*vecarr, unsigned veclen, int depth, bool *pgotit)
 {
   auto py = static_cast<const MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "MomPaylCode::Fetch invalid code payload for own=" << own);
+  MOM_ASSERT(pgotit, "MomPaylCode::Fetch pgotit");
 #warning incomplete MomPaylCode::Fetch
   return nullptr;
 } // end MomPaylCode::Fetch
