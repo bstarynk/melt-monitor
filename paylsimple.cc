@@ -817,6 +817,7 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
       break;
     case MomKind::TagNodeK:
     {
+      MOM_DEBUGLOG(gencod, "MomPaylStrobuf::output_value_to_buffer node v=" << v);
       auto nodv = v->as_node();
       MomObject* connob = nodv->conn();
       MomValue connoutv;
@@ -826,6 +827,12 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
       }
       MOM_DEBUGLOG(gencod, "MomPaylStrobuf::output_value_to_buffer owner=" << owner()
                    << " v=" << v << " connoutv=" << connoutv);
+      if (!connoutv || !connoutv->is_object())
+	MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner="
+		    << owner()
+                    << " depth=" << depth << " ctx=" << ctxob
+                    << " bad connoutv=" << connoutv
+		    << " for v=" << v);
       MomObject* coutob = const_cast<MomObject*>(connoutv->as_object());
       if (!coutob)
         MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()

@@ -166,5 +166,5 @@ MomShowVectorValues::output(std::ostream&out) const
       out << std::endl;
       out << "|#" << ix << ":| " << _shvec[ix];
     }
-  out << ")" << std::endl;
+  out << " )" << std::endl;
 }
