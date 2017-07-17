@@ -1045,39 +1045,41 @@ MomPaylGenfile::Fetch(const struct MomPayload*payl,const MomObject*own,const Mom
 
 
 bool
-MomPaylGenfile::Updated(struct MomPayload*payl,MomObject*own,const MomObject*attrob,
+MomPaylGenfile::Updated(struct MomPayload*payl,MomObject*targetob,const MomObject*attrob,
                         const MomValue*vecarr, unsigned veclen, int depth)
 {
   auto py = static_cast< MomPaylGenfile*>(payl);
   MomObject*proxob=nullptr;
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(genfile),
-             "MomPaylGenfile::Updated invalid genfile payload for own=" << own);
+             "MomPaylGenfile::Updated invalid genfile payload for targetob=" << targetob);
+  MOM_DEBUGLOG(gencod, "genfile update targetob=" << MomShowObject(targetob)
+               << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob)));
   if (attrob == MOMP_emit)
     {
       if (veclen>0)
         MOM_FAILURE("genfile update emit got " << veclen << " arguments wanted none");
       auto pobuf = py->generated_strbuf_object();
-      MOM_DEBUGLOG(gencod, "genfile update emit own=" << MomShowObject(own) << " pobuf=" << MomShowObject(pobuf));
+      MOM_DEBUGLOG(gencod, "genfile update emit targetob=" << MomShowObject(targetob) << " pobuf=" << MomShowObject(pobuf));
       std::lock_guard<std::recursive_mutex> gu{pobuf->get_recursive_mutex()};
       auto pystrobuf = pobuf->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
       MOM_ASSERT(pystrobuf != nullptr, "genfile update emit bad pystrobuf for pobuf=" << pobuf);
-      pystrobuf->unsync_output_all_to_buffer(own);
+      pystrobuf->unsync_output_all_to_buffer(targetob);
       std::string pathstr = py->_pgenfile_pathstr;
       {
         std::string tempathstr = pathstr + mom_random_temporary_file_suffix();
         MOM_DEBUGLOG(gencod, "genfile update emit tempathstr=" << tempathstr << " pobuf=" << pobuf);
         std::ofstream out(tempathstr);
         if (!out)
-          MOM_WARNLOG("genfile update emit  own=" << own << " failed to open tempathstr="
+          MOM_WARNLOG("genfile update emit targetob=" << targetob << " failed to open tempathstr="
                       << tempathstr << " (" << strerror(errno) << ")");
         auto bfstr = pystrobuf->buffer_string();
         out.write(bfstr.c_str(), bfstr.size());
         out.close();
         bool same = mom_rename_file_if_changed(tempathstr, pathstr, true);
         if (same)
-          MOM_INFORMLOG("genfile update emit own=" << MomShowObject(own) << " unchanged file " << pathstr);
+          MOM_INFORMLOG("genfile update emit targetob=" << MomShowObject(targetob) << " unchanged file " << pathstr);
         else
-          MOM_INFORMLOG("genfile update emit own=" << MomShowObject(own) << " updated file " << pathstr);
+          MOM_INFORMLOG("genfile update emit targetob=" << MomShowObject(targetob) << " updated file " << pathstr);
       }
       return true;
     }
