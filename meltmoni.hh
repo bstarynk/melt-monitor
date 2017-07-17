@@ -173,6 +173,11 @@ void mom_output_gplv3_notice (FILE *out, const char *prefix,
                               const char *suffix, const char *filename);
 
 
+/// see https://en.wikipedia.org/wiki/ANSI_escape_code
+#define MOMTTY_BOLD "\033[1m"
+#define MOMTTY_ITALIC "\033[3m"
+#define MOMTTY_NORMAL "\033[0m"
+
 void
 mom_fataprintf_at (const char *fil, int lin, const char *fmt, ...)
 __attribute__ ((format (printf, 3, 4), noreturn));
