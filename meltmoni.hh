@@ -2409,6 +2409,7 @@ public:
   {
     return _ob_payl;
   }
+  std::string unsync_paylname() const; /// in objectv.cc
   template<class PaylClass, typename...ArgsType> PaylClass* unsync_make_payload(ArgsType... args)
   {
     unsync_clear_payload();

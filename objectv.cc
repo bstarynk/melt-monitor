@@ -833,3 +833,18 @@ MomPayload::payl_updated_deep(MomObject*targetob, const MomObject*attrob, const 
     };
   return false;
 } // end MomPayload::payl_updated_deep
+
+
+std::string
+MomObject::unsync_paylname() const
+{
+  std::string nam = "";
+  if (_ob_payl)
+    {
+      MOM_ASSERT(_ob_payl->_py_vtbl && _ob_payl->_py_vtbl->pyv_magic == MOM_PAYLOADVTBL_MAGIC,
+                 "bad payload in " << this);
+      nam= _ob_payl->_py_vtbl->pyv_name;
+    }
+  else nam = "*nopayl*";
+  return nam;
+}
