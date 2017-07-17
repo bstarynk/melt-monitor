@@ -1666,7 +1666,11 @@ MomPaylCode::get_symbol(const std::string& basename, const char*suffix)
   std::string fullnam{MOMCOD_PREFIX};
   fullnam += basename;
   fullnam += suffix;
-  return dlsym(mom_prog_dlhandle, fullnam.c_str());
+  void* ad = dlsym(mom_prog_dlhandle, fullnam.c_str());
+  if (!ad)
+    MOM_FATALOG("paylcode dlsym " << fullnam.c_str()
+		<< " failure " << dlerror());
+  return ad;
 } // end  MomPaylCode::get_symbol
 
 void
@@ -1756,6 +1760,9 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
   fillpars.set_loader_for_object(ld, own, "Code fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
+  if (!py->_pcode_getmagic_rout && !py->_pcode_fetch_rout && !py->_pcode_updated_rout && !py->_pcode_stepped_rout)
+    MOM_WARNLOG("loaded paylcode owned by " << MomShowObject(own)
+		<< " has no routines");
   if (fillpars.got_cstring("@CODEDATA"))
     {
       bool gotsize = false;
