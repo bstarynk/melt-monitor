@@ -1,4 +1,4 @@
--- dump 2017 Jul 14 from mom_global dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jul 18 from mom_global dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -54,6 +54,7 @@ INSERT INTO t_names VALUES ('_2QeF5dreQwf_51c3fAJEYqJ', 'emit');
 INSERT INTO t_names VALUES ('_7QeFDN33m7B_3dQv2OqqbH6', 'get');
 INSERT INTO t_names VALUES ('_0vgCFjXblkx_4zCMhMAWjVK', 'int');
 INSERT INTO t_names VALUES ('_45cnnX4v29t_9gZkfMOZj2Z', 'intsq');
+INSERT INTO t_names VALUES ('_1cstd9Sn6qZ_8NZPx7Zvm7T', 'mom_predef_file');
 INSERT INTO t_names VALUES ('_1jJjA6LcXiX_1V4ZcXlje09', 'name');
 INSERT INTO t_names VALUES ('_7D8xcWnEiys_8oqOVSkCxkA', 'node');
 INSERT INTO t_names VALUES ('_1JSykdLcLdl_8rWxtDBaPGN', 'none');
@@ -106,6 +107,18 @@ INSERT INTO t_objects VALUES('_1JSykdLcLdl_8rWxtDBaPGN', 1497636292.47,
 '',
 '');--'--
 ------'** end _1JSykdLcLdl_8rWxtDBaPGN
+
+
+INSERT INTO t_objects VALUES('_1cstd9Sn6qZ_8NZPx7Zvm7T', 1500351226.97,
+'
+///$mom_predef_file
+
+',
+'named', --- payl _1cstd9Sn6qZ_8NZPx7Zvm7T
+'mom_predef_file',
+'',
+'');--'--
+------'** end _1cstd9Sn6qZ_8NZPx7Zvm7T
 
 
 INSERT INTO t_objects VALUES('_1jJjA6LcXiX_1V4ZcXlje09', 1493382726.98,
@@ -248,9 +261,10 @@ INSERT INTO t_objects VALUES('_4w339hT5dXd_1tUZFvU4fWx', 1495430034.89,
 ------'** end _4w339hT5dXd_1tUZFvU4fWx
 
 
-INSERT INTO t_objects VALUES('_5Wnb8RZdglo_9jkLPwTffMm', 1499684428.68,
+INSERT INTO t_objects VALUES('_5Wnb8RZdglo_9jkLPwTffMm', 1500351215.97,
 '
 ///$the_system
+@: _3xRwKNR8Txl_0wsckeKslWS [_1cstd9Sn6qZ_8NZPx7Zvm7T]
 
 ',
 'named', --- payl _5Wnb8RZdglo_9jkLPwTffMm
