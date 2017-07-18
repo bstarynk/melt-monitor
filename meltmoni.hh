@@ -3859,8 +3859,6 @@ public:
   typedef bool MomCod_Fetch_sig(MomValue*res, const struct MomPayload*payl,const MomObject*targetob,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
   typedef bool MomCod_Updated_sig(const struct MomPayload*payl,const MomObject*own,const MomObject*attrob, const MomValue*vecarr, unsigned veclen);
 private:
-  static std::mutex _pcode_modumtx_;
-  static std::map<std::string,void*> _pcode_modudict_;
   const std::string _pcode_basename;
   /////////
 #define MOMCOD_PREFIX "MomC__"
@@ -3884,7 +3882,6 @@ private:
 #define MOMCOD_STEP(Base) MomC__##Base##__Update
   MomPyv_stepped_sig* _pcode_stepped_rout;
   ////////
-  std::vector<MomValue> _pcode_datavec;
   MomPaylCode(MomObject*own, MomLoader*ld, const std::string&bases, bool with_getmagic, bool with_fetch, bool with_update, bool with_step);
   ~MomPaylCode();
 public:

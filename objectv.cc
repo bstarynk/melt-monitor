@@ -687,16 +687,18 @@ MomShowObject::output(std::ostream& os) const
       return;
     }
   MOM_ASSERT(_shob->vkind() == MomKind::TagObjectK, "MomShowObject::output bad _shob");
-  std::string name;
-  {
-    std::lock_guard<std::recursive_mutex> gu{_shob->get_recursive_mutex()};
-    name = mom_get_unsync_string_name(_shob);
-  }
+  std::lock_guard<std::recursive_mutex> gu{_shob->get_recursive_mutex()};
+  std::string name = mom_get_unsync_string_name(_shob);
   if (!name.empty())
     {
       os << name << " |=" << _shob << "|";
     }
-  else os << _shob;
+  else if (_shob->unsync_payload()) {
+    std::string pyname = _shob->unsync_paylname();
+    os << _shob << " |:" << pyname << "%| ";
+  }
+  else
+    os << _shob;
 } // end MomShowObject::output
 
 

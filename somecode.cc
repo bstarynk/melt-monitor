@@ -70,18 +70,22 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
   auto py = static_cast<MomPaylCode*>(const_cast<MomPayload*>(payl));
   MOM_ASSERT(py && py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "MOMCOD_UPDATED(predefined_file_generator) invalid code payload for targpob=" << targpob);
+  // targpob would be the genfile proxy of mom_predefined_file
   MomObject*ownpob = py->owner();
-  MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) targpob="
-               << MomShowObject(targpob)
+  // ownpob would be the code proxy of mom_predefined_file
+  MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) start"
+	       << " targpob="  << MomShowObject(targpob)
                << " ownpob=" << MomShowObject(ownpob)
                << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
                << " args=" << MomShowVectorValues(vecarr, veclen));
+  // attrob could be start_generation
   if (attrob == MOMP_start_generation && veclen == 1)
     {
       MomValue vstart = vecarr[0];
       MomObject*pobstart = const_cast<MomObject*>(vstart.to_val()->as_object());
       if (!pobstart)
         MOM_FAILURE("MOMCOD_UPDATED(predefined_file_generator) bad vstart=" << vstart);
+      // pobstart would be the strobuf created by generated_strbuf_object
       {
         std::lock_guard<std::recursive_mutex> gustart{pobstart->get_recursive_mutex()};
         MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) start_generation pobstart=" << MomShowObject(pobstart)
@@ -98,7 +102,8 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
         std::lock_guard<std::recursive_mutex> gutarg{targpob->get_recursive_mutex()};
         MomValue comp0targ = targpob->unsync_get_nth_comp(0);
         MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) targpob=" << MomShowObject(targpob)
-                     << " with comp0targ=" << comp0targ);
+                     << " with comp0targ=" << comp0targ
+		     << std::endl);
 
         return true;
       }

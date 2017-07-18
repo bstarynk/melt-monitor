@@ -889,8 +889,7 @@ MomPaylGenfile::generated_strbuf_object(void)
   auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
   MOM_DEBUGLOG(gencod, "generated_strbuf_object pobown=" << MomShowObject(pobown)
                << " new pobuf=" << MomShowObject(pobuf)
-               << " before start_generation "
-               << MOM_SHOW_BACKTRACE("generated_strbuf_object"));
+               << " before start_generation");
   pobown->unsync_update_arg(MOMP_start_generation, pobuf);
   MOM_DEBUGLOG(gencod, "generated_strbuf_object after start_generation pobown=" << MomShowObject(pobown)
                << " made pobuf=" << MomShowObject(pobuf));
@@ -1520,7 +1519,7 @@ MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, boo
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
     _pcode_basename(bases),
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
-    _pcode_stepped_rout(nullptr), _pcode_datavec()
+    _pcode_stepped_rout(nullptr)
 {
   if (with_getmagic)
     {
@@ -1553,14 +1552,13 @@ MomPaylCode::~MomPaylCode()
   _pcode_getmagic_rout = nullptr;
   _pcode_updated_rout = nullptr;
   _pcode_stepped_rout = nullptr;
-  _pcode_datavec.clear();
 } // end MomPaylCode::~MomPaylCode
 
 MomPaylCode::MomPaylCode(MomObject*own,  const std::string&bases, const std::string&mods)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
     _pcode_basename(bases),
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
-    _pcode_stepped_rout(nullptr), _pcode_datavec()
+    _pcode_stepped_rout(nullptr)
 {
   _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(bases, MOMCOD_SUFFIX_GETMAGIC);
   _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(bases, MOMCOD_SUFFIX_FETCH);
@@ -1572,7 +1570,7 @@ MomPaylCode::MomPaylCode(MomObject*own, MomPaylCode*orig)
   : MomPayload(&MOM_PAYLOADVTBL(code), own),
     _pcode_basename(orig?orig->_pcode_basename:nullptr),
     _pcode_getmagic_rout(nullptr), _pcode_fetch_rout(nullptr), _pcode_updated_rout(nullptr),
-    _pcode_stepped_rout(nullptr), _pcode_datavec()
+    _pcode_stepped_rout(nullptr)
 {
   if (orig == nullptr || orig->_py_vtbl !=   &MOM_PAYLOADVTBL(code))
     MOM_FAILURE("bad origin for code owned by " << own);
@@ -1598,8 +1596,6 @@ MomPaylCode::Scangc(const struct MomPayload*payl,MomObject*own,MomGC*gc)
   auto py = static_cast<const MomPaylCode*>(payl);
   MOM_ASSERT(py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
              "invalid code payload for own=" << own);
-  for (auto v : py->_pcode_datavec)
-    gc->scan_value(v);
 } // end MomPaylCode::Scangc
 
 
@@ -1630,13 +1626,8 @@ MomPaylCode::Scandump(MomPayload const*payl, MomObject*own, MomDumper*du)
       own->scan_dump_module_for
       (du, reinterpret_cast<void*>(py->_pcode_stepped_rout));
     };
-
-  for (auto v : py->_pcode_datavec)
-    v.scan_dump(du);
 } // end MomPaylCode::Scandump
 
-std::mutex MomPaylCode::_pcode_modumtx_;
-std::map<std::string,void*> MomPaylCode::_pcode_modudict_;
 
 void*
 MomPaylCode::get_symbol(MomPaylCode*py, const std::string& basename, const char*suffix)
@@ -1671,18 +1662,6 @@ MomPaylCode::Emitdump(MomPayload const*payl, MomObject*own, MomDumper*du, MomEmi
   if (py->_pcode_stepped_rout)
     empaylinit->out() << " @CODESTEP!";
   empaylinit->emit_newline(0);
-  if (!py->_pcode_datavec.empty())
-    {
-      empaylcont->out() << "@CODEDATA " << py->_pcode_datavec.size() << " (";
-      for (auto v : py->_pcode_datavec)
-        {
-          empaylcont->emit_space(1);
-          empaylcont->emit_value(v,1);
-        }
-      empaylcont->emit_space(0);
-      empaylcont->out() << ")";
-      empaylcont->emit_newline(0);
-    }
 } // end MomPaylCode::Emitdump
 
 
@@ -1758,26 +1737,6 @@ MomPaylCode::Loadfill(MomPayload*payl, MomObject*own, MomLoader*ld, char const*f
   if (!py->_pcode_getmagic_rout && !py->_pcode_fetch_rout && !py->_pcode_updated_rout && !py->_pcode_stepped_rout)
     MOM_WARNLOG("loaded paylcode owned by " << MomShowObject(own)
                 << " has no routines");
-  if (fillpars.got_cstring("@CODEDATA"))
-    {
-      bool gotsize = false;
-      auto sz = fillpars.parse_int(&gotsize);
-      if (!gotsize)
-        MOM_PARSE_FAILURE(&fillpars, "missing size after @CODEDATA of code object " << own);
-      py->_pcode_datavec.reserve(sz+1);
-      if (!fillpars.got_cstring("("))
-        MOM_PARSE_FAILURE(&fillpars, "missing leftparen after @CODEDATA of code object " << own);
-      for (int ix=0; ix<sz; ix++)
-        {
-          bool gotval = false;
-          MomValue v = fillpars.parse_value(&gotval);
-          if (!gotval)
-            MOM_PARSE_FAILURE(&fillpars, "missing value#" << ix << " for data of code object " << own);
-          py->_pcode_datavec.push_back(v);
-        }
-      if (!fillpars.got_cstring(")"))
-        MOM_PARSE_FAILURE(&fillpars, "missing rightparen after @CODEDATA of code object " << own);
-    }
 } // end MomPaylCode::Loadfill
 
 
