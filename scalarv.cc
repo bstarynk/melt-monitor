@@ -345,6 +345,7 @@ MomString::MomString(const char*cstr, MomSize sz, uint32_t bylen, MomHash h)
   MOM_ASSERT(sz==0 || cstr != nullptr,
              "MomString::MomString null cstr for sz=" << sz);
   memcpy(const_cast<char*>(_bstr), cstr, bylen);
+  ((char*)_bstr)[bylen] = (char)0;
 } // end MomString::MomString
 
 
