@@ -527,54 +527,6 @@ MomPaylSet::Updated(struct MomPayload*payl,MomObject*own,const MomObject*attrob,
 
 ////////////////////////////////////////////////////////////////
 
-extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(strobuf);
-
-class MomPaylStrobuf: public MomPayload
-{
-public:
-  friend struct MomVtablePayload_st;
-  friend class MomObject;
-  static constexpr unsigned _max_strobuf_ = 1<<22;
-  static constexpr unsigned _max_depth_ = 80;
-
-private:
-  std::ostringstream _pstrobuf_out;
-  MomObject* _pstrobuf_starter;
-  MomPaylStrobuf(MomObject*own)
-    : MomPayload(&MOM_PAYLOADVTBL(strobuf), own), _pstrobuf_out(),
-      _pstrobuf_starter(nullptr) {};
-  ~MomPaylStrobuf()
-  {
-  };
-public:
-  static MomPyv_destr_sig Destroy;
-  static MomPyv_scangc_sig Scangc;
-  static MomPyv_scandump_sig Scandump;
-  static MomPyv_emitdump_sig Emitdump;
-  static MomPyv_initload_sig Initload;
-  static MomPyv_loadfill_sig Loadfill;
-  static MomPyv_getmagic_sig Getmagic;
-  static MomPyv_fetch_sig Fetch;
-  static MomPyv_updated_sig Updated;
-  void output_value_to_buffer(MomObject*forpob, const MomValue v, MomObject*ctxob=nullptr, int depth=0);
-  void unsync_output_all_to_buffer(MomObject*forpob);
-  std::string buffer_string()
-  {
-    _pstrobuf_out.flush();
-    return _pstrobuf_out.str();
-  }
-  MomObject* starter(void) const
-  {
-    return _pstrobuf_starter;
-  };
-  void set_starter(MomObject*startob)
-  {
-    MOM_ASSERT (!startob || startob->vkind() == MomKind::TagObjectK,
-                "MomPaylStrobuf::set_start invalid startob");
-    _pstrobuf_starter = startob;
-  };
-}; // end class MomPaylStrobuf
-
 
 const struct MomVtablePayload_st MOM_PAYLOADVTBL(strobuf) __attribute__((section(".rodata"))) =
 {
