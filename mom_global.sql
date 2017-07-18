@@ -127,7 +127,6 @@ INSERT INTO t_objects VALUES('_1cstd9Sn6qZ_8NZPx7Zvm7T', 1500369916.06,
 '
 ///$mom_predefined_file
 @: _3xRwKNR8Txl_0wsckeKslWS _1AXXUcWe8Pc_4UIYaHPzd9G
-&: _2SnSoZOZXSr_9jjK01p1ahH
 
 ',
 'named', --- payl _1cstd9Sn6qZ_8NZPx7Zvm7T
@@ -177,6 +176,7 @@ INSERT INTO t_objects VALUES('_2QeF5dreQwf_51c3fAJEYqJ', 1499613379.2,
 INSERT INTO t_objects VALUES('_2SnSoZOZXSr_9jjK01p1ahH', 1500369880.54,
 '
 ///$start_cplusplus_emission
+@: _6ss8POQNnku_8e8woNsmvN9 _6Jns5AFaIAO_8vsgtP9xyZj
 
 ',
 'named', --- payl _2SnSoZOZXSr_9jjK01p1ahH
@@ -314,6 +314,19 @@ INSERT INTO t_objects VALUES('_5Wnb8RZdglo_9jkLPwTffMm', 1500351215.97,
 '',
 '');--'--
 ------'** end _5Wnb8RZdglo_9jkLPwTffMm
+
+
+INSERT INTO t_objects VALUES('_6Jns5AFaIAO_8vsgtP9xyZj', 1500406793.05,
+'
+@: _3xRwKNR8Txl_0wsckeKslWS "the outputter of start_cplusplus_emission"
+
+',
+'code', --- payl _6Jns5AFaIAO_8vsgtP9xyZj
+'@CODEBASE: start_cplusplus_outputter @CODEUPDATE!
+',
+'',
+'');--'--
+------'** end _6Jns5AFaIAO_8vsgtP9xyZj
 
 
 INSERT INTO t_objects VALUES('_6TmLNh9vtVY_0pwkHRtJ44k', 1497636292.47,

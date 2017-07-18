@@ -3965,6 +3965,39 @@ public:
 
 ////////////////
 
+extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(genfile);
+class MomPaylStrobuf;
+class MomPaylGenfile: public MomPayload
+{
+public:
+  friend struct MomVtablePayload_st;
+  friend class MomObject;
+private:
+  const std::string _pgenfile_pathstr;
+  MomPaylGenfile(MomObject*own, const char*pathstr)
+    : MomPayload(&MOM_PAYLOADVTBL(genfile), own),
+      _pgenfile_pathstr(pathstr) {};
+  ~MomPaylGenfile()
+  {
+  };
+  MomObject* generated_strbuf_object(void); // gives an object with strbuf payload containing the generated stuff
+public:
+  std::string genfile_pathstr() const
+  {
+    return _pgenfile_pathstr;
+  };
+  static MomPyv_destr_sig Destroy;
+  static MomPyv_scangc_sig Scangc;
+  static MomPyv_scandump_sig Scandump;
+  static MomPyv_emitdump_sig Emitdump;
+  static MomPyv_initload_sig Initload;
+  static MomPyv_loadfill_sig Loadfill;
+  static MomPyv_getmagic_sig Getmagic;
+  static MomPyv_fetch_sig Fetch;
+  static MomPyv_updated_sig Updated;
+}; // end class MomPaylGenfile
+
+////////////////
 /// in state.cc
 extern "C" MomIdent mom_load_spyid1;
 extern "C" MomIdent mom_load_spyid2;

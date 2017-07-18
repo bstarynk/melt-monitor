@@ -693,10 +693,11 @@ MomShowObject::output(std::ostream& os) const
     {
       os << name << " |=" << _shob << "|";
     }
-  else if (_shob->unsync_payload()) {
-    std::string pyname = _shob->unsync_paylname();
-    os << _shob << " |:" << pyname << "%| ";
-  }
+  else if (_shob->unsync_payload())
+    {
+      std::string pyname = _shob->unsync_paylname();
+      os << _shob << " |:" << pyname << "%| ";
+    }
   else
     os << _shob;
 } // end MomShowObject::output

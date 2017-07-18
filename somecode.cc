@@ -74,7 +74,7 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
   MomObject*ownpob = py->owner();
   // ownpob would be the code proxy of mom_predefined_file
   MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) start"
-	       << " targpob="  << MomShowObject(targpob)
+               << " targpob="  << MomShowObject(targpob)
                << " ownpob=" << MomShowObject(ownpob)
                << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
                << " args=" << MomShowVectorValues(vecarr, veclen));
@@ -93,20 +93,52 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
                      << " with ownpob=" << MomShowObject(ownpob)
                      << " and targpob=" << MomShowObject(targpob));
         pobstart->unsync_append_comp(MomString::make_from_string("// generated _mom_predefined.h\n"));
-        auto py = pobstart->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
-        if (!py)
+        auto pystartbuf = pobstart->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
+        if (!pystartbuf)
           {
             MOM_WARNLOG("MOMCOD_UPDATED(predefined_file_generator) pobstart=" << MomShowObject(pobstart) << " has not a strobuf payload but " <<  pobstart->unsync_paylname());
             return false;
           }
         std::lock_guard<std::recursive_mutex> gutarg{targpob->get_recursive_mutex()};
-        MomValue comp0targ = targpob->unsync_get_nth_comp(0);
-        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) targpob=" << MomShowObject(targpob)
-                     << " with comp0targ=" << comp0targ
-		     << std::endl);
-
+        auto pytargenfil = targpob->unsync_runcast_payload<MomPaylGenfile>(MOM_PAYLOADVTBL(genfile));
+        if (!pytargenfil)
+          {
+            MOM_WARNLOG("MOMCOD_UPDATED(predefined_file_generator) targpob=" << MomShowObject(targpob) <<
+                        " has no genfile payload but " << targpob->unsync_paylname());
+            return false;
+          }
+        std::lock_guard<std::recursive_mutex> guown{ownpob->get_recursive_mutex()};
+        MomValue comp0own = ownpob->unsync_get_nth_comp(0);
+        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) ownpob=" << MomShowObject(ownpob)
+                     << " with comp0own=" << comp0own);
+        MomObject*pobcomp0own = const_cast<MomObject*>(comp0own->as_object());
+        MomValue vnod = MomNode::make_from_values(pobcomp0own,
+                        MomString::make_from_string(pytargenfil->genfile_pathstr()));
+        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) vnod=" << vnod
+                     << " appended to pobstart=" << MomShowObject(pobstart));
+        pobstart->unsync_append_comp(vnod);
+        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) ending successfully pobstart="
+                     << MomShowObject(pobstart) << " ¤¤¤¤¤¤" << std::endl);
         return true;
       }
     }
   return false;
 } // end MOMCOD_UPDATED(predefined_file_generator)
+
+extern "C" bool MOMCOD_UPDATED(start_cplusplus_outputter)
+(const struct MomPayload*payl, MomObject*targpob,const MomObject*attrob,
+ const MomValue*vecarr, unsigned veclen)
+{
+  auto py = static_cast<MomPaylCode*>(const_cast<MomPayload*>(payl));
+  MOM_ASSERT(py && py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "MOMCOD_UPDATED(predefined_file_generator) invalid code payload for targpob=" << targpob);
+  // targpob would be the genfile proxy of mom_predefined_file
+  MomObject*ownpob = py->owner();
+  // ownpob would be the code proxy of mom_predefined_file
+  MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(start_cplusplus_outputter) start"
+               << " targpob="  << MomShowObject(targpob)
+               << " ownpob=" << MomShowObject(ownpob)
+               << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
+               << " args=" << MomShowVectorValues(vecarr, veclen));
+  return false;
+} // end  MOMCOD_UPDATED(start_cplusplus_outputter)
