@@ -1299,7 +1299,7 @@ public:
   const MomObject* as_object() const
   {
     if (kindw() != MomKind::TagObjectK)
-      MOM_FAILURE("MomAnyVal::as_object not object " << this);
+      MOM_FAILURE("MomAnyVal::as_object not object " << this << " but kind#" << (int)(kindw()));
     return reinterpret_cast<const MomObject*>(this);
   }
   bool is_object() const
