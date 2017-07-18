@@ -647,16 +647,19 @@ MomPaylStrobuf::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
   fillpars.skip_spaces();
   if (fillpars.got_cstring("@STROBUFSTR:"))
     {
+      fillpars.skip_spaces();
       bool gotstr = false;
       std::string linstr;
       while ((gotstr=false), (linstr=fillpars.parse_string(&gotstr)), gotstr)
         {
           py->_pstrobuf_out.write(linstr.c_str(), linstr.size());
           linstr.erase();
+          fillpars.skip_spaces();
         }
     }
   if (fillpars.got_cstring("@STROBUFSTARTER:"))
     {
+      fillpars.skip_spaces();
       bool gotpob = false;
       MomObject* pob =fillpars.parse_objptr(&gotpob);
       if (pob)
@@ -885,7 +888,7 @@ MomPaylGenfile::generated_strbuf_object(void)
   MomObject* pobuf= MomObject::make_object();
   auto pystrobuf = pobuf->unsync_make_payload<MomPaylStrobuf>();
   MOM_DEBUGLOG(gencod, "generated_strbuf_object pobown=" << MomShowObject(pobown)
-               << " made pobuf=" << MomShowObject(pobuf)
+               << " new pobuf=" << MomShowObject(pobuf)
                << " before start_generation "
                << MOM_SHOW_BACKTRACE("generated_strbuf_object"));
   pobown->unsync_update_arg(MOMP_start_generation, pobuf);
@@ -1132,13 +1135,13 @@ MomPaylStrobuf::unsync_output_all_to_buffer(MomObject*forpob)
   MOM_DEBUGLOG(gencod,
                "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << MomShowObject(own)
                << " forpob=" << MomShowObject(forpob)
-               << " starter=" << MomShowObject(_pstrobuf_starter)
-               << MOM_SHOW_BACKTRACE("unsync_output_all_to_buffer"));
+               << " starter=" << MomShowObject(_pstrobuf_starter));
   MomObject* ctxob = MomObject::make_object();
   ctxob->unsync_make_payload<MomPaylEnvstack>();
   MOM_DEBUGLOG(gencod,
                "MomPaylStrobuf::unsync_output_all_to_buffer start own=" << MomShowObject(own)
-               << " ctxob=" << MomShowObject(ctxob));
+               << " new ctxob=" << MomShowObject(ctxob)
+               << " forpob=" << MomShowObject(forpob));
   if (_pstrobuf_starter != nullptr)
     {
       std::lock_guard<std::recursive_mutex> gu{_pstrobuf_starter->get_recursive_mutex()};
