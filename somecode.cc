@@ -83,7 +83,7 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
       if (!pobstart)
         MOM_FAILURE("MOMCOD_UPDATED(predefined_file_generator) bad vstart=" << vstart);
       {
-        std::lock_guard<std::recursive_mutex> gu{pobstart->get_recursive_mutex()};
+        std::lock_guard<std::recursive_mutex> gustart{pobstart->get_recursive_mutex()};
         MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) start_generation pobstart=" << MomShowObject(pobstart)
                      << " of paylname=" << pobstart->unsync_paylname()
                      << " with ownpob=" << MomShowObject(ownpob)
@@ -95,6 +95,11 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
             MOM_WARNLOG("MOMCOD_UPDATED(predefined_file_generator) pobstart=" << MomShowObject(pobstart) << " has not a strobuf payload but " <<  pobstart->unsync_paylname());
             return false;
           }
+        std::lock_guard<std::recursive_mutex> gutarg{targpob->get_recursive_mutex()};
+        MomValue comp0targ = targpob->unsync_get_nth_comp(0);
+        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) targpob=" << MomShowObject(targpob)
+                     << " with comp0targ=" << comp0targ);
+
         return true;
       }
     }
