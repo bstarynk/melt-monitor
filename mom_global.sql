@@ -54,7 +54,7 @@ INSERT INTO t_names VALUES ('_2QeF5dreQwf_51c3fAJEYqJ', 'emit');
 INSERT INTO t_names VALUES ('_7QeFDN33m7B_3dQv2OqqbH6', 'get');
 INSERT INTO t_names VALUES ('_0vgCFjXblkx_4zCMhMAWjVK', 'int');
 INSERT INTO t_names VALUES ('_45cnnX4v29t_9gZkfMOZj2Z', 'intsq');
-INSERT INTO t_names VALUES ('_1cstd9Sn6qZ_8NZPx7Zvm7T', 'mom_predef_file');
+INSERT INTO t_names VALUES ('_1cstd9Sn6qZ_8NZPx7Zvm7T', 'mom_predefined_file');
 INSERT INTO t_names VALUES ('_1jJjA6LcXiX_1V4ZcXlje09', 'name');
 INSERT INTO t_names VALUES ('_7D8xcWnEiys_8oqOVSkCxkA', 'node');
 INSERT INTO t_names VALUES ('_1JSykdLcLdl_8rWxtDBaPGN', 'none');
@@ -96,6 +96,18 @@ INSERT INTO t_objects VALUES('_0vgCFjXblkx_4zCMhMAWjVK', 1497636292.47,
 ------'** end _0vgCFjXblkx_4zCMhMAWjVK
 
 
+INSERT INTO t_objects VALUES('_1AXXUcWe8Pc_4UIYaHPzd9G', 1500351236.47,
+'
+@: _3xRwKNR8Txl_0wsckeKslWS "the genfile proxy of mom_predefined_file"
+
+',
+'genfile', --- payl _1AXXUcWe8Pc_4UIYaHPzd9G
+'_mom_predefined.h',
+'',
+'_3Kk21ebU2OC_1GJWVglZfFM');--'--
+------'** end _1AXXUcWe8Pc_4UIYaHPzd9G
+
+
 INSERT INTO t_objects VALUES('_1JSykdLcLdl_8rWxtDBaPGN', 1497636292.47,
 '
 ///$none
@@ -111,13 +123,14 @@ INSERT INTO t_objects VALUES('_1JSykdLcLdl_8rWxtDBaPGN', 1497636292.47,
 
 INSERT INTO t_objects VALUES('_1cstd9Sn6qZ_8NZPx7Zvm7T', 1500351226.97,
 '
-///$mom_predef_file
+///$mom_predefined_file
+@: _3xRwKNR8Txl_0wsckeKslWS _1AXXUcWe8Pc_4UIYaHPzd9G
 
 ',
 'named', --- payl _1cstd9Sn6qZ_8NZPx7Zvm7T
-'mom_predef_file',
+'mom_predefined_file',
 '',
-'');--'--
+'_1AXXUcWe8Pc_4UIYaHPzd9G');--'--
 ------'** end _1cstd9Sn6qZ_8NZPx7Zvm7T
 
 
@@ -181,6 +194,19 @@ INSERT INTO t_objects VALUES('_33imugvOze0_0wdPqjmME0U', 1497705092.87,
 '',
 '');--'--
 ------'** end _33imugvOze0_0wdPqjmME0U
+
+
+INSERT INTO t_objects VALUES('_3Kk21ebU2OC_1GJWVglZfFM', 1500351239.37,
+'
+@: _3xRwKNR8Txl_0wsckeKslWS "the code proxy of mom_predefined_file"
+
+',
+'code', --- payl _3Kk21ebU2OC_1GJWVglZfFM
+'@CODEBASE: predefined_file_generator @CODEUPDATE!
+',
+'',
+'');--'--
+------'** end _3Kk21ebU2OC_1GJWVglZfFM
 
 
 INSERT INTO t_objects VALUES('_3SFtXTTy3kj_89fO24X2HFo', 1495430034.89,

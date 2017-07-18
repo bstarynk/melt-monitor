@@ -203,7 +203,7 @@ INSERT INTO t_objects VALUES('_1TQ4EET0Ael_7wCii1rLlOv', 1497676631.2,
 
 INSERT INTO t_objects VALUES('_1TaJYE9mf5h_41UzXi1vTBb', 1500301533.05,
 '
-@: _3xRwKNR8Txl_0wsckeKslWS " the paylcode proxy of test1gen"
+@: _3xRwKNR8Txl_0wsckeKslWS " the code proxy of test1gen"
 
 ',
 'code', --- payl _1TaJYE9mf5h_41UzXi1vTBb

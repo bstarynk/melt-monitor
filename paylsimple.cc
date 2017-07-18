@@ -828,11 +828,11 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
       MOM_DEBUGLOG(gencod, "MomPaylStrobuf::output_value_to_buffer owner=" << owner()
                    << " v=" << v << " connoutv=" << connoutv);
       if (!connoutv || !connoutv->is_object())
-	MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner="
-		    << owner()
+        MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner="
+                    << owner()
                     << " depth=" << depth << " ctx=" << ctxob
                     << " bad connoutv=" << connoutv
-		    << " for v=" << v);
+                    << " for v=" << v);
       MomObject* coutob = const_cast<MomObject*>(connoutv->as_object());
       if (!coutob)
         MOM_FAILURE("MomPaylStrobuf::output_value_to_buffer owner=" << owner()
