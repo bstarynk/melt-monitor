@@ -65,6 +65,7 @@ INSERT INTO t_names VALUES ('_3bMUJDWlMMQ_2j2bm7EeIbv', 'put');
 INSERT INTO t_names VALUES ('_2mYaTh9kH4I_7ENiXcymRmy', 'set');
 INSERT INTO t_names VALUES ('_3SFtXTTy3kj_89fO24X2HFo', 'size');
 INSERT INTO t_names VALUES ('_268RKjuQT02_2Kh0wgKnhLT', 'start_generation');
+INSERT INTO t_names VALUES ('_6ZpMq408eTN_8t3ZHpgCk3R', 'starter');
 INSERT INTO t_names VALUES ('_4T8am97muLl_5969SR22Ecq', 'string');
 INSERT INTO t_names VALUES ('_5Wnb8RZdglo_9jkLPwTffMm', 'the_system');
 INSERT INTO t_names VALUES ('_6TmLNh9vtVY_0pwkHRtJ44k', 'tuple');
@@ -315,10 +316,14 @@ INSERT INTO t_objects VALUES('_6TmLNh9vtVY_0pwkHRtJ44k', 1497636292.47,
 
 INSERT INTO t_objects VALUES('_6ZpMq408eTN_8t3ZHpgCk3R', 1497636292.47,
 '
+///$starter
+@MAGIC!
 
 ',
-'', '', '', '' -- nopayl
-);--'--
+'named', --- payl _6ZpMq408eTN_8t3ZHpgCk3R
+'starter',
+'',
+'');--'--
 ------'** end _6ZpMq408eTN_8t3ZHpgCk3R
 
 

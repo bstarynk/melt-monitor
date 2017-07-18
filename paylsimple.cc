@@ -563,6 +563,16 @@ public:
     _pstrobuf_out.flush();
     return _pstrobuf_out.str();
   }
+  MomObject* starter(void) const
+  {
+    return _pstrobuf_starter;
+  };
+  void set_starter(MomObject*startob)
+  {
+    MOM_ASSERT (!startob || startob->vkind() == MomKind::TagObjectK,
+                "MomPaylStrobuf::set_start invalid startob");
+    _pstrobuf_starter = startob;
+  };
 }; // end class MomPaylStrobuf
 
 
@@ -580,7 +590,7 @@ const struct MomVtablePayload_st MOM_PAYLOADVTBL(strobuf) __attribute__((section
   /**   .pyv_loadfill=   */       MomPaylStrobuf::Loadfill,
   /**   .pyv_getmagic=   */       MomPaylStrobuf::Getmagic,
   /**   .pyv_fetch=      */       MomPaylStrobuf::Fetch,
-  /**   .pyv_update=     */       MomPaylStrobuf::Updated,
+  /**   .pyv_updated=    */       MomPaylStrobuf::Updated,
   /**   .pyv_step=       */       nullptr,
   /**   .pyv_spare1=     */       nullptr,
   /**   .pyv_spare2=     */       nullptr,
@@ -723,6 +733,12 @@ MomPaylStrobuf::Getmagic (const struct MomPayload*payl,const MomObject*own,const
       if (pgotit)
         *pgotit = true;
       return py->proxy();
+    }
+  else if (attrob == MOMP_starter)
+    {
+      if (pgotit)
+        *pgotit = true;
+      return py->starter();
     }
   if (pgotit)
     *pgotit = false;
