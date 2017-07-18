@@ -1705,7 +1705,7 @@ MomEmitter::skippable_object(const MomObject*pob) const
 }
 
 void
-MomEmitter::emit_value(const MomValue v, int depth)
+MomEmitter::emit_value(const MomValue v, int depth, bool skip)
 {
   if (!v)
     {
@@ -1720,6 +1720,8 @@ MomEmitter::emit_value(const MomValue v, int depth)
     }
   else if (v.is_transient())
     {
+      if (skip)
+        return;
       if (_emnotransient)
         _emout << " |*transient:| __";
       else
@@ -1810,7 +1812,11 @@ MomEmitter::emit_value(const MomValue v, int depth)
           auto ndv = reinterpret_cast<const MomNode*>(vv);
           auto co = ndv->conn();
           if (skippable_connective(co))
-            return;
+            {
+              if (!skip)
+                _emout << " |skipnode:| __";
+              return;
+            }
           _emout << "*";
           emit_objptr(co, depth);
           _emout << '(';
@@ -1819,7 +1825,7 @@ MomEmitter::emit_value(const MomValue v, int depth)
           for (unsigned ix=0; ix<sz; ix++)
             {
               if (ix>0) emit_space(depth+1);
-              emit_value(ndv->unsafe_at(ix), depth+1);
+              emit_value(ndv->unsafe_at(ix), depth+1, _SKIP_VALUE_);
             }
           _emout << ')';
         }
@@ -1827,7 +1833,12 @@ MomEmitter::emit_value(const MomValue v, int depth)
         case MomKind::TagObjectK:
         {
           auto pob = reinterpret_cast<const MomObject*>(vv);
-          if (skippable_object(pob)) return;
+          if (skippable_object(pob))
+            {
+              if (!skip)
+                _emout << " |skipobj: __";
+              return;
+            }
           emit_objptr(pob, depth);
         }
         break;

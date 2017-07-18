@@ -1948,12 +1948,12 @@ MomObject::unsync_emit_dump_content(MomDumper*du, MomEmitter&em) const
     em.out() << "@: ";
     em.emit_objptr(pobcstattr);
     em.emit_space(1);
-    em.emit_value(valattr);
+    em.emit_value(valattr, 0, MomEmitter::_DONTSKIP_VALUE_);
     em.emit_newline(0);
   }
   for (const MomValue vcomp : _ob_comps) {
     em.out() << "&: ";
-    em.emit_value(vcomp);
+    em.emit_value(vcomp, 0, MomEmitter::_DONTSKIP_VALUE_);
     em.emit_newline(0);
   }
 } // end MomObject::unsync_emit_dump_content

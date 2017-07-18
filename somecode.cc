@@ -89,11 +89,12 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
                      << " with ownpob=" << MomShowObject(ownpob)
                      << " and targpob=" << MomShowObject(targpob));
         pobstart->unsync_append_comp(MomString::make_from_string("// generated _mom_predefined.h\n"));
-	auto py = pobstart->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
-	if (!py) {
-	  MOM_WARNLOG("MOMCOD_UPDATED(predefined_file_generator) pobstart=" << MomShowObject(pobstart) << " has not a strobuf payload but " <<  pobstart->unsync_paylname());
-	  return false;
-	}
+        auto py = pobstart->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
+        if (!py)
+          {
+            MOM_WARNLOG("MOMCOD_UPDATED(predefined_file_generator) pobstart=" << MomShowObject(pobstart) << " has not a strobuf payload but " <<  pobstart->unsync_paylname());
+            return false;
+          }
         return true;
       }
     }

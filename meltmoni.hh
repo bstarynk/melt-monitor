@@ -3509,6 +3509,8 @@ public:
   static constexpr int _default_line_width_ = 96;
   static constexpr int _min_line_width_ = 48;
   static constexpr int _max_indent = 16;
+  static constexpr bool _SKIP_VALUE_ = true;
+  static constexpr bool _DONTSKIP_VALUE_ = false;
   MomEmitter(std::ostream&out)
     : _emout(out),
       _emlastnewline(out.tellp()),
@@ -3553,7 +3555,7 @@ public:
   }
   void emit_newline(int depth);
   void emit_raw_newline();
-  void emit_value(const MomValue v, int depth=0);
+  void emit_value(const MomValue v, int depth=0, bool skip=false);
   void emit_string_value(const MomString*strv, int depth=0, bool asraw=false)
   {
     emit_string(strv->string(), depth, asraw);
