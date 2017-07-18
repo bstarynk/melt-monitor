@@ -1836,7 +1836,7 @@ MomEmitter::emit_value(const MomValue v, int depth, bool skip)
           if (skippable_object(pob))
             {
               if (!skip)
-                _emout << " |skipobj: __";
+                _emout << " |skipobj:| __";
               return;
             }
           emit_objptr(pob, depth);
