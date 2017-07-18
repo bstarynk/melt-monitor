@@ -64,6 +64,7 @@ INSERT INTO t_names VALUES ('_4w339hT5dXd_1tUZFvU4fWx', 'proxy');
 INSERT INTO t_names VALUES ('_3bMUJDWlMMQ_2j2bm7EeIbv', 'put');
 INSERT INTO t_names VALUES ('_2mYaTh9kH4I_7ENiXcymRmy', 'set');
 INSERT INTO t_names VALUES ('_3SFtXTTy3kj_89fO24X2HFo', 'size');
+INSERT INTO t_names VALUES ('_2SnSoZOZXSr_9jjK01p1ahH', 'start_cplusplus_emission');
 INSERT INTO t_names VALUES ('_268RKjuQT02_2Kh0wgKnhLT', 'start_generation');
 INSERT INTO t_names VALUES ('_6ZpMq408eTN_8t3ZHpgCk3R', 'starter');
 INSERT INTO t_names VALUES ('_4T8am97muLl_5969SR22Ecq', 'string');
@@ -122,10 +123,11 @@ INSERT INTO t_objects VALUES('_1JSykdLcLdl_8rWxtDBaPGN', 1497636292.47,
 ------'** end _1JSykdLcLdl_8rWxtDBaPGN
 
 
-INSERT INTO t_objects VALUES('_1cstd9Sn6qZ_8NZPx7Zvm7T', 1500351226.97,
+INSERT INTO t_objects VALUES('_1cstd9Sn6qZ_8NZPx7Zvm7T', 1500369916.06,
 '
 ///$mom_predefined_file
 @: _3xRwKNR8Txl_0wsckeKslWS _1AXXUcWe8Pc_4UIYaHPzd9G
+&: _2SnSoZOZXSr_9jjK01p1ahH
 
 ',
 'named', --- payl _1cstd9Sn6qZ_8NZPx7Zvm7T
@@ -170,6 +172,18 @@ INSERT INTO t_objects VALUES('_2QeF5dreQwf_51c3fAJEYqJ', 1499613379.2,
 '',
 '');--'--
 ------'** end _2QeF5dreQwf_51c3fAJEYqJ
+
+
+INSERT INTO t_objects VALUES('_2SnSoZOZXSr_9jjK01p1ahH', 1500369880.54,
+'
+///$start_cplusplus_emission
+
+',
+'named', --- payl _2SnSoZOZXSr_9jjK01p1ahH
+'start_cplusplus_emission',
+'',
+'');--'--
+------'** end _2SnSoZOZXSr_9jjK01p1ahH
 
 
 INSERT INTO t_objects VALUES('_2mYaTh9kH4I_7ENiXcymRmy', 1493382726.98,
