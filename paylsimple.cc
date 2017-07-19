@@ -1513,7 +1513,7 @@ MomPaylCode::MomPaylCode(MomObject*own, MomLoader*, const std::string&bases, boo
     }
   if (with_step)
     {
-      _pcode_stepped_rout =  (MomPyv_stepped_sig*)get_symbol(this, bases, MOMCOD_SUFFIX_STEP);
+      _pcode_stepped_rout =  (MomPyv_stepped_sig*)get_symbol(this, bases, MOMCOD_SUFFIX_STEPPED);
       if (!_pcode_stepped_rout)
         MOM_FATALOG("get_symbol failed for stepped of " << own);
     }
@@ -1535,7 +1535,7 @@ MomPaylCode::MomPaylCode(MomObject*own,  const std::string&bases, const std::str
   _pcode_getmagic_rout = (MomCod_Getmagic_sig*)get_symbol(bases, MOMCOD_SUFFIX_GETMAGIC);
   _pcode_fetch_rout =  (MomCod_Fetch_sig*)get_symbol(bases, MOMCOD_SUFFIX_FETCH);
   _pcode_updated_rout =  (MomCod_Updated_sig*)get_symbol(bases, MOMCOD_SUFFIX_UPDATED);
-  _pcode_stepped_rout =  (MomPyv_stepped_sig*)get_symbol(bases, MOMCOD_SUFFIX_STEP);
+  _pcode_stepped_rout =  (MomPyv_stepped_sig*)get_symbol(bases, MOMCOD_SUFFIX_STEPPED);
 } // end  MomPaylCode::MomPaylCode for autodiscovering
 
 MomPaylCode::MomPaylCode(MomObject*own, MomPaylCode*orig)

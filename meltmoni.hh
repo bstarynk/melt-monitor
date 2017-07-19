@@ -3878,8 +3878,8 @@ private:
   MomCod_Updated_sig* _pcode_updated_rout;
   ///
   /// step conventionally named MomC__<base>__Step
-#define MOMCOD_SUFFIX_STEP "__Step"
-#define MOMCOD_STEP(Base) MomC__##Base##__Update
+#define MOMCOD_SUFFIX_STEPPED "__Stepped"
+#define MOMCOD_STEPPED(Base) MomC__##Base##__Stepped
   MomPyv_stepped_sig* _pcode_stepped_rout;
   ////////
   MomPaylCode(MomObject*own, MomLoader*ld, const std::string&bases, bool with_getmagic, bool with_fetch, bool with_update, bool with_step);

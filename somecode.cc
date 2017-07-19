@@ -142,3 +142,21 @@ extern "C" bool MOMCOD_UPDATED(start_cplusplus_outputter)
                << " args=" << MomShowVectorValues(vecarr, veclen));
   return false;
 } // end  MOMCOD_UPDATED(start_cplusplus_outputter)
+
+extern "C" bool MOMCOD_STEPPED(start_cplusplus_outputter)
+(const struct MomPayload*payl, MomObject*targpob,
+ const MomValue*vecarr, unsigned veclen,int depth)
+{
+  auto py = static_cast<MomPaylCode*>(const_cast<MomPayload*>(payl));
+  MOM_ASSERT(py && py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "MOMCOD_STEPPED(predefined_file_generator) invalid code payload for targpob=" << targpob);
+  // targpob would be the genfile proxy of mom_predefined_file
+  MomObject*ownpob = py->owner();
+  // ownpob would be the code proxy of mom_predefined_file
+  MOM_DEBUGLOG(gencod, "MOMCOD_STEPPED(start_cplusplus_outputter) start"
+               << " targpob="  << MomShowObject(targpob)
+               << " ownpob=" << MomShowObject(ownpob)
+               << " args=" << MomShowVectorValues(vecarr, veclen)
+               << " depth=" << depth);
+  return false;
+} // end  MOMCOD_STEPPED(start_cplusplus_outputter)
