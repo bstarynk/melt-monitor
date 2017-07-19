@@ -865,9 +865,6 @@ MomPaylGenfile::generated_strbuf_object(void)
   pobown->unsync_update_arg(MOMP_start_generation, pobuf);
   MOM_DEBUGLOG(gencod, "generated_strbuf_object after start_generation pobown=" << MomShowObject(pobown)
                << " made pobuf=" << MomShowObject(pobuf));
-#warning MomPaylGenfile::generated_strbuf_object incomplete
-  MOM_WARNLOG("MomPaylGenfile::generated_strbuf_object incomplete pobown=" << MomShowObject(pobown)
-              << " pobuf=" << MomShowObject(pobuf));
   return pobuf;
 } // end of MomPaylGenfile::generated_strbuf_object
 
@@ -952,8 +949,6 @@ MomPaylGenfile::Loadfill(struct MomPayload*payl,MomObject*own,MomLoader*ld,const
   fillpars.set_loader_for_object(ld, own, "Genfile fill").set_make_from_id(true);
   fillpars.next_line();
   fillpars.skip_spaces();
-  MOM_WARNLOG("incomplete MomPaylGenfile::Loadfill owner=" << MomShowObject(own));
-#warning incomplete MomPaylGenfile::Loadfill
   if (fillpars.eof())
     return;
 } // end MomPaylGenfile::Loadfill
