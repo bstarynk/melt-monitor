@@ -102,6 +102,7 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
         std::lock_guard<std::recursive_mutex> guown{ownpob->get_recursive_mutex()};
         MomValue comp0own = ownpob->unsync_get_nth_comp(0);
         MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) ownpob=" << MomShowObject(ownpob)
+		     << " has components " << MomShowVectorValues(ownpob->unsync_components_vector())
                      << " with comp0own=" << comp0own);
         MomObject*pobcomp0own = const_cast<MomObject*>(comp0own->as_object());
         MomValue vnod = MomNode::make_from_values(pobcomp0own,
