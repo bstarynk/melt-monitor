@@ -47,6 +47,7 @@ END TRANSACTION; --- for t_globdata
 --- TABLE t_names @@@@@
 BEGIN TRANSACTION;
 INSERT INTO t_names VALUES ('_7hbSpcNUdHi_4QezAVr6Bgj', 'chunk');
+INSERT INTO t_names VALUES ('_01h86SAfOfg_1q2oMegGRwW', 'comment');
 INSERT INTO t_names VALUES ('_8f7GaaT5WJK_01z8k1JztS6', 'dollar');
 INSERT INTO t_names VALUES ('_4cCZc3Izgsr_7LsCkWW7flp', 'doublesq');
 INSERT INTO t_names VALUES ('_33imugvOze0_0wdPqjmME0U', 'embed');
@@ -76,6 +77,18 @@ END TRANSACTION; --- for t_names
 
 --- TABLE t_objects @@@@@
 BEGIN TRANSACTION;
+
+INSERT INTO t_objects VALUES('_01h86SAfOfg_1q2oMegGRwW', 1500472572.36,
+'
+///$comment
+
+',
+'named', --- payl _01h86SAfOfg_1q2oMegGRwW
+'comment',
+'',
+'');--'--
+------'** end _01h86SAfOfg_1q2oMegGRwW
+
 
 INSERT INTO t_objects VALUES('_0LK4TzFd6u1_0JFUsrQ4odG', 1497705092.87,
 '

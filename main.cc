@@ -1373,9 +1373,14 @@ mom_set_debugging (const char *dbgopt)
 
 static void create_predefined_mom(std::string nam, std::string comment)
 {
-#warning unimplemented create_predefined_mom
-  MOM_FATAPRINTF("unimplemented create_predefined_mom nam:%s comment:%s",
-                 nam.c_str(), comment.c_str());
+  if (!comment.empty()) 
+    MOM_FATAPRINTF("unimplemented create_predefined_mom nam:%s with non-empty comment:%s",
+		   nam.c_str(), comment.c_str());
+  auto pob = MomObject::make_object();
+  std::lock_guard<std::recursive_mutex> gu{pob->get_recursive_mutex()};
+  pob->set_space(MomSpace::PredefSp);
+  pob->touch();
+  mom_register_unsync_named(pob, nam.c_str());
 } // end of create_predefined_mom
 
 
@@ -1447,12 +1452,12 @@ parse_program_arguments_mom (int *pargc, char ***pargv)
               if (!mom_valid_name_radix_len(optarg,strlen(optarg)))
                 MOM_FATAPRINTF ("invalid predefined name %s", optarg);
               std::string namestr {optarg};
-              std::string commstr {commentstr};
+              std::string commstr {commentstr?:""};
               todo_after_load_mom.push_back([=](void)
               {
                 create_predefined_mom(namestr,commstr);
               });
-              commentstr=nullptr;
+              commentstr = nullptr;
               if (!mom_dump_dir)
                 MOM_WARNPRINTF("add predefined %s without dumping!", optarg);
             }
