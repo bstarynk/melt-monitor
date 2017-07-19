@@ -3964,6 +3964,10 @@ public:
     _pstrobuf_out.flush();
     return _pstrobuf_out.str();
   }
+  std::ostringstream& out()
+  {
+    return _pstrobuf_out;
+  };
   MomObject* starter(void) const
   {
     return _pstrobuf_starter;

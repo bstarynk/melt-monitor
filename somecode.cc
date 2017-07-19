@@ -143,28 +143,36 @@ extern "C" bool MOMCOD_STEPPED(start_cplusplus_outputter)
                << " ownpob=" << MomShowObject(ownpob)
                << " args=" << MomShowVectorValues(vecarr, veclen)
                << " depth=" << depth);
-  if (veclen != 4)
+  if (veclen != 5)
     {
-      MOM_FAILURE("MOMCOD_STEPPED(start_cplusplus_outputter) wants four arguments but got " << MomShowVectorValues(vecarr, veclen));
+      MOM_FAILURE("MOMCOD_STEPPED(start_cplusplus_outputter) wants five arguments but got " << MomShowVectorValues(vecarr, veclen));
     }
-  MomObject*pobgenfile = const_cast<MomObject*>(vecarr[0].as_val()->as_object());
-  const MomNode*startnod = vecarr[1].as_val()->as_node();
-  MomObject*pobctx = const_cast<MomObject*>(vecarr[2].as_val()->as_object());
-  int outdepth= vecarr[3].as_tagint();
+  MomObject*pobstrbuf = const_cast<MomObject*>(vecarr[0].as_val()->as_object());
+  MomObject*pobgenfile = const_cast<MomObject*>(vecarr[1].as_val()->as_object());
+  const MomNode*startnod = vecarr[2].as_val()->as_node();
+  MomObject*pobctx = const_cast<MomObject*>(vecarr[3].as_val()->as_object());
+  int outdepth= vecarr[4].as_tagint();
   MOM_DEBUGLOG(gencod, "MOMCOD_STEPPED(start_cplusplus_outputter)"
                << std::endl << "..."
+               << " pobstrbuf=" << MomShowObject(pobstrbuf)
                << " pobgenfile=" << MomShowObject(pobgenfile)
+               << " targpob=" << MomShowObject(targpob)
                << " startnod=" << MomValue(startnod)
                << " pobctx=" << MomShowObject(pobctx)
                << " outdepth=" << outdepth
                << " ¤¤¤¤¤¤" << std::endl);
+  std::lock_guard<std::recursive_mutex> gustrbuf{pobstrbuf->get_recursive_mutex()};
+  auto pystrbuf = pobstrbuf->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
+  if (!pystrbuf)
+    MOM_FAILURE("MOMCOD_STEPPED(start_cplusplus_outputter) "
+                " pobstrbuf=" << MomShowObject(pobstrbuf)
+                << " is not a strobuf");
   std::lock_guard<std::recursive_mutex> gugenfil{pobgenfile->get_recursive_mutex()};
   auto pygenfil = pobgenfile->unsync_runcast_payload<MomPaylGenfile>(MOM_PAYLOADVTBL(genfile));
   if (!pygenfil)
     MOM_FAILURE("MOMCOD_STEPPED(start_cplusplus_outputter) "
                 " pobgenfile=" << MomShowObject(pobgenfile)
                 << " is not a genfile");
-
   std::string filname = startnod->nth_son(0).as_val()->as_string()->cstr();
   static constexpr unsigned gpl_notice_size = 1024;
   char*bufgpl = (char*)calloc(gpl_notice_size, 1);
@@ -179,9 +187,14 @@ extern "C" bool MOMCOD_STEPPED(start_cplusplus_outputter)
                    "failed open_memstream");
   mom_output_gplv3_notice (filgpl, "///", "", filname.c_str());
   fflush(filgpl);
-  MOM_WARNLOG("MOMCOD_STEPPED(start_cplusplus_outputter): "
-              "incomplete bufgpl:" << std::endl << bufgpl);
+  pystrbuf->out() << bufgpl << std::endl;
   fclose(filgpl);
   free (bufgpl), bufgpl=0;
-  return false;
+  MOM_DEBUGLOG(gencod, "MOMCOD_STEPPED(start_cplusplus_outputter) end"
+               << " targpob="  << MomShowObject(targpob)
+               << " ownpob=" << MomShowObject(ownpob)
+               << " args=" << MomShowVectorValues(vecarr, veclen)
+               << " depth=" << depth
+               << std::endl);
+  return true;
 } // end  MOMCOD_STEPPED(start_cplusplus_outputter)

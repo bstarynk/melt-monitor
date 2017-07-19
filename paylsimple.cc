@@ -812,7 +812,7 @@ MomPaylStrobuf::output_value_to_buffer(MomObject*forob, const MomValue v,  MomOb
                     << " unexpected node:" << v);
       {
         std::lock_guard<std::recursive_mutex> gu{coutob->get_recursive_mutex()};
-        coutob->unsync_step_arg(MomValue(forob),v,MomValue(ctxob),MomValue(depth));
+        coutob->unsync_step_arg(MomValue(owner()),MomValue(forob),v,MomValue(ctxob),MomValue(depth));
       }
       MOM_DEBUGLOG(gencod, "MomPaylStrobuf::output_value_to_buffer done owner=" << owner()
                    << " v=" << v << " connoutv=" << connoutv);
