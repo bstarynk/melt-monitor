@@ -103,13 +103,19 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
         MomValue comp0own = ownpob->unsync_get_nth_comp(0);
         MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) ownpob=" << MomShowObject(ownpob)
                      << " has components " << MomShowVectorValues(ownpob->unsync_components_vector())
-                     << " with comp0own=" << comp0own);
+                     << std::endl << "... so with comp0own=" << comp0own);
         MomObject*pobcomp0own = const_cast<MomObject*>(comp0own->as_object());
-        MomValue vnod = MomNode::make_from_values(pobcomp0own,
-                        MomString::make_from_string(pytargenfil->genfile_pathstr()));
-        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) vnod=" << vnod
+        MomValue vnodhead = MomNode::make_from_values(pobcomp0own,
+                            MomString::make_from_string(pytargenfil->genfile_pathstr()));
+        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) vnodhead=" << vnodhead
                      << " appended to pobstart=" << MomShowObject(pobstart));
-        pobstart->unsync_append_comp(vnod);
+        pobstart->unsync_append_comp(vnodhead);
+        MomValue comp1emitpred = ownpob->unsync_get_nth_comp(1);
+        MomObject*pobcomp1emitpred = const_cast<MomObject*>(comp1emitpred->as_object());
+        MomValue vnodemitpr = MomNode::make_from_values(pobcomp1emitpred,MomObject::predefined_set());
+        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) vnodemitpr=" << vnodemitpr
+                     << " appended to pobstart=" << MomShowObject(pobstart));
+        pobstart->unsync_append_comp(vnodemitpr);
         MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) ending successfully pobstart="
                      << MomShowObject(pobstart) << " ¤¤¤¤¤¤" << std::endl);
         return true;
