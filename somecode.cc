@@ -242,14 +242,56 @@ extern "C" bool MOMCOD_STEPPED(emit_predefined_full)
     MOM_FAILURE("MOMCOD_STEPPED(emit_predefined_full) "
                 " pobgenfile=" << MomShowObject(pobgenfile)
                 << " is not a genfile");
+  const MomSet* prsetv = startnod->nth_son(0).as_val()->as_set();
   MOM_WARNLOG("MOMCOD_STEPPED(emit_predefined_full) unimplemented"
               << std::endl << "..."
               << " pobstrbuf=" << MomShowObject(pobstrbuf)
               << " pobgenfile=" << MomShowObject(pobgenfile)
               << " targpob=" << MomShowObject(targpob)
               << " startnod=" << MomValue(startnod)
-              << " pobctx=" << MomShowObject(pobctx));
-#warning MOMCOD_STEPPED(emit_predefined_full)
+              << " pobctx=" << MomShowObject(pobctx)
+              << std::endl << ".. prsetv=" << MomValue(prsetv));
+  pystrbuf->out() << std::endl
+                  << R"ENDSTR(
+#ifndef MOM_HAS_PREDEF
+#error missing MOM_HAS_PREDEF
+#endif
+
+#undef MOM_NB_PREDEFINED
+)ENDSTR" << std::endl;
+  pystrbuf->out() << std::endl
+		  << "#define MOM_NB_PREDEFINED " << prsetv->sizew() << std::endl
+		  << std::endl << "// MOM_HAS_PREDEF(Id,Hi,Lo,Hash)" << std::endl;
+  std::map<std::string,const MomObject*> prednamemap;
+  int maxnamlen = 0;
+  for (const MomObject*predob : *prsetv) {
+  std::lock_guard<std::recursive_mutex> gupred{predob->get_recursive_mutex()};
+    pystrbuf->out() << "MOM_HAS_PREDEF(" << predob->id()
+		    << "," << predob->id().hi().serial()
+		    << "," << predob->id().lo().serial()
+		    << "," << predob->id().hash() << ")";
+    std::string prednam = mom_get_unsync_string_name(predob);
+    if (!prednam.empty()) {
+      if (maxnamlen<(int)prednam.size())
+	maxnamlen=(int)prednam.size();
+      pystrbuf->out() << " /*=" << prednam << "*/";
+      prednamemap.emplace(prednam,predob);
+    }    
+    pystrbuf->out() << std::endl;
+  }
+  pystrbuf->out() << std::endl;
+  for (auto it : prednamemap) {
+    pystrbuf->out() << "#undef MOMP_" << it.first << std::endl;
+  };
+  pystrbuf->out() << std::endl;
+  for (auto it : prednamemap) {
+    pystrbuf->out() << "#define MOMP_" << it.first;
+    for (int i= maxnamlen - it.first.size() + 1; i>0; i--) pystrbuf->out() << ' ';
+    pystrbuf->out()<< " MOM_PREDEF(" <<it.second->id() << ")" << std::endl;
+  }
+  pystrbuf->out() << std::endl;
+  pystrbuf->out() << std::endl << "#undef MOM_HAS_PREDEF" << std::endl;
+  pystrbuf->out() << std::endl << "// end of generated predefined file" << std::endl;
   return true;
 } // end  MOMCOD_STEPPED(emit_predefined_full)
 
