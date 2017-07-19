@@ -4056,6 +4056,10 @@ private:
   {
     _penvstack_envs.clear();
   };
+  MomValue env_eval_object(MomObject*obj, int depth);
+  MomValue env_eval_node(const MomNode*nod, int depth);
+  void env_collect_variables(MomObjptrSet &setvar, const MomValue exprv, int depth);
+  void env_collect_node_variables(MomObjptrSet &setvar, const MomNode*nod, int depth);
 public:
   static constexpr const bool FAIL_NO_ENV=false;
   static constexpr const bool IGNORE_NO_ENV=true;
@@ -4090,7 +4094,6 @@ public:
       MOM_FAILURE("EnvStack too deep owner=" << MomShowObject(owner()));
     check_limits();
   };
-
   unsigned size() const
   {
     return _penvstack_envs.size();
@@ -4107,7 +4110,7 @@ public:
   void nth_env_set_value(MomValue val, int rk,  bool fail=IGNORE_NO_ENV);
   MomValue var_bind(MomObject*varob, int*prk=nullptr) const;
   MomValue var_rebind(MomObject*varob, MomValue newval, int*prk=nullptr);
-  MomValue env_eval(MomValue exprv, int depth=0);
+  MomValue env_eval(const MomValue exprv, int depth=0);
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
   static MomPyv_scandump_sig Scandump;

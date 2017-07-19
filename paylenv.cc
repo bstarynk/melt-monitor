@@ -343,3 +343,75 @@ MomPaylEnvstack::Updated(MomPayload*payl, MomObject*own, MomObject const*attrob,
   return false;
 } // end MomPaylEnvstack::Updated
 
+
+MomValue
+MomPaylEnvstack::env_eval(const MomValue exprv, int depth)
+{
+  check_depth_and_limits(depth);
+  auto expk = exprv.kind();
+  switch (expk)
+    {
+    case MomKind::TagNoneK:
+    case MomKind::TagIntK:
+    case MomKind::TagStringK:
+    case MomKind::TagIntSqK:
+    case MomKind::TagDoubleSqK:
+    case MomKind::TagSetK:
+    case MomKind::TagTupleK:
+      return exprv;
+    case MomKind::TagObjectK:
+      return env_eval_object(const_cast<MomObject*>(exprv.as_val()->as_object()), depth);
+    case MomKind::TagNodeK:
+      return env_eval_node(exprv.as_val()->as_node(), depth);
+    case MomKind::Tag_LastK:
+      MOM_FATAPRINTF("env_eval invalid expr");
+    }
+} // end of MomPaylEnvstack::env_eval
+
+
+MomValue
+MomPaylEnvstack::env_eval_object(MomObject*obj, int depth)
+{
+  MOM_ASSERT(obj != nullptr && obj->vkind() == MomKind::TagObjectK,
+             "env_eval_object corrupted obj");
+  check_depth_and_limits(depth);
+  int ln = -1;
+  MomValue bindv = var_bind(obj, &ln);
+  if (bindv || ln>=0) return  bindv;
+  return MomValue(obj);
+} // end MomPaylEnvstack::env_eval_object
+
+void
+MomPaylEnvstack::env_collect_variables(MomObjptrSet& setvar, const MomValue exprv, int depth)
+{
+  check_depth_and_limits(depth);
+  auto expk = exprv.kind();
+  if (expk == MomKind::TagObjectK)
+    {
+      auto pob = const_cast<MomObject*>(exprv.as_val()->as_object());
+      int ln = -1;
+      MomValue bindv = var_bind(pob, &ln);
+      if (bindv || ln>=0)
+        setvar.insert(pob);
+    }
+  else if (expk == MomKind::TagNodeK)
+    {
+      auto nod = exprv.as_val()->as_node();
+      env_collect_node_variables(setvar, nod, depth);
+    }
+} // end env_collect_variables
+
+void
+MomPaylEnvstack::env_collect_node_variables(MomObjptrSet& setvar, const MomNode*nod, int depth)
+{
+  check_depth_and_limits(depth);
+} // end env_collect_node_variables
+
+
+MomValue
+MomPaylEnvstack::env_eval_node(const MomNode*nod, int depth)
+{
+  MOM_ASSERT(nod != nullptr && nod->vkind() == MomKind::TagNodeK,
+             "env_eval_node corrupted nod");
+  check_depth_and_limits(depth);
+} // end MomPaylEnvstack::env_eval_node
