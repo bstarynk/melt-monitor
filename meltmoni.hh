@@ -4014,6 +4014,67 @@ public:
   static MomPyv_updated_sig Updated;
 }; // end class MomPaylGenfile
 
+
+
+////////////////
+
+extern "C" const struct MomVtablePayload_st MOM_PAYLOADVTBL(envstack);
+
+class MomPaylEnvstack: public MomPayload
+{
+public:
+  typedef std::map<MomObject*,MomValue,MomObjptrLess> MomEnvBindMap;
+  friend struct MomVtablePayload_st;
+  friend class MomObject;
+  struct MomEnv
+  {
+    unsigned env_depth;
+    MomEnvBindMap env_map;
+    MomValue env_val;
+    MomEnv(unsigned d=0, MomValue v=nullptr) : env_depth(d), env_map{}, env_val(v) {};
+    ~MomEnv() = default;
+    MomEnv(const MomEnv&) = default;
+    MomEnv(MomEnv&&) = default;
+  };
+private:
+  std::vector<MomEnv> _penvstack_envs;
+  MomPaylEnvstack(MomObject*own)
+    : MomPayload(&MOM_PAYLOADVTBL(envstack), own),
+      _penvstack_envs() {};
+  ~MomPaylEnvstack()
+  {
+    _penvstack_envs.clear();
+  };
+public:
+  static constexpr const bool FAIL_NO_ENV=false;
+  static constexpr const bool IGNORE_NO_ENV=true;
+  unsigned size() const
+  {
+    return _penvstack_envs.size();
+  };
+  void push_env()
+  {
+    _penvstack_envs.emplace_back(_penvstack_envs.size());
+  }
+  void pop_env(bool fail=IGNORE_NO_ENV);
+  void last_env_set_value(MomValue val, bool fail=IGNORE_NO_ENV);
+  void last_env_bind(MomObject*ob, MomValue val, bool fail=IGNORE_NO_ENV);
+  ///
+  void nth_env_bind(MomObject*ob, MomValue val, int rk, bool fail=IGNORE_NO_ENV);
+  void nth_env_set_value(MomValue val, int rk,  bool fail=IGNORE_NO_ENV);
+  MomValue var_bind(MomObject*varob, int*prk=nullptr) const;
+  MomValue var_rebind(MomObject*varob, MomValue newval, int*prk=nullptr);
+  static MomPyv_destr_sig Destroy;
+  static MomPyv_scangc_sig Scangc;
+  static MomPyv_scandump_sig Scandump;
+  static MomPyv_emitdump_sig Emitdump;
+  static MomPyv_initload_sig Initload;
+  static MomPyv_loadfill_sig Loadfill;
+  static MomPyv_getmagic_sig Getmagic;
+  static MomPyv_fetch_sig Fetch;
+  static MomPyv_updated_sig Updated;
+}; // end class MomPaylEnvstack
+
 ////////////////
 /// in state.cc
 extern "C" MomIdent mom_load_spyid1;

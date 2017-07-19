@@ -49,16 +49,8 @@ extern "C" bool MOMCOD_UPDATED(test1generator)
                      << " with ownpob=" << MomShowObject(ownpob)
                      << " and targpob=" << MomShowObject(targpob));
         pobstart->unsync_append_comp(MomString::make_from_string("# generated test1gen.out\n"));
-        /*** bad code below, becase the_system has no outputter
-             See code of  MomPaylStrobuf::output_value_to_buffer
-             pobstart->unsync_append_comp
-               (MomNode::make_from_values(MOMP_the_system,
-                      MomString::make_from_string("foobar"),
-        	MomValue((intptr_t)35)));
-        ***/
       }
     }
-#warning incomplete  MOMCOD_UPDATED(test1generator)
   return false;
 } // end  MOMCOD_UPDATED(test1generator)
 
