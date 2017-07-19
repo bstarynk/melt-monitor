@@ -1373,13 +1373,15 @@ mom_set_debugging (const char *dbgopt)
 
 static void create_predefined_mom(std::string nam, std::string comment)
 {
-  if (!comment.empty()) 
-    MOM_FATAPRINTF("unimplemented create_predefined_mom nam:%s with non-empty comment:%s",
-		   nam.c_str(), comment.c_str());
+  MomObject* oldpob = mom_find_named(nam.c_str());
+  if (oldpob != nullptr)
+    MOM_FATALOG("cannot create predefined named " << nam << " already existing as " << MomShowObject(oldpob));
   auto pob = MomObject::make_object();
   std::lock_guard<std::recursive_mutex> gu{pob->get_recursive_mutex()};
   pob->set_space(MomSpace::PredefSp);
   pob->touch();
+  if (!comment.empty())
+    pob->unsync_put_phys_attr(MOMP_comment, MomString::make_from_string(comment));
   mom_register_unsync_named(pob, nam.c_str());
 } // end of create_predefined_mom
 
