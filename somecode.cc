@@ -243,14 +243,6 @@ extern "C" bool MOMCOD_STEPPED(emit_predefined_full)
                 " pobgenfile=" << MomShowObject(pobgenfile)
                 << " is not a genfile");
   const MomSet* prsetv = startnod->nth_son(0).as_val()->as_set();
-  MOM_WARNLOG("MOMCOD_STEPPED(emit_predefined_full) unimplemented"
-              << std::endl << "..."
-              << " pobstrbuf=" << MomShowObject(pobstrbuf)
-              << " pobgenfile=" << MomShowObject(pobgenfile)
-              << " targpob=" << MomShowObject(targpob)
-              << " startnod=" << MomValue(startnod)
-              << " pobctx=" << MomShowObject(pobctx)
-              << std::endl << ".. prsetv=" << MomValue(prsetv));
   pystrbuf->out() << std::endl
                   << R"ENDSTR(
 #ifndef MOM_HAS_PREDEF
