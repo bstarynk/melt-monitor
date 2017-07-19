@@ -1,4 +1,4 @@
--- dump 2017 Jul 17 from mom_user dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jul 19 from mom_user dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -68,7 +68,6 @@ INSERT INTO t_names VALUES ('_3ojMJ5jyD6s_3i5kM0DDFDT', 'q');
 INSERT INTO t_names VALUES ('_3r6zyliGEa1_4VuvVlsYGiH', 'r');
 INSERT INTO t_names VALUES ('_3xRwKNR8Txl_0wsckeKslWS', 's');
 INSERT INTO t_names VALUES ('_40qshq4y5x8_7gVSxYkkZS7', 't');
-INSERT INTO t_names VALUES ('_1su4dxploe6_3OEeK9QS68b', 'test1gen');
 INSERT INTO t_names VALUES ('_4aAhx0sQzAr_9XhL9OAq5TM', 'u');
 INSERT INTO t_names VALUES ('_4ioux9ZO1CL_1rL5zUwbrDz', 'v');
 INSERT INTO t_names VALUES ('_4jWlc9OU9d7_7kWpO3U1cmr', 'w');
@@ -201,19 +200,6 @@ INSERT INTO t_objects VALUES('_1TQ4EET0Ael_7wCii1rLlOv', 1497676631.2,
 ------'** end _1TQ4EET0Ael_7wCii1rLlOv
 
 
-INSERT INTO t_objects VALUES('_1TaJYE9mf5h_41UzXi1vTBb', 1500301533.05,
-'
-@: _3xRwKNR8Txl_0wsckeKslWS " the code proxy of test1gen"
-
-',
-'code', --- payl _1TaJYE9mf5h_41UzXi1vTBb
-'@CODEBASE: test1generator @CODEUPDATE!
-',
-'',
-'');--'--
-------'** end _1TaJYE9mf5h_41UzXi1vTBb
-
-
 INSERT INTO t_objects VALUES('_1YO5QQwWD9S_648ErV7JiiJ', 1499315419.12,
 '
 ///$anon1
@@ -224,19 +210,6 @@ INSERT INTO t_objects VALUES('_1YO5QQwWD9S_648ErV7JiiJ', 1499315419.12,
 '',
 '');--'--
 ------'** end _1YO5QQwWD9S_648ErV7JiiJ
-
-
-INSERT INTO t_objects VALUES('_1su4dxploe6_3OEeK9QS68b', 1499689282.34,
-'
-///$test1gen
-@: _3xRwKNR8Txl_0wsckeKslWS _4SCyZfyLX4u_38OYdt3f0wJ
-
-',
-'named', --- payl _1su4dxploe6_3OEeK9QS68b
-'test1gen',
-'',
-'_4SCyZfyLX4u_38OYdt3f0wJ');--'--
-------'** end _1su4dxploe6_3OEeK9QS68b
 
 
 INSERT INTO t_objects VALUES('_1tiNOVWIpjD_7kYkIXbupOP', 1497676631.19,
@@ -368,18 +341,6 @@ INSERT INTO t_objects VALUES('_40qshq4y5x8_7gVSxYkkZS7', 1497676631.29,
 ------'** end _40qshq4y5x8_7gVSxYkkZS7
 
 
-INSERT INTO t_objects VALUES('_4SCyZfyLX4u_38OYdt3f0wJ', 1499690053.01,
-'
-@: _3xRwKNR8Txl_0wsckeKslWS "the genfile proxy of test1gen"
-
-',
-'genfile', --- payl _4SCyZfyLX4u_38OYdt3f0wJ
-'_test1gen.out',
-'',
-'_1TaJYE9mf5h_41UzXi1vTBb');--'--
-------'** end _4SCyZfyLX4u_38OYdt3f0wJ
-
-
 INSERT INTO t_objects VALUES('_4aAhx0sQzAr_9XhL9OAq5TM', 1497676631.3,
 '
 ///$u
@@ -440,7 +401,6 @@ INSERT INTO t_objects VALUES('_5duwaaKJiRS_6cHHv0uehF0', 1500010711.46,
   _4ioux9ZO1CL_1rL5zUwbrDz [_3ojMJ5jyD6s_3i5kM0DDFDT _3r6zyliGEa1_4VuvVlsYGiH] "BLACK HEART SUIT is \u2665"
   {_0h6QnlLjipB_7LjgRYcUBIx _0uAMtAmkP34_1BhIutSjPN9} *_3r6zyliGEa1_4VuvVlsYGiH("inside" 
    "HAMMER \u2692 PICK")))
-&: _1su4dxploe6_3OEeK9QS68b
 
 ',
 '', '', '', '' -- nopayl
