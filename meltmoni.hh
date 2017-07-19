@@ -3877,7 +3877,7 @@ private:
 #define MOMCOD_UPDATED(Base) MomC__##Base##__Updated
   MomCod_Updated_sig* _pcode_updated_rout;
   ///
-  /// step conventionally named MomC__<base>__Step
+  /// step conventionally named MomC__<base>__Stepped
 #define MOMCOD_SUFFIX_STEPPED "__Stepped"
 #define MOMCOD_STEPPED(Base) MomC__##Base##__Stepped
   MomPyv_stepped_sig* _pcode_stepped_rout;
