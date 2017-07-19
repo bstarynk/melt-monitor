@@ -72,6 +72,7 @@ INSERT INTO t_names VALUES ('_6ZpMq408eTN_8t3ZHpgCk3R', 'starter');
 INSERT INTO t_names VALUES ('_4T8am97muLl_5969SR22Ecq', 'string');
 INSERT INTO t_names VALUES ('_5Wnb8RZdglo_9jkLPwTffMm', 'the_system');
 INSERT INTO t_names VALUES ('_6TmLNh9vtVY_0pwkHRtJ44k', 'tuple');
+INSERT INTO t_names VALUES ('_1z3DQ3EVAGs_3KlGdHJpWbX', 'undefined');
 END TRANSACTION; --- for t_names
 
 
@@ -161,6 +162,19 @@ INSERT INTO t_objects VALUES('_1jJjA6LcXiX_1V4ZcXlje09', 1493382726.98,
 '',
 '');--'--
 ------'** end _1jJjA6LcXiX_1V4ZcXlje09
+
+
+INSERT INTO t_objects VALUES('_1z3DQ3EVAGs_3KlGdHJpWbX', 1500493047.47,
+'
+///$undefined
+@: _01h86SAfOfg_1q2oMegGRwW "for initial value in binding, etc..."
+
+',
+'named', --- payl _1z3DQ3EVAGs_3KlGdHJpWbX
+'undefined',
+'',
+'');--'--
+------'** end _1z3DQ3EVAGs_3KlGdHJpWbX
 
 
 INSERT INTO t_objects VALUES('_268RKjuQT02_2Kh0wgKnhLT', 1500010547.63,

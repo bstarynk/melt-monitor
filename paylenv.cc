@@ -375,6 +375,8 @@ MomPaylEnvstack::env_eval_object(MomObject*obj, int depth)
   MOM_ASSERT(obj != nullptr && obj->vkind() == MomKind::TagObjectK,
              "env_eval_object corrupted obj");
   check_depth_and_limits(depth);
+  if (obj == MOMP_undefined)
+    return nullptr;
   int ln = -1;
   MomValue bindv = var_bind(obj, &ln);
   if (bindv || ln>=0) return  bindv;
@@ -389,6 +391,8 @@ MomPaylEnvstack::env_collect_variables(MomObjptrSet& setvar, const MomValue expr
   if (expk == MomKind::TagObjectK)
     {
       auto pob = const_cast<MomObject*>(exprv.as_val()->as_object());
+      if (pob == MOMP_undefined)
+        return;
       int ln = -1;
       MomValue bindv = var_bind(pob, &ln);
       if (bindv || ln>=0)
