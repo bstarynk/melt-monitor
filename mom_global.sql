@@ -1,4 +1,4 @@
--- dump 2017 Jul 18 from mom_global dumped by monimelt-dump-state.sh .....
+-- dump 2017 Jul 19 from mom_global dumped by monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Free Software Foundation, Inc.
  --  MONIMELT is a monitor for MELT - see http://gcc-melt.org/
@@ -322,7 +322,7 @@ INSERT INTO t_objects VALUES('_6Jns5AFaIAO_8vsgtP9xyZj', 1500406793.05,
 
 ',
 'code', --- payl _6Jns5AFaIAO_8vsgtP9xyZj
-'@CODEBASE: start_cplusplus_outputter @CODEUPDATE! @CODESTEP!
+'@CODEBASE: start_cplusplus_outputter @CODESTEP!
 ',
 '',
 '');--'--
