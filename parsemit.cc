@@ -1395,6 +1395,29 @@ MomParser::parse_command(bool *pgotcommand)
                    << " @" <<location_str());
     } // end if ~g or ~glob to make global the focus
   ////
+  // to put the focus in predefined space: ~u | ~pred
+  else if (got_cstring("~pred"))   // order matters!
+    {
+      MOM_DEBUGLOG(parse, "parse_command after ~pred orcurbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
+      MOM_DEBUGLOG(parse,"parse_command should put in predefined space pobfocus=" << pobfocus);
+      if (!_parnobuild)
+        {
+          if (!pobfocus)
+            MOM_PARSE_FAILURE(this, "expect focus object for global space after ~g");
+          std::lock_guard<std::recursive_mutex> gu{pobfocus->get_recursive_mutex()};
+          pobfocus->set_space(MomSpace::PredefSp);
+          updated_focused_object(pobfocus);
+        }
+      if (pgotcommand)
+        *pgotcommand=true;
+      skip_spaces();
+      MOM_DEBUGLOG(parse, "parse_command done predefinedspace curbytes="
+                   << MomShowString(curbytes())
+                   << " @" <<location_str());
+    } // end if ~pred to put in predefined space the focus
+  ////
   // to put the focus in user space: ~u | ~user
   else if (got_cstring("~user") ||got_cstring("~u"))   // order matters!
     {
