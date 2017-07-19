@@ -212,6 +212,19 @@ INSERT INTO t_objects VALUES('_33imugvOze0_0wdPqjmME0U', 1497705092.87,
 ------'** end _33imugvOze0_0wdPqjmME0U
 
 
+INSERT INTO t_objects VALUES('_3A2Up6FQUMF_6qcLJJNfjaD', 1500454839.91,
+'
+@: _3xRwKNR8Txl_0wsckeKslWS "the code proxy of emit_predefined_content"
+
+',
+'code', --- payl _3A2Up6FQUMF_6qcLJJNfjaD
+'@CODEBASE: emit_predefined_full @CODESTEP!
+',
+'',
+'');--'--
+------'** end _3A2Up6FQUMF_6qcLJJNfjaD
+
+
 INSERT INTO t_objects VALUES('_3Kk21ebU2OC_1GJWVglZfFM', 1500453726.49,
 '
 @: _3xRwKNR8Txl_0wsckeKslWS "the code proxy of mom_predefined_file"
@@ -400,7 +413,7 @@ INSERT INTO t_objects VALUES('_7DYTrPqfMqY_1sSbTYnbhTB', 1500453884.23,
 'named', --- payl _7DYTrPqfMqY_1sSbTYnbhTB
 'emit_predefined_content',
 '',
-'');--'--
+'_3A2Up6FQUMF_6qcLJJNfjaD');--'--
 ------'** end _7DYTrPqfMqY_1sSbTYnbhTB
 
 

@@ -102,7 +102,7 @@ extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
         std::lock_guard<std::recursive_mutex> guown{ownpob->get_recursive_mutex()};
         MomValue comp0own = ownpob->unsync_get_nth_comp(0);
         MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(predefined_file_generator) ownpob=" << MomShowObject(ownpob)
-		     << " has components " << MomShowVectorValues(ownpob->unsync_components_vector())
+                     << " has components " << MomShowVectorValues(ownpob->unsync_components_vector())
                      << " with comp0own=" << comp0own);
         MomObject*pobcomp0own = const_cast<MomObject*>(comp0own->as_object());
         MomValue vnod = MomNode::make_from_values(pobcomp0own,
@@ -127,7 +127,7 @@ extern "C" bool MOMCOD_STEPPED(start_cplusplus_outputter)
 {
   auto py = static_cast<MomPaylCode*>(const_cast<MomPayload*>(payl));
   MOM_ASSERT(py && py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
-             "MOMCOD_STEPPED(predefined_file_generator) invalid code payload for targpob=" << targpob);
+             "MOMCOD_STEPPED(start_cplusplus_outputter) invalid code payload for targpob=" << targpob);
   // targpob would be the genfile proxy of mom_predefined_file
   MomObject*ownpob = py->owner();
   // ownpob would be the code proxy of mom_predefined_file
@@ -152,8 +152,7 @@ extern "C" bool MOMCOD_STEPPED(start_cplusplus_outputter)
                << " targpob=" << MomShowObject(targpob)
                << " startnod=" << MomValue(startnod)
                << " pobctx=" << MomShowObject(pobctx)
-               << " outdepth=" << outdepth
-               << " ¤¤¤¤¤¤" << std::endl);
+               << " outdepth=" << outdepth);
   std::lock_guard<std::recursive_mutex> gustrbuf{pobstrbuf->get_recursive_mutex()};
   auto pystrbuf = pobstrbuf->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
   if (!pystrbuf)
@@ -191,3 +190,60 @@ extern "C" bool MOMCOD_STEPPED(start_cplusplus_outputter)
                << std::endl);
   return true;
 } // end  MOMCOD_STEPPED(start_cplusplus_outputter)
+
+
+
+extern "C" bool MOMCOD_STEPPED(emit_predefined_full)
+(const struct MomPayload*payl, MomObject*targpob,
+ const MomValue*vecarr, unsigned veclen,int depth)
+{
+  auto py = static_cast<MomPaylCode*>(const_cast<MomPayload*>(payl));
+  MOM_ASSERT(py && py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
+             "MOMCOD_STEPPED(emit_predefined_full) invalid code payload for targpob=" << targpob);
+  // targpob would be the genfile proxy of mom_predefined_file
+  MomObject*ownpob = py->owner();
+  // ownpob would be the code proxy of mom_predefined_file
+  MOM_DEBUGLOG(gencod, "MOMCOD_STEPPED(emit_predefined_full) start"
+               << " targpob="  << MomShowObject(targpob)
+               << " ownpob=" << MomShowObject(ownpob)
+               << " args=" << MomShowVectorValues(vecarr, veclen)
+               << " depth=" << depth);
+  if (veclen != 5)
+    {
+      MOM_FAILURE("MOMCOD_STEPPED(emit_predefined_full) wants five arguments but got " << MomShowVectorValues(vecarr, veclen));
+    }
+  MomObject*pobstrbuf = const_cast<MomObject*>(vecarr[0].as_val()->as_object());
+  MomObject*pobgenfile = const_cast<MomObject*>(vecarr[1].as_val()->as_object());
+  const MomNode*startnod = vecarr[2].as_val()->as_node();
+  MomObject*pobctx = const_cast<MomObject*>(vecarr[3].as_val()->as_object());
+  int outdepth= vecarr[4].as_tagint();
+  MOM_DEBUGLOG(gencod, "MOMCOD_STEPPED(emit_predefined_full)"
+               << std::endl << "..."
+               << " pobstrbuf=" << MomShowObject(pobstrbuf)
+               << " pobgenfile=" << MomShowObject(pobgenfile)
+               << " targpob=" << MomShowObject(targpob)
+               << " startnod=" << MomValue(startnod)
+               << " pobctx=" << MomShowObject(pobctx));
+  std::lock_guard<std::recursive_mutex> gustrbuf{pobstrbuf->get_recursive_mutex()};
+  auto pystrbuf = pobstrbuf->unsync_runcast_payload<MomPaylStrobuf>(MOM_PAYLOADVTBL(strobuf));
+  if (!pystrbuf)
+    MOM_FAILURE("MOMCOD_STEPPED(emit_predefined_full) "
+                " pobstrbuf=" << MomShowObject(pobstrbuf)
+                << " is not a strobuf");
+  std::lock_guard<std::recursive_mutex> gugenfil{pobgenfile->get_recursive_mutex()};
+  auto pygenfil = pobgenfile->unsync_runcast_payload<MomPaylGenfile>(MOM_PAYLOADVTBL(genfile));
+  if (!pygenfil)
+    MOM_FAILURE("MOMCOD_STEPPED(emit_predefined_full) "
+                " pobgenfile=" << MomShowObject(pobgenfile)
+                << " is not a genfile");
+  MOM_WARNLOG("MOMCOD_STEPPED(emit_predefined_full) unimplemented"
+              << std::endl << "..."
+              << " pobstrbuf=" << MomShowObject(pobstrbuf)
+              << " pobgenfile=" << MomShowObject(pobgenfile)
+              << " targpob=" << MomShowObject(targpob)
+              << " startnod=" << MomValue(startnod)
+              << " pobctx=" << MomShowObject(pobctx));
+#warning MOMCOD_STEPPED(emit_predefined_full)
+  return true;
+} // end  MOMCOD_STEPPED(emit_predefined_full)
+
