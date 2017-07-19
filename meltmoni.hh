@@ -4038,9 +4038,14 @@ public:
   };
 private:
   std::vector<MomEnv> _penvstack_envs;
+  double _penvstack_timelimit;
+  std::uint64_t _penvstack_alloclimit;
+  static constexpr unsigned _penvstack_maxdepth_ = 80;
   MomPaylEnvstack(MomObject*own)
     : MomPayload(&MOM_PAYLOADVTBL(envstack), own),
-      _penvstack_envs() {};
+      _penvstack_envs(),
+      _penvstack_timelimit(0.0),
+      _penvstack_alloclimit(0) {};
   ~MomPaylEnvstack()
   {
     _penvstack_envs.clear();
@@ -4048,6 +4053,38 @@ private:
 public:
   static constexpr const bool FAIL_NO_ENV=false;
   static constexpr const bool IGNORE_NO_ENV=true;
+  void set_time_limit (double l=0.0)
+  {
+    _penvstack_timelimit = l;
+  };
+  double time_limit(void) const
+  {
+    return _penvstack_timelimit;
+  };
+  void set_allocation_limit (std::uint64_t l=0)
+  {
+    _penvstack_alloclimit = l;
+  };
+  std::uint64_t allocation_limit(void) const
+  {
+    return _penvstack_alloclimit;
+  };
+  void check_limits() const
+  {
+    if (_penvstack_timelimit > 0.0
+        && mom_elapsed_real_time() > _penvstack_timelimit)
+      MOM_FAILURE("EnvStack timedout owner=" << MomShowObject(owner()));
+    if (_penvstack_alloclimit > 0
+        && MomAnyVal::allocation_word_count() > _penvstack_alloclimit)
+      MOM_FAILURE("EnvStack overallocation owner=" << MomShowObject(owner()));
+  };
+  void check_depth_and_limits(unsigned depth) const
+  {
+    if (depth > _penvstack_maxdepth_)
+      MOM_FAILURE("EnvStack too deep owner=" << MomShowObject(owner()));
+    check_limits();
+  };
+
   unsigned size() const
   {
     return _penvstack_envs.size();
@@ -4064,6 +4101,7 @@ public:
   void nth_env_set_value(MomValue val, int rk,  bool fail=IGNORE_NO_ENV);
   MomValue var_bind(MomObject*varob, int*prk=nullptr) const;
   MomValue var_rebind(MomObject*varob, MomValue newval, int*prk=nullptr);
+  MomValue env_eval(MomValue exprv, int depth=0);
   static MomPyv_destr_sig Destroy;
   static MomPyv_scangc_sig Scangc;
   static MomPyv_scandump_sig Scandump;
