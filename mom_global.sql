@@ -51,6 +51,7 @@ INSERT INTO t_names VALUES ('_8f7GaaT5WJK_01z8k1JztS6', 'dollar');
 INSERT INTO t_names VALUES ('_4cCZc3Izgsr_7LsCkWW7flp', 'doublesq');
 INSERT INTO t_names VALUES ('_33imugvOze0_0wdPqjmME0U', 'embed');
 INSERT INTO t_names VALUES ('_2QeF5dreQwf_51c3fAJEYqJ', 'emit');
+INSERT INTO t_names VALUES ('_7DYTrPqfMqY_1sSbTYnbhTB', 'emit_predefined_content');
 INSERT INTO t_names VALUES ('_7QeFDN33m7B_3dQv2OqqbH6', 'get');
 INSERT INTO t_names VALUES ('_0vgCFjXblkx_4zCMhMAWjVK', 'int');
 INSERT INTO t_names VALUES ('_45cnnX4v29t_9gZkfMOZj2Z', 'intsq');
@@ -98,7 +99,7 @@ INSERT INTO t_objects VALUES('_0vgCFjXblkx_4zCMhMAWjVK', 1497636292.47,
 ------'** end _0vgCFjXblkx_4zCMhMAWjVK
 
 
-INSERT INTO t_objects VALUES('_1AXXUcWe8Pc_4UIYaHPzd9G', 1500351236.47,
+INSERT INTO t_objects VALUES('_1AXXUcWe8Pc_4UIYaHPzd9G', 1500453602.86,
 '
 @: _3xRwKNR8Txl_0wsckeKslWS "the genfile proxy of mom_predefined_file"
 
@@ -123,7 +124,7 @@ INSERT INTO t_objects VALUES('_1JSykdLcLdl_8rWxtDBaPGN', 1497636292.47,
 ------'** end _1JSykdLcLdl_8rWxtDBaPGN
 
 
-INSERT INTO t_objects VALUES('_1cstd9Sn6qZ_8NZPx7Zvm7T', 1500369916.06,
+INSERT INTO t_objects VALUES('_1cstd9Sn6qZ_8NZPx7Zvm7T', 1500453299.5,
 '
 ///$mom_predefined_file
 @: _3xRwKNR8Txl_0wsckeKslWS _1AXXUcWe8Pc_4UIYaHPzd9G
@@ -211,10 +212,11 @@ INSERT INTO t_objects VALUES('_33imugvOze0_0wdPqjmME0U', 1497705092.87,
 ------'** end _33imugvOze0_0wdPqjmME0U
 
 
-INSERT INTO t_objects VALUES('_3Kk21ebU2OC_1GJWVglZfFM', 1500351239.37,
+INSERT INTO t_objects VALUES('_3Kk21ebU2OC_1GJWVglZfFM', 1500453726.49,
 '
 @: _3xRwKNR8Txl_0wsckeKslWS "the code proxy of mom_predefined_file"
 &: _2SnSoZOZXSr_9jjK01p1ahH
+&: _7DYTrPqfMqY_1sSbTYnbhTB
 
 ',
 'code', --- payl _3Kk21ebU2OC_1GJWVglZfFM
@@ -388,6 +390,18 @@ INSERT INTO t_objects VALUES('_7D8xcWnEiys_8oqOVSkCxkA', 1497636412.76,
 '',
 '');--'--
 ------'** end _7D8xcWnEiys_8oqOVSkCxkA
+
+
+INSERT INTO t_objects VALUES('_7DYTrPqfMqY_1sSbTYnbhTB', 1500453884.23,
+'
+///$emit_predefined_content
+
+',
+'named', --- payl _7DYTrPqfMqY_1sSbTYnbhTB
+'emit_predefined_content',
+'',
+'');--'--
+------'** end _7DYTrPqfMqY_1sSbTYnbhTB
 
 
 INSERT INTO t_objects VALUES('_7QeFDN33m7B_3dQv2OqqbH6', 1493382726.98,
