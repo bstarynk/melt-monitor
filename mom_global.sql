@@ -214,7 +214,7 @@ INSERT INTO t_objects VALUES('_33imugvOze0_0wdPqjmME0U', 1497705092.87,
 
 INSERT INTO t_objects VALUES('_3A2Up6FQUMF_6qcLJJNfjaD', 1500454839.91,
 '
-@: _3xRwKNR8Txl_0wsckeKslWS "the code proxy of emit_predefined_content"
+@: _3xRwKNR8Txl_0wsckeKslWS "the outputter of emit_predefined_content"
 
 ',
 'code', --- payl _3A2Up6FQUMF_6qcLJJNfjaD
@@ -408,12 +408,13 @@ INSERT INTO t_objects VALUES('_7D8xcWnEiys_8oqOVSkCxkA', 1497636412.76,
 INSERT INTO t_objects VALUES('_7DYTrPqfMqY_1sSbTYnbhTB', 1500453884.23,
 '
 ///$emit_predefined_content
+@: _6ss8POQNnku_8e8woNsmvN9 _3A2Up6FQUMF_6qcLJJNfjaD
 
 ',
 'named', --- payl _7DYTrPqfMqY_1sSbTYnbhTB
 'emit_predefined_content',
 '',
-'_3A2Up6FQUMF_6qcLJJNfjaD');--'--
+'');--'--
 ------'** end _7DYTrPqfMqY_1sSbTYnbhTB
 
 
