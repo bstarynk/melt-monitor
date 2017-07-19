@@ -2001,6 +2001,10 @@ public:
   {
     return  _nod_conn;
   };
+  unsigned arity() const
+  {
+    return sizew();
+  };
   typedef const MomValue* iterator;
   const MomValue* begin() const
   {
@@ -2014,6 +2018,15 @@ public:
   {
     return _nod_sons[ix];
   };
+  const MomValue nth_son(int ix, MomValue def=nullptr) const
+  {
+    unsigned ar = arity();
+    if (ix<0)
+      ix+=(int)ar;
+    if (ix>=0 && ix<ar)
+      return unsafe_at((unsigned)ix);
+    return def;
+  }
   virtual std::mutex* valmtx() const;
 protected:
   ~MomNode() {};
