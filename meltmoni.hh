@@ -2317,6 +2317,7 @@ public:
       return it->second;
     return MomValue{nullptr};
   }
+  std::vector<MomValue> unsync_components_vector(void) const { return _ob_comps; };
   unsigned unsync_nb_comps() const
   {
     return _ob_comps.size();
