@@ -2480,7 +2480,7 @@ MomObjptrHash::operator() (const MomObject*pob) const
 #define MOM_PREDEF(Id) mompredef##Id
 
 #define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) extern "C" MomObject*MOM_PREDEF(Id);
-#include "_mom_predef.h"
+#include "_mom_predefined.h"
 
 #define MOM_GLOBDATA_VAR(Nam) momgdata_##Nam
 #define MOM_LOAD_GLOBDATA(Nam) (MOM_GLOBDATA_VAR(Nam).load())

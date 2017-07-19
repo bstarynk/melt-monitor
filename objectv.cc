@@ -23,7 +23,7 @@
 
 
 #define MOM_HAS_PREDEF(Id,Hi,Lo,Hash) MomObject*MOM_PREDEF(Id);
-#include "_mom_predef.h"
+#include "_mom_predefined.h"
 
 #define MOM_HAS_GLOBDATA(Nam) std::atomic<MomObject*> MOM_GLOBDATA_VAR(Nam) \
   = ATOMIC_VAR_INIT(nullptr);
@@ -509,7 +509,7 @@ MomObject::initialize_predefined(void)
   MOM_PREDEF(Id)->set_space(MomSpace::PredefSp);        \
   MOM_PREDEF(Id)->touch();				\
 } while(0);
-#include "_mom_predef.h"
+#include "_mom_predefined.h"
 } // end MomObject::initialize_predefined
 
 void
