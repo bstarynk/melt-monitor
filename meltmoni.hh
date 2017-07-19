@@ -3528,6 +3528,8 @@ public:
   static constexpr int _max_indent = 16;
   static constexpr bool _SKIP_VALUE_ = true;
   static constexpr bool _DONTSKIP_VALUE_ = false;
+  static constexpr bool _RAW_STRING_ = true;
+  static constexpr bool _ENCODED_STRING_ = false;
   MomEmitter(std::ostream&out)
     : _emout(out),
       _emlastnewline(out.tellp()),
