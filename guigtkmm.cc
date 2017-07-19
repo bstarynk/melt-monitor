@@ -1133,8 +1133,16 @@ MomMainWindow::browser_insert_object_payload(Gtk::TextIter& txit, MomObject*pob,
            payl->_py_vtbl->pyv_module?:"_",
            MomParser::_par_comment_end1_);
   txit = _mwi_browserbuf->insert_with_tags_by_name
-         (txit,atitlebuf, tagspaylindex);
+         (txit, atitlebuf, tagspaylindex);
   browser_insert_newline(txit, tagspayl, 0);
+  MomObject* pobproxy = payl->proxy();
+  if (pobproxy)
+    {
+      txit = _mwi_browserbuf->insert_with_tags_by_name
+             (txit, "\342\207\235 " /*U+21DD RIGHTWARDS SQUIGGLE ARROW ⇝ */, tagspayl);
+      browser_insert_objptr(txit, pobproxy, &dctxpayl, tagspayl, 0);
+      browser_insert_newline(txit, tagspayl, 0);
+    }
 #warning MomMainWindow::browser_insert_object_payload should probably display the payload wisely
 } // end MomMainWindow::browser_insert_object_payload
 
