@@ -20,40 +20,6 @@
 
 #include "meltmoni.hh"
 
-extern "C" bool MOMCOD_UPDATED(test1generator)
-(const struct MomPayload*payl, MomObject*targpob,const MomObject*attrob,
- const MomValue*vecarr, unsigned veclen)
-{
-  auto py = static_cast<MomPaylCode*>(const_cast<MomPayload*>(payl));
-  MOM_ASSERT(py && py->_py_vtbl ==  &MOM_PAYLOADVTBL(code),
-             "MOMCOD_UPDATED(test1generator) invalid code payload for targpob=" << targpob);
-  MomObject*ownpob = py->owner();
-  MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(test1generator) targpob=" << MomShowObject(targpob)
-               << " ownpob=" << MomShowObject(ownpob)
-               << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
-               << " args=" << MomShowVectorValues(vecarr, veclen));
-  MOM_WARNLOG("Incomplete MOMCOD_UPDATED(test1generator) targob="<< MomShowObject(targpob)
-              << " ownpob=" << MomShowObject(ownpob)
-              << " attrob=" << MomShowObject(const_cast<MomObject*>(attrob))
-              << " args=" << MomShowVectorValues(vecarr, veclen));
-  if (attrob == MOMP_start_generation && veclen == 1)
-    {
-      MomValue vstart = vecarr[0];
-      MomObject*pobstart = const_cast<MomObject*>(vstart.to_val()->as_object());
-      if (!pobstart)
-        MOM_FAILURE("MOMCOD_UPDATED(test1generator) bad vstart=" << vstart);
-      {
-        std::lock_guard<std::recursive_mutex> gu{pobstart->get_recursive_mutex()};
-        MOM_DEBUGLOG(gencod, "MOMCOD_UPDATED(test1generator) start_generation pobstart=" << MomShowObject(pobstart)
-                     << " of paylname=" << pobstart->unsync_paylname()
-                     << " with ownpob=" << MomShowObject(ownpob)
-                     << " and targpob=" << MomShowObject(targpob));
-        pobstart->unsync_append_comp(MomString::make_from_string("# generated test1gen.out\n"));
-      }
-    }
-  return false;
-} // end  MOMCOD_UPDATED(test1generator)
-
 
 extern "C" bool MOMCOD_UPDATED(predefined_file_generator)
 (const struct MomPayload*payl, MomObject*targpob,const MomObject*attrob,
