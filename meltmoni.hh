@@ -1929,16 +1929,63 @@ public:
 
 
 ////////////////////////////////////////////////////////////////
-class MomNode final : public MomAnyVal // in nodev.cc
+class MomTreeNode : public MomAnyVal
 {
-  friend class MomPtrBag<MomNode>;
+protected:
   MomObject* const _nod_conn;
   const MomValue _nod_sons[MOM_FLEXIBLE_DIM];
-  MomNode(MomObject* conn, const MomValue*sons, unsigned arity, MomHash h)
-    : MomAnyVal(MomKind::TagNodeK, arity, h), _nod_conn(conn), _nod_sons{nullptr}
+  MomTreeNode(MomKind kd, MomObject* conn, const MomValue*sons, unsigned arity, MomHash h)
+    : MomAnyVal(kd, arity, h), _nod_conn(conn), _nod_sons{nullptr}
   {
     memcpy (const_cast<MomValue*>(_nod_sons), sons, arity * sizeof(MomValue));
   };
+public:
+  bool has_content(const MomObject*conn, const MomValue*varr, MomSize sz) const
+  {
+    if (_nod_conn != conn) return false;
+    if (sizew() != sz) return false;
+    if (sz > 0 && varr == nullptr) return false;
+    for (unsigned ix=0; ix<(unsigned)sz; ix++)
+      if (MOM_LIKELY(_nod_sons[ix] != varr[ix])) return false;
+    return true;
+  }
+  MomObject* conn() const
+  {
+    return  _nod_conn;
+  };
+  unsigned arity() const
+  {
+    return sizew();
+  };
+  typedef const MomValue* iterator;
+  const MomValue* begin() const
+  {
+    return _nod_sons;
+  };
+  const MomValue* end() const
+  {
+    return _nod_sons + sizew();
+  };
+  const MomValue unsafe_at(unsigned ix) const
+  {
+    return _nod_sons[ix];
+  };
+  const MomValue nth_son(int ix, MomValue def=nullptr) const
+  {
+    unsigned ar = arity();
+    if (ix<0)
+      ix+=(int)ar;
+    if (ix>=0 && ix<ar)
+      return unsafe_at((unsigned)ix);
+    return def;
+  }
+};				       // end class MomTreeNode
+
+class MomNode final : public MomTreeNode // in nodev.cc
+{
+  friend class MomPtrBag<MomNode>;
+  MomNode(MomObject* conn, const MomValue*sons, unsigned arity, MomHash h)
+    : MomTreeNode(MomKind::TagNodeK, conn, sons, arity, h) {};
   static constexpr const int _swidth_ = 512;
   static MomPtrBag<MomNode>  _bagarr_[_swidth_];
   static std::atomic<unsigned> _nbclearedbags_;
@@ -1970,15 +2017,6 @@ public:
   };
 public:
   static MomHash compute_hash(const MomObject*conn, const MomValue*arr, MomSize sz);
-  bool has_content(const MomObject*conn, const MomValue*varr, MomSize sz) const
-  {
-    if (_nod_conn != conn) return false;
-    if (sizew() != sz) return false;
-    if (sz > 0 && varr == nullptr) return false;
-    for (unsigned ix=0; ix<(unsigned)sz; ix++)
-      if (MOM_LIKELY(_nod_sons[ix] != varr[ix])) return false;
-    return true;
-  }
   static const MomNode* make_from_array(MomObject*conn, const MomValue*varr, MomSize sz);
   static const MomNode* make_from_vector(MomObject*conn, const std::vector<MomValue>& vvec)
   {
@@ -1997,36 +2035,6 @@ public:
   {
     return MomKind::TagNodeK;
   };
-  MomObject* conn() const
-  {
-    return  _nod_conn;
-  };
-  unsigned arity() const
-  {
-    return sizew();
-  };
-  typedef const MomValue* iterator;
-  const MomValue* begin() const
-  {
-    return _nod_sons;
-  };
-  const MomValue* end() const
-  {
-    return _nod_sons + sizew();
-  };
-  const MomValue unsafe_at(unsigned ix) const
-  {
-    return _nod_sons[ix];
-  };
-  const MomValue nth_son(int ix, MomValue def=nullptr) const
-  {
-    unsigned ar = arity();
-    if (ix<0)
-      ix+=(int)ar;
-    if (ix>=0 && ix<ar)
-      return unsafe_at((unsigned)ix);
-    return def;
-  }
   virtual std::mutex* valmtx() const;
 protected:
   ~MomNode() {};
