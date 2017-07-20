@@ -245,6 +245,7 @@ extern "C" bool MOMCOD_STEPPED(emit_predefined_full)
     pystrbuf->out() << "#undef MOMP_" << it.first << std::endl;
     pystrbuf->out() << "#undef MOMPNID_" << it.first << std::endl;
   };
+  pystrbuf->out() << std::endl;
   for (auto it : prednamemap) {
     pystrbuf->out() << "#define MOMP_" << it.first;
     for (int i= ((maxnamlen|3) - it.first.size() + 1); i>0; i--) pystrbuf->out() << ' ';
