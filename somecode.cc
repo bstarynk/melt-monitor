@@ -211,19 +211,20 @@ extern "C" bool MOMCOD_STEPPED(emit_predefined_full)
   const MomSet* prsetv = startnod->nth_son(0).as_val()->as_set();
   pystrbuf->out() << std::endl
                   << R"ENDSTR(
-#ifndef MOM_HAS_PREDEF
-#error missing MOM_HAS_PREDEF
+#if !defined(MOM_HAS_PREDEF) && !defined(MOM_HAS_NAMED_PREDEF)
+#error missing MOM_HAS_PREDEF or MOM_HAS_NAMED_PREDEF
 #endif
 
 #undef MOM_NB_PREDEFINED
 )ENDSTR" << std::endl;
   pystrbuf->out() << std::endl
-		  << "#define MOM_NB_PREDEFINED " << prsetv->sizew() << std::endl
-		  << std::endl << "// MOM_HAS_PREDEF(Id,Hi,Lo,Hash)" << std::endl;
+		  << "#define MOM_NB_PREDEFINED " << prsetv->sizew() << std::endl;
   std::map<std::string,const MomObject*> prednamemap;
   int maxnamlen = 0;
+  pystrbuf->out() << std::endl << "#ifdef MOM_HAS_PREDEF" << std::endl
+		  << std::endl << "// MOM_HAS_PREDEF(Id,Hi,Lo,Hash)" << std::endl;
   for (const MomObject*predob : *prsetv) {
-  std::lock_guard<std::recursive_mutex> gupred{predob->get_recursive_mutex()};
+    std::lock_guard<std::recursive_mutex> gupred{predob->get_recursive_mutex()};
     pystrbuf->out() << "MOM_HAS_PREDEF(" << predob->id()
 		    << "," << predob->id().hi().serial()
 		    << "," << predob->id().lo().serial()
@@ -237,18 +238,34 @@ extern "C" bool MOMCOD_STEPPED(emit_predefined_full)
     }    
     pystrbuf->out() << std::endl;
   }
-  pystrbuf->out() << std::endl;
+  pystrbuf->out() << std::endl << "#undef MOM_HAS_PREDEF" << std::endl;
+  pystrbuf->out() << "#endif /*MOM_HAS_PREDEF*/" << std::endl;
+  pystrbuf->out() << std::endl << std::endl;
   for (auto it : prednamemap) {
     pystrbuf->out() << "#undef MOMP_" << it.first << std::endl;
+    pystrbuf->out() << "#undef MOMPNID_" << it.first << std::endl;
   };
-  pystrbuf->out() << std::endl;
   for (auto it : prednamemap) {
     pystrbuf->out() << "#define MOMP_" << it.first;
     for (int i= ((maxnamlen|3) - it.first.size() + 1); i>0; i--) pystrbuf->out() << ' ';
     pystrbuf->out()<< " MOM_PREDEF(" <<it.second->id() << ")" << std::endl;
   }
   pystrbuf->out() << std::endl;
-  pystrbuf->out() << std::endl << "#undef MOM_HAS_PREDEF" << std::endl;
+  for (auto it : prednamemap) {
+    pystrbuf->out() << "#define MOMPNID_" << it.first;
+    for (int i= ((maxnamlen|3) - it.first.size() + 1); i>0; i--) pystrbuf->out() << ' ';
+    pystrbuf->out()<< " " <<it.second->id()  << std::endl;
+  }
+  pystrbuf->out() << std::endl;
+  pystrbuf->out() << std::endl << "#ifdef MOM_HAS_NAMED_PREDEF"<< std::endl;
+  pystrbuf->out() << "// MOM_HAS_NAMED_PREDEF(Nam,Id)" << std::endl;
+  for (auto it : prednamemap) {
+    pystrbuf->out() << "MOM_HAS_NAMED_PREDEF(" << it.first
+		    << "," << it.second->id() << ")" << std::endl;
+  }
+  pystrbuf->out() << std::endl << "#undef MOM_HAS_NAMED_PREDEF" << std::endl;
+  pystrbuf->out() << "#endif /*MOM_HAS_NAMED_PREDEF*/"<< std::endl << std::endl;
+  pystrbuf->out() << std::endl;
   pystrbuf->out() << std::endl << "// end of generated predefined file" << std::endl;
   return true;
 } // end  MOMCOD_STEPPED(emit_predefined_full)
